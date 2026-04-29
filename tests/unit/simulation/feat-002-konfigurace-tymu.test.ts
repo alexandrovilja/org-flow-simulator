@@ -35,42 +35,65 @@ describe('feat-002: konfigurace týmu', () => {
       expect(state.team[0].currentTask).toBeNull()
     })
 
-    it('člen preferuje novou feature z backlogu před dokončením rozběhnuté', () => {
+    it('člen pracuje na nejvíce prioritní feature bez ohledu na to, kde se nachází', () => {
       const rng = mulberry32(42)
       const state = makeInitialState(rng, SETTINGS)
 
-      // Omezíme tým na jediného FE člena — eliminujeme vliv ostatních členů,
-      // kteří by mohli nepredikovatelně spotřebovat backlog a zkreslovat výsledek
+      // Omezíme tým na jediného FE člena — eliminujeme vliv ostatních členů
       const feMember = state.team.find(m => m.roles.includes('FE'))!
       state.team = [feMember]
       feMember.currentTask = null
 
-      // Feature v inProgress s jedním nedokončeným FE úkolem — člen by ji mohl vzít,
-      // ale pouze pokud backlog nenabízí nic lepšího (což je případ, který testujeme)
-      const inProgressFeature = state.backlog.shift()!
-      inProgressFeature.status = 'in-progress'
-      inProgressFeature.tasks = [{
-        id: 9001, role: 'FE', work: 5, progress: 0, status: 'todo', assignee: null,
-      }]
-      state.inProgress.push(inProgressFeature)
+      // Nastavíme přesný scénář: dvě features s FE úkolem, různá priorita.
+      //
+      // Feature A — priorita 2, je v inProgress (někdo ji začal dřív)
+      const featureA = state.backlog.shift()!
+      featureA.priority = 2
+      featureA.status = 'in-progress'
+      featureA.tasks = [{ id: 9001, role: 'FE', work: 5, progress: 0, status: 'todo', assignee: null }]
+      state.inProgress.push(featureA)
 
-      // Explicitně nastavíme první backlogovou feature tak, aby obsahovala FE úkol.
-      // Bez toho by záviselo na konkrétních rolích vygenerovaných seedem 42 — to by
-      // byl křehký test, který selže při změně generátoru.
-      state.backlog[0].tasks = [{
-        id: 9002, role: 'FE', work: 3, progress: 0, status: 'todo', assignee: null,
-      }]
+      // Feature B — priorita 1 (vyšší!), stále v backlogu
+      state.backlog[0].priority = 1
+      state.backlog[0].tasks = [{ id: 9002, role: 'FE', work: 3, progress: 0, status: 'todo', assignee: null }]
+      const featureBId = state.backlog[0].id
 
-      const backlogSizeBefore = state.backlog.length
-      expect(backlogSizeBefore).toBeGreaterThan(0)
-
-      // Po ticku: člen musí sáhnout do backlogu (priorita 1), ne do inProgress (priorita 2)
       tick(state, 0.01, SETTINGS, rng)
 
-      // Backlog se zmenšil — FE člen vytáhl novou feature
-      expect(state.backlog.length).toBeLessThan(backlogSizeBefore)
-      // Úkol v inProgress feature zůstává nepřiřazený (člen preferoval backlog)
-      expect(inProgressFeature.tasks[0].assignee).toBeNull()
+      // Člen musí pracovat na feature B (priorita 1), i když je stále v backlogu.
+      // Přistupujeme přes state.team[0] — TypeScript by jinak narrowoval currentTask
+      // na null (kvůli přiřazení výše) a nedovolil přístup k featureId.
+      expect(state.team[0].currentTask?.featureId).toBe(featureBId)
+      // Feature A (priorita 2) zůstala nedotčená
+      expect(featureA.tasks[0].assignee).toBeNull()
+    })
+
+    it('člen preferuje rozběhnutou feature, pokud má vyšší prioritu než první backlogová', () => {
+      const rng = mulberry32(42)
+      const state = makeInitialState(rng, SETTINGS)
+
+      const feMember = state.team.find(m => m.roles.includes('FE'))!
+      state.team = [feMember]
+      feMember.currentTask = null
+
+      // Feature A — priorita 1 (nejvyšší), je v inProgress
+      const featureA = state.backlog.shift()!
+      featureA.priority = 1
+      featureA.status = 'in-progress'
+      featureA.tasks = [{ id: 9001, role: 'FE', work: 5, progress: 0, status: 'todo', assignee: null }]
+      state.inProgress.push(featureA)
+
+      // Feature B — priorita 2 (nižší), je v backlogu
+      state.backlog[0].priority = 2
+      state.backlog[0].tasks = [{ id: 9002, role: 'FE', work: 3, progress: 0, status: 'todo', assignee: null }]
+
+      const backlogSizeBefore = state.backlog.length
+      tick(state, 0.01, SETTINGS, rng)
+
+      // Člen musí pracovat na feature A (priorita 1) — která je v inProgress
+      expect(state.team[0].currentTask?.featureId).toBe(featureA.id)
+      // Backlog se nezmenšil — feature B nebyla vytažena
+      expect(state.backlog.length).toBe(backlogSizeBefore)
     })
   })
 

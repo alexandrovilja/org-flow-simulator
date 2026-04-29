@@ -51,6 +51,11 @@ export interface Feature {
   /** Simulační čas, kdy byla feature dokončena. Null dokud není hotova. */
   finishedAt: number | null
   status: FeatureStatus
+  /** Priorita přiřazená při vytvoření — platí po celou dobu simulace bez ohledu
+   *  na to, jestli je feature v backlogu nebo inProgress.
+   *  Nižší číslo = vyšší priorita (1 = nejdůležitější).
+   *  Členové týmu vždy pracují na nejvíce prioritní feature, na které mohou přispět. */
+  priority: number
 }
 
 /** Jeden člen vývojového týmu.

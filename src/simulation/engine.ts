@@ -57,10 +57,13 @@ export function mulberry32(seed: number): () => number {
   }
 }
 
-// Globální čítače ID — resetují se při každém volání makeInitialState,
-// aby ID začínala od 1 při každé nové simulaci.
+// Globální čítače — resetují se při každém volání makeInitialState,
+// aby ID a priority začínaly od 1 při každé nové simulaci.
 let nextFeatureId = 1
 let nextTaskId = 1
+/** Čítač priority — první vygenerovaná feature dostane prioritu 1 (nejvyšší).
+ *  Priorita se nemění po celou dobu simulace, i když feature přejde do inProgress. */
+let nextPriority = 1
 
 /**
  * Vytvoří novou feature s náhodným počtem úkolů a rolí.
@@ -73,6 +76,9 @@ let nextTaskId = 1
  */
 function makeFeature(rng: () => number, now: number, settings: SimSettings): Feature {
   const id = nextFeatureId++
+  // Priorita se přiřadí jednou při vytvoření a platí po celou dobu simulace.
+  // Čím nižší číslo, tím vyšší priorita — první vygenerovaná feature je nejdůležitější.
+  const priority = nextPriority++
 
   // Barva a název se odvozují z ID, ne z RNG — jsou tedy předvídatelné
   const hue = FEATURE_HUES[(id - 1) % FEATURE_HUES.length]
@@ -124,6 +130,7 @@ function makeFeature(rng: () => number, now: number, settings: SimSettings): Fea
     id,
     name: `F-${String(id).padStart(3, '0')} ${name}`,
     hue,
+    priority,
     tasks,
     createdAt: now,
     startedAt: null,
@@ -191,9 +198,10 @@ function cloneFeatureFresh(f: Feature): Feature {
  * @returns Nový SimState připravený ke spuštění
  */
 export function makeInitialState(rng: () => number, settings: SimSettings): SimState {
-  // Reset globálních čítačů zajistí, že ID začínají od 1 při každé nové simulaci
+  // Reset globálních čítačů zajistí, že ID a priority začínají od 1 při každé nové simulaci
   nextFeatureId = 1
   nextTaskId = 1
+  nextPriority = 1
 
   const state: SimState = {
     backlog: [],
@@ -303,42 +311,47 @@ export function tick(
   }
 
   // --- Přiřazování úkolů ---
-  // Každý volný člen týmu dostane úkol odpovídající jeho specializaci
+  // Každý volný člen týmu dostane úkol z nejvíce prioritní dostupné feature.
+  // Priorita platí po celou dobu simulace — člen si vybere to nejdůležitější,
+  // bez ohledu na to, jestli feature leží v backlogu nebo je již rozběhnutá.
   for (const m of state.team) {
-    if (m.currentTask) continue   // člen již pracuje
+    if (m.currentTask) continue    // člen již pracuje
     if (m.roles.length === 0) continue // člen bez specializace nemůže pracovat
 
-    let chosen: { f: Feature; t: Task } | null = null
+    // Typ pro kandidátský úkol: feature + konkrétní task + pozice v backlogu (nebo -1)
+    type Candidate = { f: Feature; t: Task; backlogIdx: number }
+    const candidates: Candidate[] = []
 
-    // Priorita 1: nová feature z backlogu — člen preferuje začínat nové věci
-    // (tím přirozeně roste WIP, což prodlužuje Lead Time — záměrné pro workshop)
+    // Sbíráme kandidáty z backlogu — zapamatujeme si index, abychom feature mohli přesunout
     for (let i = 0; i < state.backlog.length; i++) {
       const f = state.backlog[i]
       const t = f.tasks.find(t => t.status === 'todo' && m.roles.includes(t.role))
-      if (t) {
-        // Přesuneme featuru z backlogu do inProgress
-        state.backlog.splice(i, 1)
-        f.status = 'in-progress'
-        f.startedAt = state.simTime
-        state.inProgress.push(f)
-        chosen = { f, t }
-        break
-      }
+      if (t) candidates.push({ f, t, backlogIdx: i })
     }
 
-    // Priorita 2: zbývající úkol v rozběhnuté feature (jen pokud backlog nic nenabídl)
-    if (!chosen) {
-      for (const f of state.inProgress) {
-        const t = f.tasks.find(t => t.status === 'todo' && m.roles.includes(t.role))
-        if (t) { chosen = { f, t }; break }
-      }
+    // Sbíráme kandidáty z rozběhnutých features (backlogIdx = -1 = není v backlogu)
+    for (const f of state.inProgress) {
+      const t = f.tasks.find(t => t.status === 'todo' && m.roles.includes(t.role))
+      if (t) candidates.push({ f, t, backlogIdx: -1 })
     }
 
-    if (chosen) {
-      chosen.t.status = 'doing'
-      chosen.t.assignee = m.id
-      m.currentTask = { featureId: chosen.f.id, taskId: chosen.t.id }
+    if (candidates.length === 0) continue
+
+    // Seřadíme podle priority — nižší číslo = důležitější feature
+    candidates.sort((a, b) => a.f.priority - b.f.priority)
+    const best = candidates[0]
+
+    // Pokud je nejvíce prioritní feature ještě v backlogu, přesuneme ji do inProgress
+    if (best.backlogIdx >= 0) {
+      state.backlog.splice(best.backlogIdx, 1)
+      best.f.status = 'in-progress'
+      best.f.startedAt = state.simTime
+      state.inProgress.push(best.f)
     }
+
+    best.t.status = 'doing'
+    best.t.assignee = m.id
+    m.currentTask = { featureId: best.f.id, taskId: best.t.id }
   }
 
   // --- Postup práce ---
