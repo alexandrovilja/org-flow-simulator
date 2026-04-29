@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import {
   ROLES, ROLE_META, mulberry32,
-  makeInitialState, resetFromSnapshot, tick, computeStats,
+  makeInitialState, resetFromSnapshot, regenerate, tick, computeStats,
 } from '@/simulation/engine'
 import type { SimSettings, SimState, Role } from '@/types/simulation'
 import { FeatureCard } from '@/components/FeatureCard'
@@ -13,6 +13,7 @@ import { StatTile } from '@/components/StatTile'
 import { Slider } from '@/components/Slider'
 import { SpeedControl } from '@/components/SpeedControl'
 import { PanelHeader } from '@/components/PanelHeader'
+import { formatTime } from '@/lib/formatTime'
 
 const DEFAULT_SETTINGS: SimSettings = {
   minBacklog: 0,
@@ -49,8 +50,14 @@ export function Simulator() {
       const dtMs = Math.min(100, t - lastT)
       lastT = t
       if (!pausedRef.current && stateRef.current) {
-        const dtSim = dtMs / 1000 * speedRef.current
-        tick(stateRef.current, dtSim, settingsRef.current, rngRef.current)
+        const state = stateRef.current
+        if (!state.finished) {
+          const dtSim = dtMs / 1000 * speedRef.current
+          tick(state, dtSim, settingsRef.current, rngRef.current)
+          if (state.finished) {
+            setPaused(true)
+          }
+        }
       }
       forceUpdate(n => (n + 1) & 0xFFFF)
       raf = requestAnimationFrame(step)
@@ -92,13 +99,25 @@ export function Simulator() {
   }, [])
 
   const handleRegenerate = useCallback(() => {
-    rngRef.current = mulberry32(Math.floor(Math.random() * 1e9))
-    stateRef.current = makeInitialState(rngRef.current, settingsRef.current)
+    const { state, rng } = regenerate(settingsRef.current)
+    stateRef.current = state
+    rngRef.current = rng
+    setPaused(true)
+    setHasStarted(false)
     forceUpdate(n => n + 1)
   }, [])
 
   const handleResetStats = useCallback(() => {
-    if (stateRef.current) stateRef.current.leadTimes = []
+    const state = stateRef.current
+    if (!state) return
+    state.leadTimes = []
+    state.finished = false
+    state.simTime = 0
+    state.wipIntegral = 0
+    // Reset startedAt aby tick() správně zaznamenal čas příštího spuštění
+    state.startedAt = null
+    setPaused(true)
+    setHasStarted(false)
     forceUpdate(n => n + 1)
   }, [])
 
@@ -109,13 +128,7 @@ export function Simulator() {
     [s.leadTimes.length, s.leadTimes[s.leadTimes.length - 1]?.id],
   )
 
-  const busyCount = s.team.filter(m => m.currentTask).length
-  const activeMembers = s.team.filter(m => m.roles.length > 0).length
-  const util = activeMembers > 0 ? Math.round(busyCount / activeMembers * 100) : 0
-  const windowSec = Math.max(1, Math.min(60, s.simTime))
-  const cutoff = s.simTime - windowSec
-  const recentCount = s.leadTimes.filter(l => l.finishedAt > cutoff).length
-  const recentDone = Math.round(recentCount * (60 / windowSec))
+  const totalTimeDisplay = s.simTime > 0 || s.finished ? formatTime(s.simTime) : '00:00.0'
 
   return (
     <div style={{
@@ -162,6 +175,7 @@ export function Simulator() {
             speed={speed}
             paused={paused}
             hasStarted={hasStarted}
+            finished={s.finished}
             onSpeedChange={setSpeed}
             onTogglePause={() => { setPaused(p => !p); setHasStarted(true) }}
             onReset={() => { handleReset(); setPaused(true); setHasStarted(false) }}
@@ -292,10 +306,17 @@ export function Simulator() {
           </span>
           <LeadTimeChart leadTimes={s.leadTimes} stats={stats} />
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 6 }}>
+            <StatTile
+              label="Total Time"
+              value={totalTimeDisplay}
+              variant="timer"
+              finished={s.finished}
+              wide
+              tooltip="Elapsed simulation time. Stops when the last backlog item is done."
+            />
             <StatTile label="Avg" value={stats.count ? stats.avg.toFixed(1) : '—'} unit="s" tooltip="Mean lead time across all completed features." />
             <StatTile label="Median (p50)" value={stats.count ? stats.p50.toFixed(1) : '—'} unit="s" tooltip="Half the features finished faster than this, half slower." />
             <StatTile label="Avg WIP" value={s.simTime > 0.5 ? (s.wipIntegral / s.simTime).toFixed(1) : '—'} tooltip="Average Work In Progress — lower usually means lower lead time (Little's Law)." />
-            <StatTile label="Throughput" value={String(recentDone)} unit="/60s" hint={`${util}% utilization`} tooltip="Features completed per 60 sim seconds." />
           </div>
         </div>
 

@@ -29,30 +29,35 @@ AI agents are not a replacement for process — they are its executors. For this
      edge cases)          writes spec)
        │
        ▼
- 3. TEST DESIGN ◀───── TDD Agent ──────────────▶  tests/XXX.test.ts
+ 3. UI DESIGN ◀──────── UI Design Agent ───────▶  component code / mockup
+    (approve UI          (reads spec, proposes
+     before coding)       visual changes)
+       │
+       ▼ (only features with UI changes)
+ 4. TEST DESIGN ◀───── TDD Agent ──────────────▶  tests/XXX.test.ts
     (approve tests        (writes tests before
      before coding)       implementation)
        │
        ▼
- 4. IMPLEMENTATION ◀── Code Agent ─────────────▶  src/...
+ 5. IMPLEMENTATION ◀── Code Agent ─────────────▶  src/...
     (optional            (implements until
      checkpoint)          tests pass)
        │
        ▼
- 5. REVIEW ◀─────────── Review Agent ──────────▶  blockers / suggestions
+ 6. REVIEW ◀─────────── Review Agent ──────────▶  blockers / suggestions
     (approve or          (security, quality,
      reject)              conventions)
        │
        ▼
- 6. CI/CD ────────────────────────────────────▶  GitHub Actions
+ 7. CI/CD ────────────────────────────────────▶  GitHub Actions
                                                   (build, tests, lint)
        │
        ▼
- 7. DEPLOY ───────────── Deploy Agent ─────────▶  Vercel Preview → Production
+ 8. DEPLOY ───────────── Deploy Agent ─────────▶  Vercel Preview → Production
                                                    
        │
        ▼
- 8. SMOKE TESTS ◀─────── QA Agent ─────────────▶  Playwright E2E
+ 9. SMOKE TESTS ◀─────── QA Agent ─────────────▶  Playwright E2E
     (approve              (tests live app,
      production)           reports issues)
 ```
@@ -101,7 +106,30 @@ As a [role], I want [goal] so that [reason].
 
 ---
 
-### Phase 3: TDD Agent
+### Phase 3: UI Design Agent
+
+**Tool:** Claude Code `frontend-design` skill
+
+**Trigger:** Approved feature spec — pouze pro features, které mění nebo přidávají UI komponenty.
+
+**Agent behavior:**
+- Přečte feature spec (sekce UI/Design) a dotčené existující soubory (`globals.css`, relevantní komponenty)
+- Navrhne konkrétní vizuální změny: nové komponenty, úpravy existujících, CSS
+- Implementuje návrh jako funkční kód konzistentní s design systémem aplikace (`globals.css` CSS custom properties, CSS Modules, inline styles pro dynamické hodnoty)
+- Prezentuje výsledek uživateli k posouzení
+
+**Constraints:**
+- Musí respektovat existující design systém (`--bg`, `--panel`, `--ink`, `--accent`, … z `globals.css`)
+- Žádný Tailwind, žádné externí UI knihovny bez explicitního souhlasu
+- TypeScript strict — žádné `any`
+
+**Human checkpoint:** Uživatel schválí nebo zamítne navržené UI před tím, než se napíší testy a spustí implementace. Schválený návrh se stává vizuálním kontraktem pro TDD fázi.
+
+**Přeskočit pokud:** Feature je čistě logická (engine, storage, typy) bez vizuálních změn.
+
+---
+
+### Phase 4: TDD Agent
 
 **Tool:** Claude Code
 
@@ -121,7 +149,7 @@ As a [role], I want [goal] so that [reason].
 
 ---
 
-### Phase 4: Code Agent
+### Phase 5: Code Agent
 
 **Tool:** Claude Code
 
@@ -132,6 +160,10 @@ As a [role], I want [goal] so that [reason].
 - Implements the minimum code to make tests pass
 - Runs `npm test` after each change, iterates until all tests pass
 - Does not add features beyond what tests require
+- **Přidává dokumentaci** do každého souboru, který upraví (viz `docs/conventions.md`):
+  - JSDoc `/** */` nad každým `interface` a `type` — co to je a proč existuje
+  - JSDoc `/** */` + `@param` + `@returns` nad každou exportovanou funkcí
+  - Inline `//` komentáře u každé neobvyklé proměnné, algoritmu nebo magické hodnoty
 
 **Constraints:**
 - Access limited to `src/` directory
@@ -139,11 +171,11 @@ As a [role], I want [goal] so that [reason].
 - Must not modify deployment config or secrets
 - Must not merge or push — only proposes changes
 
-**Human checkpoint:** Optional spot-check of generated code before Phase 5.
+**Human checkpoint:** Optional spot-check of generated code before Phase 6.
 
 ---
 
-### Phase 5: Review Agent
+### Phase 6: Review Agent
 
 **Tool:** Claude Code `/ultrareview` skill or custom review prompt
 
@@ -165,7 +197,7 @@ As a [role], I want [goal] so that [reason].
 
 ---
 
-### Phase 6: CI/CD — GitHub Actions
+### Phase 7: CI/CD — GitHub Actions
 
 **Tool:** GitHub Actions (deterministic automation, not AI)
 
@@ -202,7 +234,7 @@ jobs:
 
 ---
 
-### Phase 7: Deploy Agent
+### Phase 8: Deploy Agent
 
 **Tool:** Vercel CLI (automated) + Claude Code (monitors and interprets)
 
@@ -226,7 +258,7 @@ jobs:
 
 ---
 
-### Phase 8: QA Agent
+### Phase 9: QA Agent
 
 **Tool:** Playwright (execution) + Claude Code (interpretation)
 
@@ -342,7 +374,8 @@ Every agent reads these files as context before acting. Keep them up to date —
 
 | Phase | Primary Tool | Supporting Tools |
 |---|---|---|
-| Feature Spec | Claude Code | — |
+| Feature Spec | Claude Code `define-feature` skill | — |
+| UI Design | Claude Code `frontend-design` skill | — |
 | TDD | Claude Code | Vitest, Playwright |
 | Implementation | Claude Code | TypeScript, Next.js |
 | Review | Claude Code `/ultrareview` | ESLint, TypeScript compiler |

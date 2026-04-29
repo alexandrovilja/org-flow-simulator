@@ -4,21 +4,30 @@ interface SpeedControlProps {
   speed: number
   paused: boolean
   hasStarted: boolean
+  finished: boolean
   onSpeedChange: (speed: number) => void
   onTogglePause: () => void
   onReset: () => void
 }
 
-export function SpeedControl({ speed, paused, hasStarted, onSpeedChange, onTogglePause, onReset }: SpeedControlProps) {
-  const label = !hasStarted ? '▶ Start' : (paused ? '▶ Resume' : '❙❙ Pause')
+export function SpeedControl({ speed, paused, hasStarted, finished, onSpeedChange, onTogglePause, onReset }: SpeedControlProps) {
+  const label = finished ? '✓ Done' : (!hasStarted ? '▶ Start' : (paused ? '▶ Resume' : '❙❙ Pause'))
+
   return (
     <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-      <button onClick={onTogglePause} style={{
-        background: paused ? 'var(--accent)' : 'var(--ink)',
-        color: 'white', border: 'none', borderRadius: 4,
-        padding: '6px 10px', fontWeight: 600, fontSize: 12,
-        display: 'inline-flex', alignItems: 'center', gap: 6, cursor: 'pointer',
-      }}>
+      <button
+        onClick={onTogglePause}
+        disabled={finished}
+        style={{
+          background: finished ? 'var(--done)' : (paused ? 'var(--accent)' : 'var(--ink)'),
+          color: 'white', border: 'none', borderRadius: 4,
+          padding: '6px 10px', fontWeight: 600, fontSize: 12,
+          display: 'inline-flex', alignItems: 'center', gap: 6,
+          cursor: finished ? 'default' : 'pointer',
+          opacity: finished ? 0.7 : 1,
+          transition: 'background 0.2s, opacity 0.2s',
+        }}
+      >
         {label}
       </button>
       <div style={{ display: 'flex', border: '1px solid var(--line)', borderRadius: 4, overflow: 'hidden' }}>

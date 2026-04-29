@@ -30,6 +30,43 @@
 - Each hook has a single responsibility.
 - Hooks that manage simulation state return a stable API — state reads and action dispatchers separated clearly.
 
+## Comments and documentation
+
+The codebase is written for a beginner programmer who needs to read and understand it quickly. Comments must explain **what** the code does **and why** it does it that way.
+
+**Required at type / interface level:**
+```ts
+/** Represents a single item in the product backlog or in-progress work.
+ *  Each Feature has a list of Tasks that must all be completed before
+ *  the feature is considered done and moved to the Done column. */
+interface Feature { ... }
+```
+
+**Required at function level (JSDoc):**
+```ts
+/**
+ * Advances the simulation by one time step.
+ * Called on every animation frame so it must be fast — this is why
+ * we mutate state in place instead of creating a new object each tick.
+ *
+ * @param state   - The current simulation state (mutated in place)
+ * @param dtSim   - How many simulated seconds have passed since the last frame
+ * @param settings - Configuration values (WIP limit, backlog size, etc.)
+ * @param rng     - Seeded random number generator for deterministic results
+ */
+export function tick(...) { ... }
+```
+
+**Required inline for non-obvious logic:**
+```ts
+// Cap dtSim so a browser tab that was backgrounded doesn't cause a huge jump
+const dtMs = Math.min(100, t - lastT)
+
+// p85 means "85% of features finished faster than this value" —
+// a common SLA metric in software delivery
+const p85 = sorted[Math.floor(sorted.length * 0.85)]
+```
+
 ## Simulation engine (`src/simulation/`)
 
 - Pure TypeScript — zero React imports, zero browser APIs.

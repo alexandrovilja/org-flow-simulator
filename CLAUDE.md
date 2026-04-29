@@ -37,7 +37,10 @@ docs/               # Conventions and strategy docs
 
 ## Coding rules (enforced — do not deviate)
 - **TypeScript strict:** no `any`, no `@ts-ignore` without a comment explaining why
-- **No comments** unless the WHY is non-obvious (a hidden constraint, workaround, or surprising invariant)
+- **Comments are required** at three levels (audience: beginner programmer learning the codebase):
+  - **Type / interface level** — JSDoc `/** */` above every `interface` and `type`: what it represents and why it exists
+  - **Function level** — JSDoc `/** */` above every exported function: what it does, why it exists, `@param` for each parameter, `@returns` if non-void
+  - **Inline** — short `//` comment above any non-obvious variable, algorithm step, or magic value explaining what AND why
 - **No barrel files** (`index.ts` re-exports) — import directly from the source file
 - **Components are pure** — no side effects outside hooks; no direct DOM manipulation
 - **Simulation engine is framework-free** — `src/simulation/engine.ts` must not import React or Next.js
