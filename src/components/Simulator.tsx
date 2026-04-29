@@ -59,6 +59,14 @@ export function Simulator() {
           tick(state, dtSim, settingsRef.current, rngRef.current)
           if (state.finished) {
             setPaused(true)
+            // Simulace právě doběhla — uložíme statistiky tohoto běhu jako referenci
+            // pro srovnání s příštím během. Ukládáme zde (ne na kliknutí tlačítka),
+            // aby srovnání fungovalo bez ohledu na to, jak uživatel spustí nový běh.
+            const finishedStats = computeStats(state.leadTimes)
+            const finishedAvgWip = state.simTime > 0.5 ? state.wipIntegral / state.simTime : 0
+            if (finishedStats.count > 0) {
+              setPrevStats({ avgLt: finishedStats.avg, avgWip: finishedAvgWip })
+            }
           }
         }
       }
@@ -105,8 +113,7 @@ export function Simulator() {
     const { state, rng } = regenerate(settingsRef.current)
     stateRef.current = state
     rngRef.current = rng
-    // Nový backlog = nový experiment — srovnání s předchozím během by bylo zavádějící
-    setPrevStats(null)
+    // prevStats záměrně necháváme — uživatel může porovnat nový běh s předchozím
     setPaused(true)
     setHasStarted(false)
     forceUpdate(n => n + 1)
@@ -119,28 +126,6 @@ export function Simulator() {
     [s.leadTimes.length, s.leadTimes[s.leadTimes.length - 1]?.id],
   )
 
-  const handleResetStats = useCallback(() => {
-    const state = stateRef.current
-    if (!state) return
-
-    // Uložíme statistiky aktuálního běhu jako referenci pro srovnání s dalším během.
-    // Ukládáme jen pokud jsou data k dispozici — první běh bez předchůdce by neměl nic srovnávat.
-    const currentAvgLt = stats.count > 0 ? stats.avg : 0
-    const currentAvgWip = state.simTime > 0.5 ? state.wipIntegral / state.simTime : 0
-    if (stats.count > 0) {
-      setPrevStats({ avgLt: currentAvgLt, avgWip: currentAvgWip })
-    }
-
-    state.leadTimes = []
-    state.finished = false
-    state.simTime = 0
-    state.wipIntegral = 0
-    // Reset startedAt aby tick() správně zaznamenal čas příštího spuštění
-    state.startedAt = null
-    setPaused(true)
-    setHasStarted(false)
-    forceUpdate(n => n + 1)
-  }, [stats])
 
   const totalTimeDisplay = s.simTime > 0 || s.finished ? formatTime(s.simTime) : '00:00.0'
 
@@ -327,19 +312,10 @@ export function Simulator() {
             <h3 style={{ margin: 0, fontSize: 12, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5, color: 'var(--ink-2)' }}>
               Lead Time
             </h3>
-            <button onClick={handleResetStats} disabled={stats.count === 0} style={{
-              background: 'var(--panel)', border: '1px solid var(--line)', borderRadius: 4,
-              padding: '3px 8px', fontSize: 10, fontWeight: 500,
-              color: stats.count === 0 ? 'var(--ink-3)' : 'var(--ink-2)',
-              cursor: stats.count === 0 ? 'default' : 'pointer',
-              opacity: stats.count === 0 ? 0.5 : 1,
-            }} title="Clear lead time history (keep simulation running)">
-              ↺ Reset stats
-            </button>
+            <span style={{ fontSize: 10, color: 'var(--ink-3)' }}>
+              {stats.count} feature{stats.count !== 1 ? 's' : ''} sampled
+            </span>
           </div>
-          <span style={{ fontSize: 10, color: 'var(--ink-3)', marginTop: -6 }}>
-            From backlog → done · {stats.count} feature{stats.count !== 1 ? 's' : ''} sampled
-          </span>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 6 }}>
             <StatTile
               label="Total Time"
