@@ -8,7 +8,6 @@ import {
 import type { SimSettings, SimState, Role } from '@/types/simulation'
 import { FeatureCard } from '@/components/FeatureCard'
 import { MemberCard } from '@/components/MemberCard'
-import { LeadTimeChart } from '@/components/LeadTimeChart'
 import { StatTile } from '@/components/StatTile'
 import { Slider } from '@/components/Slider'
 import { SpeedControl } from '@/components/SpeedControl'
@@ -29,6 +28,10 @@ export function Simulator() {
   const [paused, setPaused] = useState(true)
   const [hasStarted, setHasStarted] = useState(false)
   const [, forceUpdate] = useState(0)
+
+  /** Statistiky posledního dokončeného běhu — slouží pro srovnání s aktuálním během.
+   *  Nastavuje se při kliknutí na "Reset stats", kdy uživatel zahajuje nový běh. */
+  const [prevStats, setPrevStats] = useState<{ avgLt: number; avgWip: number } | null>(null)
 
   const rngRef = useRef(mulberry32(42))
   const stateRef = useRef<SimState | null>(null)
@@ -102,20 +105,8 @@ export function Simulator() {
     const { state, rng } = regenerate(settingsRef.current)
     stateRef.current = state
     rngRef.current = rng
-    setPaused(true)
-    setHasStarted(false)
-    forceUpdate(n => n + 1)
-  }, [])
-
-  const handleResetStats = useCallback(() => {
-    const state = stateRef.current
-    if (!state) return
-    state.leadTimes = []
-    state.finished = false
-    state.simTime = 0
-    state.wipIntegral = 0
-    // Reset startedAt aby tick() správně zaznamenal čas příštího spuštění
-    state.startedAt = null
+    // Nový backlog = nový experiment — srovnání s předchozím během by bylo zavádějící
+    setPrevStats(null)
     setPaused(true)
     setHasStarted(false)
     forceUpdate(n => n + 1)
@@ -128,7 +119,52 @@ export function Simulator() {
     [s.leadTimes.length, s.leadTimes[s.leadTimes.length - 1]?.id],
   )
 
+  const handleResetStats = useCallback(() => {
+    const state = stateRef.current
+    if (!state) return
+
+    // Uložíme statistiky aktuálního běhu jako referenci pro srovnání s dalším během.
+    // Ukládáme jen pokud jsou data k dispozici — první běh bez předchůdce by neměl nic srovnávat.
+    const currentAvgLt = stats.count > 0 ? stats.avg : 0
+    const currentAvgWip = state.simTime > 0.5 ? state.wipIntegral / state.simTime : 0
+    if (stats.count > 0) {
+      setPrevStats({ avgLt: currentAvgLt, avgWip: currentAvgWip })
+    }
+
+    state.leadTimes = []
+    state.finished = false
+    state.simTime = 0
+    state.wipIntegral = 0
+    // Reset startedAt aby tick() správně zaznamenal čas příštího spuštění
+    state.startedAt = null
+    setPaused(true)
+    setHasStarted(false)
+    forceUpdate(n => n + 1)
+  }, [stats])
+
   const totalTimeDisplay = s.simTime > 0 || s.finished ? formatTime(s.simTime) : '00:00.0'
+
+  // Výpočet průměrného WIP pro aktuální běh
+  const avgWip = s.simTime > 0.5 ? s.wipIntegral / s.simTime : null
+
+  /**
+   * Vypočítá procentuální změnu oproti předchozímu běhu.
+   * Vrátí undefined pokud není předchozí běh k dispozici nebo aktuální hodnota chybí.
+   * @param current - Aktuální hodnota metriky (nebo null pokud ještě není k dispozici)
+   * @param previous - Hodnota z předchozího běhu
+   */
+  const calcDelta = (current: number | null, previous: number): number | undefined => {
+    if (current === null || previous === 0) return undefined
+    return ((current - previous) / previous) * 100
+  }
+
+  const ltDelta = prevStats && stats.count > 0
+    ? calcDelta(stats.avg, prevStats.avgLt)
+    : undefined
+
+  const wipDelta = prevStats && avgWip !== null
+    ? calcDelta(avgWip, prevStats.avgWip)
+    : undefined
 
   return (
     <div style={{
@@ -304,7 +340,6 @@ export function Simulator() {
           <span style={{ fontSize: 10, color: 'var(--ink-3)', marginTop: -6 }}>
             From backlog → done · {stats.count} feature{stats.count !== 1 ? 's' : ''} sampled
           </span>
-          <LeadTimeChart leadTimes={s.leadTimes} stats={stats} />
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 6 }}>
             <StatTile
               label="Total Time"
@@ -314,9 +349,19 @@ export function Simulator() {
               wide
               tooltip="Elapsed simulation time. Stops when the last backlog item is done."
             />
-            <StatTile label="Avg" value={stats.count ? stats.avg.toFixed(1) : '—'} unit="s" tooltip="Mean lead time across all completed features." />
-            <StatTile label="Median (p50)" value={stats.count ? stats.p50.toFixed(1) : '—'} unit="s" tooltip="Half the features finished faster than this, half slower." />
-            <StatTile label="Avg WIP" value={s.simTime > 0.5 ? (s.wipIntegral / s.simTime).toFixed(1) : '—'} tooltip="Average Work In Progress — lower usually means lower lead time (Little's Law)." />
+            <StatTile
+              label="Avg Lead Time"
+              value={stats.count ? stats.avg.toFixed(1) : '—'}
+              unit={stats.count ? 's' : undefined}
+              tooltip="Mean lead time across all completed features."
+              delta={ltDelta}
+            />
+            <StatTile
+              label="Avg WIP"
+              value={avgWip !== null ? avgWip.toFixed(1) : '—'}
+              tooltip="Average Work In Progress — lower usually means lower lead time (Little's Law)."
+              delta={wipDelta}
+            />
           </div>
         </div>
 

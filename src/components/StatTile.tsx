@@ -7,9 +7,16 @@ interface StatTileProps {
   variant?: 'default' | 'timer'
   finished?: boolean
   wide?: boolean
+  /**
+   * Procentuální změna oproti předchozímu běhu simulace.
+   * Záporná hodnota = pokles (zelená šipka dolů = zlepšení).
+   * Kladná hodnota = nárůst (červená šipka nahoru = zhoršení).
+   * Undefined = první běh, žádné srovnání není k dispozici.
+   */
+  delta?: number
 }
 
-export function StatTile({ label, value, unit, hint, tooltip, variant, finished, wide }: StatTileProps) {
+export function StatTile({ label, value, unit, hint, tooltip, variant, finished, wide, delta }: StatTileProps) {
   const isTimer = variant === 'timer'
 
   const borderColor = isTimer && finished ? 'var(--done)' : 'var(--line)'
@@ -70,6 +77,21 @@ export function StatTile({ label, value, unit, hint, tooltip, variant, finished,
         {unit && <span style={{ fontSize: 11, color: 'var(--ink-3)', marginLeft: 2, fontWeight: 500 }}>{unit}</span>}
       </span>
       {hint && <span style={{ fontSize: 10, color: 'var(--ink-3)' }}>{hint}</span>}
+      {/* Delta indikátor porovnávající aktuální hodnotu s předchozím během.
+          Záporné delta = pokles = zlepšení = zelená šipka dolů.
+          Kladné delta = nárůst = zhoršení = červená šipka nahoru. */}
+      {delta !== undefined && (
+        <span style={{
+          fontSize: 10,
+          fontWeight: 600,
+          color: delta < 0 ? 'var(--done)' : 'oklch(58% 0.2 25)',
+          letterSpacing: 0.2,
+        }}>
+          {delta < 0 ? `↓ ${Math.abs(delta).toFixed(0)}%` : `↑ ${delta.toFixed(0)}%`}
+          {' '}
+          <span style={{ fontWeight: 400, color: 'var(--ink-3)' }}>vs prev run</span>
+        </span>
+      )}
     </div>
   )
 }
