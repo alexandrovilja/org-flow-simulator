@@ -116,25 +116,34 @@ function makeFeature(
   const additionalCount = totalRoleCount - requiredRoles.length
   const chosenRoles = [...requiredRoles, ...shuffledOptional.slice(0, additionalCount)]
 
-  // Rozdělíme úkoly mezi vybrané role — každá role dostane alespoň 1.
-  // Pokud je rolí víc než taskCount (required role překrývají vygenerovaný počet),
-  // rozšíříme efektivní počet úkolů tak, aby každá role dostala alespoň 1.
+  // Rozdělíme úkoly mezi vybrané role.
+  // Required role dostanou vždy přesně 1 úkol — extra úkoly jdou pouze volitelným rolím.
+  // Pokud je i volitelných rolí víc než zbývající taskCount, rozšíříme efektivní počet.
+  const requiredCount = requiredRoles.length
+  const optionalInChosen = chosenRoles.length - requiredCount
   const effectiveTaskCount = Math.max(taskCount, chosenRoles.length)
   const counts = new Array(chosenRoles.length).fill(1) as number[]
   let remaining = effectiveTaskCount - chosenRoles.length
-  while (remaining > 0) {
-    counts[Math.floor(rng() * chosenRoles.length)]++
+  // Extra tasky jdou jen volitelným rolím (indexy requiredCount … chosenRoles.length-1)
+  while (remaining > 0 && optionalInChosen > 0) {
+    counts[requiredCount + Math.floor(rng() * optionalInChosen)]++
     remaining--
   }
 
+  // Seřadíme vybrané role vzestupně podle fáze, aby tasky v UI odpovídaly pořadí zpracování.
+  // Stable sort: stejná fáze zachovává původní pořadí (required role jsou vždy první).
+  const sortedRoles = chosenRoles
+    .map((role, i) => ({ role, count: counts[i], level: roleConfig[role].level }))
+    .sort((a, b) => a.level - b.level)
+
   // Vytvoříme jednotlivé úkoly s náhodnou pracností 0.8–2.2 simulačních sekund
   const tasks: Task[] = []
-  for (let r = 0; r < chosenRoles.length; r++) {
-    for (let i = 0; i < counts[r]; i++) {
+  for (const { role, count } of sortedRoles) {
+    for (let i = 0; i < count; i++) {
       const work = 0.8 + rng() * 1.4
       tasks.push({
         id: nextTaskId++,
-        role: chosenRoles[r],
+        role,
         work,
         progress: 0,
         status: 'todo',

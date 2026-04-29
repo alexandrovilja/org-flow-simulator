@@ -37,7 +37,7 @@ Jako agilní kouč chci nastavit název, pořadí fáze (level) a povinnost kaž
 **Příklad 3: Povinná specializace**
 - Given: QA je označena jako Req. (required)
 - When: Kouč klikne na "Generate new backlog"
-- Then: Každá feature v novém backlogu obsahuje alespoň jeden QA úkol; existující backlog se nemění
+- Then: Každá feature v novém backlogu obsahuje právě jeden QA úkol; existující backlog se nemění
 
 **Příklad 4: Přejmenování specializace**
 - Given: Kouč zadá do name pole pro FE text "iOS"
@@ -63,7 +63,8 @@ Jako agilní kouč chci nastavit název, pořadí fáze (level) a povinnost kaž
 - Typ `RoleMeta` v `src/types/simulation.ts`: `{ label, color, level, required }`
 - Sémantika level: **nižší číslo = dřívější fáze**. Level 1 = první fáze (začíná jako první). Úkol level N může začít až poté, co jsou hotové všechny úkoly s level < N ve stejné feature. Úkoly na stejném levelu mohou probíhat paralelně.
 - Engine `tick()`: před přiřazením úkolu kontroluje `isAvailable(task, feature)` — ověřuje, zda jsou všechny úkoly nižší úrovně (level < task.level) v téže feature ve stavu `done`
-- Engine `makeFeature()`: povinné role (required) jsou vždy zahrnuty; volitelné role se přidávají náhodně dle `roleVar`; projeví se jen při generování nového backlogu (`regenerate()`) nebo inicializaci (`makeInitialState()`)
+- Engine `makeFeature()`: povinné role (required) dostanou vždy právě 1 úkol; extra úkoly (z `sizeVar`) se rozdělují pouze mezi volitelné role. Volitelné role se přidávají náhodně dle `roleVar`; projeví se jen při generování nového backlogu (`regenerate()`) nebo inicializaci (`makeInitialState()`)
+- `FeatureCard` zobrazuje tasky seřazené podle fáze (`roleConfig[role].level` vzestupně) — fáze 1 vlevo. Potřebuje `roleConfig` jako prop.
 - Dotčené funkce: `tick(state, dtSim, settings, rng, roleConfig)`, `makeInitialState(rng, settings, roleConfig)`, `regenerate(settings, roleConfig)` — všechny přijímají `roleConfig` jako volitelný parametr s výchozí hodnotou `ROLE_META`
 
 ## Open Questions

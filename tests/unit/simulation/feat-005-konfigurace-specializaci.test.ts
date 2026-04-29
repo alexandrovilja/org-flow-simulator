@@ -192,5 +192,66 @@ describe('feat-005: konfigurace specializací', () => {
         expect(roles1).toEqual(roles2)
       }
     })
+
+    it('required role má vždy právě jeden úkol (ne více)', () => {
+      // required = přesně 1 task, extra tasky jdou jen volitelným rolím
+      const cfg = roleConfig({ QA: { required: true } })
+      const settingsHighVar = { ...SETTINGS, sizeVar: 1, initialBacklog: 10 }
+      const rng = mulberry32(5)
+      const state = makeInitialState(rng, settingsHighVar, cfg)
+      for (const f of state.backlog) {
+        const qaTasks = f.tasks.filter(t => t.role === 'QA')
+        expect(qaTasks.length).toBe(1)
+      }
+    })
+
+    it('více required rolí má každá právě jeden úkol', () => {
+      const cfg = roleConfig({ QA: { required: true }, DSGN: { required: true } })
+      const settingsHighVar = { ...SETTINGS, sizeVar: 1, initialBacklog: 10 }
+      const rng = mulberry32(6)
+      const state = makeInitialState(rng, settingsHighVar, cfg)
+      for (const f of state.backlog) {
+        expect(f.tasks.filter(t => t.role === 'QA').length).toBe(1)
+        expect(f.tasks.filter(t => t.role === 'DSGN').length).toBe(1)
+      }
+    })
+  })
+
+  describe('pořadí tasků podle fáze', () => {
+    it('makeFeature generuje tasky s nižší fází na nižším indexu', () => {
+      // DSGN fáze 1, FE fáze 2 → DSGN task musí být dříve v poli než FE task
+      const cfg = roleConfig({
+        DSGN: { level: 1, required: true },
+        FE:   { level: 2, required: true },
+      })
+      const rng = mulberry32(1)
+      const state = makeInitialState(rng, SETTINGS, cfg)
+      for (const f of state.backlog) {
+        const levels = f.tasks.map(t => cfg[t.role].level)
+        for (let i = 1; i < levels.length; i++) {
+          expect(levels[i]).toBeGreaterThanOrEqual(levels[i - 1])
+        }
+      }
+    })
+
+    it('tasky na stejné fázi jsou seskupeny za sebou', () => {
+      // FE a BE fáze 1, QA fáze 2 → všechny fáze 1 před fází 2
+      const cfg = roleConfig({
+        FE:   { level: 1, required: true },
+        BE:   { level: 1, required: true },
+        QA:   { level: 2, required: true },
+        DSGN: { required: false },
+        OPS:  { required: false },
+        DATA: { required: false },
+      })
+      const rng = mulberry32(2)
+      const state = makeInitialState(rng, SETTINGS, cfg)
+      for (const f of state.backlog) {
+        const levels = f.tasks.map(t => cfg[t.role].level)
+        for (let i = 1; i < levels.length; i++) {
+          expect(levels[i]).toBeGreaterThanOrEqual(levels[i - 1])
+        }
+      }
+    })
   })
 })
