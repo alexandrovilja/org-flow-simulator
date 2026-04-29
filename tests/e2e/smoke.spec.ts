@@ -46,11 +46,13 @@ test.describe('Smoke: základní funkčnost', () => {
     await expect(page.getByText(/F-001/)).toBeVisible()
   })
 
-  test('tým zobrazuje členy s rolemi', async ({ page }) => {
-    // Výchozí tým má 6 členů — Ada je první
-    await expect(page.getByText('Ada')).toBeVisible()
-    // Alespoň jedna role musí být viditelná
-    await expect(page.getByText(/FE|BE|QA|DSGN|OPS|DATA/).first()).toBeVisible()
+  test('panel Units zobrazuje členy s rolemi', async ({ page }) => {
+    // Panel se nyní jmenuje "Units" (bylo "Team")
+    await expect(page.getByText(/Units/i).first()).toBeVisible()
+    // Jméno Ada je teď v <input> — hledáme přes hodnotu inputu
+    await expect(page.locator('input[value="Ada"]')).toBeVisible()
+    // Chipy zobrazují plné názvy specializací
+    await expect(page.getByText(/Frontend|Backend|Design|QA|DevOps|Data/).first()).toBeVisible()
   })
 
   test('statistiky zobrazují Lead Time tile', async ({ page }) => {
