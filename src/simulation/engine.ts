@@ -417,15 +417,22 @@ export function tick(
     m.currentTask = { featureId: best.f.id, taskId: best.t.id }
   }
 
-  // Akumulujeme idle čas pro každého člena, který má role ale žádný úkol.
-  // Záměrně až PO přiřazovacím loopu — člen, který právě dostal úkol, idle čas
-  // nedostane. Před opravou byl tento blok před loopem, což způsobovalo falešný
-  // idle i členům, kteří práci hned dostali (první tick, tick po dokončení úkolu).
-  // Člen bez rolí se nepočítá — není blokován procesem, jen nemá specializaci.
+  // Akumulujeme idle čas pro každého člena, který má role ale žádný úkol —
+  // ale pouze pokud pro jeho roli ještě existuje práce (todo nebo doing).
+  // Záměrně až PO přiřazovacím loopu — člen, který právě dostal úkol, idle čas nedostane.
+  //
+  // Podmínka "má práci pro svou roli":
+  //   ∃ feature v backlogu nebo inProgress, která obsahuje task se stavem != 'done'
+  //   a roli, kterou člen má.
+  // Pokud taková práce neexistuje, člen není "blokován" — práce prostě skončila.
+  // Idle čas pak nedává smysl počítat (workshop by ukazoval nesmyslné čekání
+  // i po dokončení celé simulace nebo v teamech, kde daná role vůbec není potřeba).
   for (const m of state.team) {
-    if (m.roles.length > 0 && m.currentTask === null) {
-      m.idleSec += dtSim
-    }
+    if (m.roles.length === 0 || m.currentTask !== null) continue
+    const hasMatchingWork = [...state.backlog, ...state.inProgress].some(f =>
+      f.tasks.some(t => t.status !== 'done' && m.roles.includes(t.role))
+    )
+    if (hasMatchingWork) m.idleSec += dtSim
   }
 
   // --- Postup práce ---
