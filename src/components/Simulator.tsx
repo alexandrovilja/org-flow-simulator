@@ -2,12 +2,13 @@
 
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import {
-  ROLES, ROLE_META, mulberry32,
+  ROLE_META, mulberry32,
   makeInitialState, resetFromSnapshot, regenerate, tick, computeStats,
 } from '@/simulation/engine'
-import type { SimSettings, SimState, Role } from '@/types/simulation'
+import type { SimSettings, SimState, Role, RoleMeta } from '@/types/simulation'
 import { FeatureCard } from '@/components/FeatureCard'
 import { MemberCard } from '@/components/MemberCard'
+import { RoleSettings } from '@/components/RoleSettings'
 import { StatTile } from '@/components/StatTile'
 import { Slider } from '@/components/Slider'
 import { SpeedControl } from '@/components/SpeedControl'
@@ -29,9 +30,15 @@ export function Simulator() {
   const [hasStarted, setHasStarted] = useState(false)
   const [, forceUpdate] = useState(0)
 
-  /** Statistiky posledního dokončeného běhu — slouží pro srovnání s aktuálním během.
-   *  Nastavuje se při kliknutí na "Reset stats", kdy uživatel zahajuje nový běh. */
+  /** Statistiky posledního dokončeného běhu — slouží pro srovnání s aktuálním během. */
   const [prevStats, setPrevStats] = useState<{ avgLt: number; avgWip: number } | null>(null)
+
+  /** Konfigurace specializací — kopie ROLE_META, upravitelná uživatelem.
+   *  Předává se do engine funkcí (tick, makeInitialState, regenerate). */
+  const [roleConfig, setRoleConfig] = useState<Record<Role, RoleMeta>>(() => ({ ...ROLE_META }))
+  /** Ref pro přístup k roleConfig uvnitř RAF smyčky bez potřeby restartovat effect. */
+  const roleConfigRef = useRef(roleConfig)
+  useEffect(() => { roleConfigRef.current = roleConfig }, [roleConfig])
 
   const rngRef = useRef(mulberry32(42))
   const stateRef = useRef<SimState | null>(null)
@@ -56,7 +63,7 @@ export function Simulator() {
         const state = stateRef.current
         if (!state.finished) {
           const dtSim = dtMs / 1000 * speedRef.current
-          tick(state, dtSim, settingsRef.current, rngRef.current)
+          tick(state, dtSim, settingsRef.current, rngRef.current, roleConfigRef.current)
           if (state.finished) {
             setPaused(true)
             // Simulace právě doběhla — uložíme statistiky tohoto běhu jako referenci
@@ -109,8 +116,20 @@ export function Simulator() {
     forceUpdate(n => n + 1)
   }, [])
 
+  /**
+   * Aktualizuje konfiguraci jedné specializace.
+   * Změny label a level se projeví okamžitě (při příštím ticku).
+   * Změna required se projeví při příštím generování backlogu.
+   */
+  const handleRoleChange = useCallback((roleId: Role, updates: Partial<Pick<RoleMeta, 'label' | 'level' | 'required'>>) => {
+    setRoleConfig(prev => ({
+      ...prev,
+      [roleId]: { ...prev[roleId], ...updates },
+    }))
+  }, [])
+
   const handleRegenerate = useCallback(() => {
-    const { state, rng } = regenerate(settingsRef.current)
+    const { state, rng } = regenerate(settingsRef.current, roleConfigRef.current)
     stateRef.current = state
     rngRef.current = rng
     // prevStats záměrně necháváme — uživatel může porovnat nový běh s předchozím
@@ -246,13 +265,11 @@ export function Simulator() {
             onChange={v => setSettings(s => ({ ...s, roleVar: v }))}
             format={v => v < 0.1 ? '2 roles' : v < 0.5 ? 'low' : v < 0.85 ? 'high' : '1–6 roles'}
           />
-          <div style={{ paddingTop: 4, borderTop: '1px solid var(--line)', display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 4 }}>
-            {ROLES.map(r => (
-              <div key={r} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 10, color: 'var(--ink-2)' }}>
-                <span style={{ width: 8, height: 8, borderRadius: 2, background: ROLE_META[r].color }} />
-                {ROLE_META[r].label}
-              </div>
-            ))}
+          <div style={{ paddingTop: 8, borderTop: '1px solid var(--line)', marginTop: 4 }}>
+            <h3 style={{ margin: '0 0 8px', fontSize: 12, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5, color: 'var(--ink-2)' }}>
+              Specializations
+            </h3>
+            <RoleSettings roleConfig={roleConfig} onChange={handleRoleChange} />
           </div>
         </div>
       </section>

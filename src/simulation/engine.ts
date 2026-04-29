@@ -6,15 +6,16 @@ import type {
 /** Všechny dostupné specializace v systému — pořadí odpovídá výchozímu týmu. */
 export const ROLES: Role[] = ['FE', 'BE', 'DSGN', 'QA', 'OPS', 'DATA']
 
-/** Vizuální metadata pro každou roli: popisek a barva pro UI.
- *  Barvy jsou definovány v oklch prostoru pro konzistentní vzhled. */
+/** Výchozí konfigurace všech specializací — slouží jako výchozí hodnota pro uživatelský stav.
+ *  Všechny role mají level 1 (paralelní zpracování) a required false — zachovává stávající chování.
+ *  Uživatel může konfiguraci změnit v panelu Specializations. */
 export const ROLE_META: Record<Role, RoleMeta> = {
-  FE:   { label: 'Frontend', color: 'oklch(70% 0.14 250)' },
-  BE:   { label: 'Backend',  color: 'oklch(66% 0.14 285)' },
-  DSGN: { label: 'Design',   color: 'oklch(72% 0.13 25)'  },
-  QA:   { label: 'QA',       color: 'oklch(68% 0.13 145)' },
-  OPS:  { label: 'DevOps',   color: 'oklch(68% 0.13 75)'  },
-  DATA: { label: 'Data',     color: 'oklch(64% 0.14 320)' },
+  FE:   { label: 'Frontend', color: 'oklch(70% 0.14 250)', level: 1, required: false },
+  BE:   { label: 'Backend',  color: 'oklch(66% 0.14 285)', level: 1, required: false },
+  DSGN: { label: 'Design',   color: 'oklch(72% 0.13 25)',  level: 1, required: false },
+  QA:   { label: 'QA',       color: 'oklch(68% 0.13 145)', level: 1, required: false },
+  OPS:  { label: 'DevOps',   color: 'oklch(68% 0.13 75)',  level: 1, required: false },
+  DATA: { label: 'Data',     color: 'oklch(64% 0.14 320)', level: 1, required: false },
 }
 
 /** Paleta 9 barevných odstínů pro vizuální rozlišení features v UI.
@@ -68,13 +69,20 @@ let nextPriority = 1
 /**
  * Vytvoří novou feature s náhodným počtem úkolů a rolí.
  * Variabilita je řízena parametry sizeVar a roleVar ze settings.
+ * Povinné role (roleConfig[r].required === true) jsou vždy zahrnuty.
  *
- * @param rng     - Seeded random number generator pro determinismus
- * @param now     - Aktuální simulační čas (stane se createdAt featury)
- * @param settings - Nastavení simulace (sizeVar, roleVar)
+ * @param rng        - Seeded random number generator pro determinismus
+ * @param now        - Aktuální simulační čas (stane se createdAt featury)
+ * @param settings   - Nastavení simulace (sizeVar, roleVar)
+ * @param roleConfig - Konfigurace specializací (level, required, label)
  * @returns Nová feature připravená k vložení do backlogu
  */
-function makeFeature(rng: () => number, now: number, settings: SimSettings): Feature {
+function makeFeature(
+  rng: () => number,
+  now: number,
+  settings: SimSettings,
+  roleConfig: Record<Role, RoleMeta>,
+): Feature {
   const id = nextFeatureId++
   // Priorita se přiřadí jednou při vytvoření a platí po celou dobu simulace.
   // Čím nižší číslo, tím vyšší priorita — první vygenerovaná feature je nejdůležitější.
@@ -98,9 +106,15 @@ function makeFeature(rng: () => number, now: number, settings: SimSettings): Fea
   const maxRoles = Math.min(ROLES.length, baseRoles + roleSpread)
   const roleCount = minRoles + Math.floor(rng() * (maxRoles - minRoles + 1))
 
-  // Náhodně promícháme role a vybereme požadovaný počet
-  const shuffled = [...ROLES].sort(() => rng() - 0.5)
-  const chosenRoles = shuffled.slice(0, roleCount)
+  // Povinné role jsou vždy zahrnuty bez ohledu na roleVar
+  const requiredRoles = ROLES.filter(r => roleConfig[r].required)
+  // Volitelné role jsou náhodně zamíchány a přidány do celkového počtu
+  const optionalRoles = ROLES.filter(r => !roleConfig[r].required)
+  const shuffledOptional = [...optionalRoles].sort(() => rng() - 0.5)
+  // Celkový počet rolí musí pokrýt alespoň všechny povinné role
+  const totalRoleCount = Math.max(requiredRoles.length, roleCount)
+  const additionalCount = totalRoleCount - requiredRoles.length
+  const chosenRoles = [...requiredRoles, ...shuffledOptional.slice(0, additionalCount)]
 
   // Rozdělíme taskCount úkolů mezi vybrané role — každá role dostane alespoň 1
   const counts = new Array(chosenRoles.length).fill(1) as number[]
@@ -193,11 +207,16 @@ function cloneFeatureFresh(f: Feature): Feature {
  * Vytvoří počáteční stav simulace s nově vygenerovaným backlogem.
  * Také uloží snapshot backlogu pro pozdější reset.
  *
- * @param rng      - Seeded RNG — stejný seed vždy vygeneruje stejný backlog
- * @param settings - Nastavení simulace (počet features, variabilita)
+ * @param rng        - Seeded RNG — stejný seed vždy vygeneruje stejný backlog
+ * @param settings   - Nastavení simulace (počet features, variabilita)
+ * @param roleConfig - Konfigurace specializací; výchozí = ROLE_META (zachovává stávající chování)
  * @returns Nový SimState připravený ke spuštění
  */
-export function makeInitialState(rng: () => number, settings: SimSettings): SimState {
+export function makeInitialState(
+  rng: () => number,
+  settings: SimSettings,
+  roleConfig: Record<Role, RoleMeta> = ROLE_META,
+): SimState {
   // Reset globálních čítačů zajistí, že ID a priority začínají od 1 při každé nové simulaci
   nextFeatureId = 1
   nextTaskId = 1
@@ -219,7 +238,7 @@ export function makeInitialState(rng: () => number, settings: SimSettings): SimS
 
   const seedCount = settings.initialBacklog ?? 20
   for (let i = 0; i < seedCount; i++) {
-    state.backlog.push(makeFeature(rng, 0, settings))
+    state.backlog.push(makeFeature(rng, 0, settings, roleConfig))
   }
 
   // Uložíme kopii backlogu jako snapshot — slouží k resetu bez regenerace
@@ -259,12 +278,16 @@ export function resetFromSnapshot(state: SimState): SimState {
  * Vygeneruje nový simulační stav s novým náhodným seedem.
  * Na rozdíl od resetFromSnapshot vytvoří zcela jiný backlog.
  *
- * @param settings - Nastavení pro generování nového backlogu
+ * @param settings   - Nastavení pro generování nového backlogu
+ * @param roleConfig - Konfigurace specializací; výchozí = ROLE_META
  * @returns Nový SimState a nový RNG (oba jsou třeba pro další tick volání)
  */
-export function regenerate(settings: SimSettings): { state: SimState; rng: () => number } {
+export function regenerate(
+  settings: SimSettings,
+  roleConfig: Record<Role, RoleMeta> = ROLE_META,
+): { state: SimState; rng: () => number } {
   const rng = mulberry32(Math.floor(Math.random() * 1e9))
-  const state = makeInitialState(rng, settings)
+  const state = makeInitialState(rng, settings, roleConfig)
   return { state, rng }
 }
 
@@ -277,15 +300,16 @@ export function regenerate(settings: SimSettings): { state: SimState; rng: () =>
  *
  * Pořadí operací:
  * 1. Posuneme simulační čas
- * 2. Přiřadíme volné členy týmu k dostupným úkolům
+ * 2. Přiřadíme volné členy týmu k dostupným úkolům (s respektováním úrovní)
  * 3. Necháme přiřazené členy pokračovat v práci
  * 4. Dokončíme featury, kde jsou všechny úkoly hotovy
  * 5. Zkontrolujeme, zda je simulace u konce
  *
- * @param state    - Aktuální stav simulace (mutován in-place)
- * @param dtSim    - Délka tohoto ticku v simulačních sekundách
- * @param settings - Konfigurace simulace
- * @param rng      - Seeded RNG pro případné doplnění backlogu
+ * @param state      - Aktuální stav simulace (mutován in-place)
+ * @param dtSim      - Délka tohoto ticku v simulačních sekundách
+ * @param settings   - Konfigurace simulace
+ * @param rng        - Seeded RNG pro případné doplnění backlogu
+ * @param roleConfig - Konfigurace specializací (level, required); výchozí = ROLE_META
  * @returns Stejný objekt state po aktualizaci
  */
 export function tick(
@@ -293,6 +317,7 @@ export function tick(
   dtSim: number,
   settings: SimSettings,
   rng: () => number,
+  roleConfig: Record<Role, RoleMeta> = ROLE_META,
 ): SimState {
   state.simTime += dtSim
 
@@ -307,16 +332,37 @@ export function tick(
   // a backlog se automaticky nedoplňuje — zpracujeme jen to, co bylo vygenerováno na začátku.
   const minBacklog = settings.minBacklog
   while (state.backlog.length < minBacklog) {
-    state.backlog.push(makeFeature(rng, state.simTime, settings))
+    state.backlog.push(makeFeature(rng, state.simTime, settings, roleConfig))
   }
 
   // --- Přiřazování úkolů ---
   // Každý volný člen týmu dostane úkol z nejvíce prioritní dostupné feature.
   // Priorita platí po celou dobu simulace — člen si vybere to nejdůležitější,
   // bez ohledu na to, jestli feature leží v backlogu nebo je již rozběhnutá.
+  //
+  // Uvnitř každé feature platí pořadí úrovní: úkol úrovně N lze začít až poté,
+  // co jsou všechny úkoly vyšší úrovně (> N) v téže feature dokončeny.
+  // Úkoly na stejné úrovni mohou probíhat paralelně.
   for (const m of state.team) {
     if (m.currentTask) continue    // člen již pracuje
     if (m.roles.length === 0) continue // člen bez specializace nemůže pracovat
+
+    /**
+     * Zjistí, zda je konkrétní úkol dostupný pro aktuálního člena.
+     * Úkol je dostupný, když:
+     *  1. Je ve stavu 'todo'
+     *  2. Člen má potřebnou roli
+     *  3. Všechny úkoly vyšší úrovně v téže feature jsou hotovy
+     */
+    const isAvailable = (t: Task, f: Feature): boolean => {
+      if (t.status !== 'todo') return false
+      if (!m.roles.includes(t.role)) return false
+      const taskLevel = roleConfig[t.role].level
+      // Každý úkol stejné nebo nižší úrovně smí čekat; jen vyšší úroveň musí být hotova
+      return f.tasks.every(
+        other => roleConfig[other.role].level <= taskLevel || other.status === 'done'
+      )
+    }
 
     // Typ pro kandidátský úkol: feature + konkrétní task + pozice v backlogu (nebo -1)
     type Candidate = { f: Feature; t: Task; backlogIdx: number }
@@ -325,13 +371,13 @@ export function tick(
     // Sbíráme kandidáty z backlogu — zapamatujeme si index, abychom feature mohli přesunout
     for (let i = 0; i < state.backlog.length; i++) {
       const f = state.backlog[i]
-      const t = f.tasks.find(t => t.status === 'todo' && m.roles.includes(t.role))
+      const t = f.tasks.find(t => isAvailable(t, f))
       if (t) candidates.push({ f, t, backlogIdx: i })
     }
 
     // Sbíráme kandidáty z rozběhnutých features (backlogIdx = -1 = není v backlogu)
     for (const f of state.inProgress) {
-      const t = f.tasks.find(t => t.status === 'todo' && m.roles.includes(t.role))
+      const t = f.tasks.find(t => isAvailable(t, f))
       if (t) candidates.push({ f, t, backlogIdx: -1 })
     }
 

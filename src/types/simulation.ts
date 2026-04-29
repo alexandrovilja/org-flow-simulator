@@ -3,10 +3,26 @@
  *  zpracovat jen pokud tuto roli má. */
 export type Role = 'FE' | 'BE' | 'DSGN' | 'QA' | 'OPS' | 'DATA'
 
-/** Vizuální metadata pro zobrazení role v UI (popisek a barva). */
+/** Konfigurace jedné specializace — zobrazovaná metadata i pravidla pro simulaci.
+ *  Uložena v Record<Role, RoleMeta> v engine (výchozí) i v komponentě Simulator (uživatelská). */
 export interface RoleMeta {
+  /** Zobrazované jméno specializace v UI (editovatelné uživatelem). */
   label: string
+  /** Barva specializace v oklch prostoru — slouží k vizuálnímu rozlišení v UI. */
   color: string
+  /**
+   * Úroveň specializace — určuje pořadí fází v rámci jedné feature.
+   * Vyšší číslo = dříve musí být hotovo.
+   * Příklad: Design (level 3) → FE+BE (level 2) → QA (level 1).
+   * Úkoly na stejné úrovni mohou probíhat paralelně.
+   * Výchozí hodnota 1 = všechny role ve stejné fázi (chování jako dosud).
+   */
+  level: number
+  /**
+   * Pokud true, každá vygenerovaná feature musí obsahovat alespoň jeden úkol
+   * této specializace — bez ohledu na nastavení roleVar.
+   */
+  required: boolean
 }
 
 /** Stav jednoho úkolu v průběhu jeho zpracování. */
