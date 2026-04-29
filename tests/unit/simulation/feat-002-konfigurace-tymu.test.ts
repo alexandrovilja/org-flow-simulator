@@ -39,12 +39,14 @@ describe('feat-002: konfigurace týmu', () => {
       const rng = mulberry32(42)
       const state = makeInitialState(rng, SETTINGS)
 
-      // Ručně připravíme scénář: jedna feature v inProgress s volným todo úkolem,
-      // a jedna feature v backlogu — oba úkoly matchují stejnou roli (FE)
-      const freeMember = state.team.find(m => m.roles.includes('FE'))!
-      freeMember.currentTask = null
+      // Omezíme tým na jediného FE člena — eliminujeme vliv ostatních členů,
+      // kteří by mohli nepredikovatelně spotřebovat backlog a zkreslovat výsledek
+      const feMember = state.team.find(m => m.roles.includes('FE'))!
+      state.team = [feMember]
+      feMember.currentTask = null
 
-      // Feature v inProgress s jedním nedokončeným FE úkolem
+      // Feature v inProgress s jedním nedokončeným FE úkolem — člen by ji mohl vzít,
+      // ale pouze pokud backlog nenabízí nic lepšího (což je případ, který testujeme)
       const inProgressFeature = state.backlog.shift()!
       inProgressFeature.status = 'in-progress'
       inProgressFeature.tasks = [{
@@ -52,14 +54,20 @@ describe('feat-002: konfigurace týmu', () => {
       }]
       state.inProgress.push(inProgressFeature)
 
-      // Backlog stále obsahuje items — první dostupný má FE úkol
+      // Explicitně nastavíme první backlogovou feature tak, aby obsahovala FE úkol.
+      // Bez toho by záviselo na konkrétních rolích vygenerovaných seedem 42 — to by
+      // byl křehký test, který selže při změně generátoru.
+      state.backlog[0].tasks = [{
+        id: 9002, role: 'FE', work: 3, progress: 0, status: 'todo', assignee: null,
+      }]
+
       const backlogSizeBefore = state.backlog.length
       expect(backlogSizeBefore).toBeGreaterThan(0)
 
-      // Po ticku: člen by měl sáhnout do backlogu, ne do inProgress
+      // Po ticku: člen musí sáhnout do backlogu (priorita 1), ne do inProgress (priorita 2)
       tick(state, 0.01, SETTINGS, rng)
 
-      // Backlog se zmenšil — nová feature byla vytažena
+      // Backlog se zmenšil — FE člen vytáhl novou feature
       expect(state.backlog.length).toBeLessThan(backlogSizeBefore)
       // Úkol v inProgress feature zůstává nepřiřazený (člen preferoval backlog)
       expect(inProgressFeature.tasks[0].assignee).toBeNull()
