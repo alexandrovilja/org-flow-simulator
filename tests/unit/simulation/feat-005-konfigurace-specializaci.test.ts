@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { mulberry32, makeInitialState, tick, ROLE_META, ROLES } from '@/simulation/engine'
+import { mulberry32, makeInitialState, tick, ROLE_META } from '@/simulation/engine'
 import type { SimSettings, Role, RoleMeta } from '@/types/simulation'
 
 /** Základní nastavení pro všechny testy: malý backlog, bez variability. */
