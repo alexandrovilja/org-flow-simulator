@@ -69,6 +69,91 @@ describe('feat-002: waiting time', () => {
     })
   })
 
+  describe('idle čas a dostupná práce — timing bugu', () => {
+    it('člen dostane úkol v prvním ticku → idleSec zůstane 0', () => {
+      // BUG: idleSec se přičítal PŘED přiřazením úkolu, takže každý člen
+      // dostal falešný idle i když práci hned dostal.
+      // FIX: idle se přičítá až AFTER assignment loopem.
+      const rng = mulberry32(1)
+      const state = makeInitialState(rng, SETTINGS)
+      // Jeden FE člen, jedna feature s FE úkolem — práce hned dostupná
+      state.team = [{ id: 1, name: 'FE', roles: ['FE'], currentTask: null, idleSec: 0 }]
+      state.backlog = [{
+        id: 1, name: 'F-001 Test', hue: 0, priority: 1,
+        createdAt: 0, startedAt: null, finishedAt: null, status: 'backlog',
+        tasks: [{ id: 1, role: 'FE', work: 10, progress: 0, status: 'todo', assignee: null }],
+      }]
+      state.inProgress = []
+
+      tick(state, 0.1, SETTINGS, rng)
+
+      // Člen dostal úkol → idleSec musí zůstat 0
+      expect(state.team[0].currentTask).not.toBeNull()
+      expect(state.team[0].idleSec).toBe(0)
+    })
+
+    it('člen dokončí úkol — v dalším ticku (s dostupnou prací) idleSec neroste', () => {
+      // BUG: v ticku po dokončení úkolu (currentTask = null) se idle přičetl
+      // před přiřazením nového úkolu, i když práce byla ihned k dispozici.
+      const rng = mulberry32(1)
+      const state = makeInitialState(rng, SETTINGS)
+      state.team = [{ id: 1, name: 'FE', roles: ['FE'], currentTask: null, idleSec: 0 }]
+      // Dvě features — člen zpracuje první úkol a pak má hned druhou práci
+      state.backlog = [
+        {
+          id: 1, name: 'F-001 A', hue: 0, priority: 1,
+          createdAt: 0, startedAt: null, finishedAt: null, status: 'backlog',
+          tasks: [{ id: 1, role: 'FE', work: 0.5, progress: 0, status: 'todo', assignee: null }],
+        },
+        {
+          id: 2, name: 'F-002 B', hue: 45, priority: 2,
+          createdAt: 0, startedAt: null, finishedAt: null, status: 'backlog',
+          tasks: [{ id: 2, role: 'FE', work: 10, progress: 0, status: 'todo', assignee: null }],
+        },
+      ]
+      state.inProgress = []
+
+      // Tick 1: člen dostane úkol z F-001 (work=0.5)
+      tick(state, 0.1, SETTINGS, rng)
+      expect(state.team[0].currentTask).not.toBeNull()
+      expect(state.team[0].idleSec).toBe(0)
+
+      // Tick 2: úkol se dokončí (progress 0.1 + 0.5 = 0.6 >= 0.5), F-002 je dostupná.
+      // Dokončení nastane v části "postup práce" — po přiřazovacím loopu.
+      // Proto re-assignment nastane až v ticku 3.
+      tick(state, 0.5, SETTINGS, rng)
+      // Po dokončení úkolu je člen momentálně idle, ale idleSec ještě nenarostl
+      // (idle akumulace proběhla PŘED dokončením tasku v témže ticku).
+      expect(state.team[0].currentTask).toBeNull()
+      expect(state.team[0].idleSec).toBe(0)
+
+      // Tick 3: re-assignment — člen ihned dostane F-002, bez idle
+      tick(state, 0.1, SETTINGS, rng)
+      expect(state.team[0].currentTask).not.toBeNull()
+      expect(state.team[0].idleSec).toBe(0)
+    })
+
+    it('člen bez dostupné práce po dokončení úkolu idleSec akumuluje', () => {
+      // Zdravý protitest: pokud práce není, idle čas MUSÍ narůst
+      const rng = mulberry32(1)
+      const state = makeInitialState(rng, SETTINGS)
+      state.team = [{ id: 1, name: 'FE', roles: ['FE'], currentTask: null, idleSec: 0 }]
+      state.backlog = [{
+        id: 1, name: 'F-001', hue: 0, priority: 1,
+        createdAt: 0, startedAt: null, finishedAt: null, status: 'backlog',
+        tasks: [{ id: 1, role: 'FE', work: 0.1, progress: 0, status: 'todo', assignee: null }],
+      }]
+      state.inProgress = []
+
+      // Dokončíme jedinou feature
+      tick(state, 0.5, SETTINGS, rng)
+      // Teď není žádná práce — člen musí akumulovat idle
+      const idleAfterFinish = state.team[0].idleSec
+      tick(state, 1, SETTINGS, rng)
+      expect(state.team[0].idleSec).toBeGreaterThan(idleAfterFinish)
+    })
+  })
+
   describe('celkový waiting time', () => {
     it('tým čekající N sekund má totalWait = N * počet_členů_s_rolemi', () => {
       const rng = mulberry32(1)

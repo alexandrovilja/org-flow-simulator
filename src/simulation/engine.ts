@@ -341,14 +341,6 @@ export function tick(
   // Průběžně akumulujeme WIP × čas pro výpočet průměrného WIP (Little's Law)
   state.wipIntegral += state.inProgress.length * dtSim
 
-  // Akumulujeme idle čas pro každého člena, který má role ale žádný úkol.
-  // Člen bez rolí se nepočítá — není blokován procesem, jen nemá specializaci.
-  for (const m of state.team) {
-    if (m.roles.length > 0 && m.currentTask === null) {
-      m.idleSec += dtSim
-    }
-  }
-
   // Zaznamenáme čas prvního ticku jako startedAt simulace
   if (state.startedAt === null) state.startedAt = state.simTime
 
@@ -423,6 +415,17 @@ export function tick(
     best.t.status = 'doing'
     best.t.assignee = m.id
     m.currentTask = { featureId: best.f.id, taskId: best.t.id }
+  }
+
+  // Akumulujeme idle čas pro každého člena, který má role ale žádný úkol.
+  // Záměrně až PO přiřazovacím loopu — člen, který právě dostal úkol, idle čas
+  // nedostane. Před opravou byl tento blok před loopem, což způsobovalo falešný
+  // idle i členům, kteří práci hned dostali (první tick, tick po dokončení úkolu).
+  // Člen bez rolí se nepočítá — není blokován procesem, jen nemá specializaci.
+  for (const m of state.team) {
+    if (m.roles.length > 0 && m.currentTask === null) {
+      m.idleSec += dtSim
+    }
   }
 
   // --- Postup práce ---
