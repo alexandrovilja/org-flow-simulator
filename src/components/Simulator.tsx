@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react'
+import { flushSync } from 'react-dom'
 import {
   ROLE_META, MEMBER_NAMES, mulberry32,
   makeInitialState, resetFromSnapshot, regenerate, tick, computeStats,
@@ -89,10 +90,12 @@ export function Simulator() {
           }
         }
       }
-      // Re-render jen když simulace běží — při pauze se stav nemění,
-      // zbytečné renders by přidávaly frame budget zátěž a mohly způsobit frame drops
+      // flushSync zajistí synchronní render PŘED koncem RAF callbacku.
+      // Bez toho React 18 (Concurrent Mode) plánuje render přes MessageChannel,
+      // který může přijít AŽ po dalším RAF → snímky se slučují → viditelná přerušovanost.
+      // flushSync je standardní řešení pro RAF-driven 60fps animace v React 18.
       if (!pausedRef.current) {
-        forceUpdate(n => (n + 1) & 0xFFFF)
+        flushSync(() => { forceUpdate(n => (n + 1) & 0xFFFF) })
       }
       raf = requestAnimationFrame(step)
     }

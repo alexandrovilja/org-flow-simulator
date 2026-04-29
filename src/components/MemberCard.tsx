@@ -134,8 +134,11 @@ export function MemberCard({ member, currentFeature, currentTask, roleConfig, on
         </div>
       )}
 
-      {/* Řádek 3: progress bar nebo idle stav */}
-      <div style={{ minHeight: 22, display: 'flex', flexDirection: 'column', gap: 2 }}>
+      {/* Řádek 3: progress bar nebo idle stav.
+          Fixní výška = label (12px) + gap (2px) + bar (22px) = 36px.
+          Bez ní by karta měnila výšku při přechodu idle↔working a způsobovala
+          reflow celého gridu (gridAutoRows: min-content) — viditelné jako trhání. */}
+      <div style={{ minHeight: 36, display: 'flex', flexDirection: 'column', gap: 2 }}>
         {currentFeature && currentTask && taskMeta ? (
           <>
             <div style={{
