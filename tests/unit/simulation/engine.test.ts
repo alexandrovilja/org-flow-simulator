@@ -8,6 +8,7 @@ const DEFAULT_SETTINGS: SimSettings = {
   sizeVar: 0.4,
   roleVar: 0.5,
   initialBacklog: 20,
+  minSpecializations: 1,
 }
 
 describe('mulberry32', () => {

@@ -9,6 +9,7 @@ const SETTINGS: SimSettings = {
   sizeVar: 0,
   roleVar: 0,
   initialBacklog: 3,
+  minSpecializations: 1,
 }
 
 /** Vytvoří kopii ROLE_META s přepsanými hodnotami pro konkrétní role. */

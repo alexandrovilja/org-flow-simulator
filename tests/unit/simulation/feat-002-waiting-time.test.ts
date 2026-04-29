@@ -8,6 +8,7 @@ const SETTINGS: SimSettings = {
   sizeVar: 0,
   roleVar: 0,
   initialBacklog: 5,
+  minSpecializations: 1,
 }
 
 describe('feat-002: waiting time', () => {

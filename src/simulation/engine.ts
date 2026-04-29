@@ -100,11 +100,13 @@ function makeFeature(
   const maxSize = baseSize + spread
   const taskCount = minSize + Math.floor(rng() * (maxSize - minSize + 1))
 
-  // Výpočet počtu různých rolí: základní hodnota 2 ± rozptyl daný roleVar
+  // Výpočet počtu různých rolí: základní hodnota 2 ± rozptyl daný roleVar.
+  // Uživatelské minSpecializations tvoří spodní hranici — nelze klesnout pod ni.
   const baseRoles = 2
   const roleSpread = Math.round(settings.roleVar * 4)
-  const minRoles = Math.max(1, baseRoles - Math.floor(roleSpread / 2))
-  const maxRoles = Math.min(ROLES.length, baseRoles + roleSpread)
+  const computedMin = Math.max(1, baseRoles - Math.floor(roleSpread / 2))
+  const minRoles = Math.min(ROLES.length, Math.max(computedMin, settings.minSpecializations ?? 1))
+  const maxRoles = Math.min(ROLES.length, Math.max(minRoles, baseRoles + roleSpread))
   const roleCount = minRoles + Math.floor(rng() * (maxRoles - minRoles + 1))
 
   // Povinné role jsou vždy zahrnuty bez ohledu na roleVar

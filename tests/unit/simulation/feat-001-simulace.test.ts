@@ -8,6 +8,7 @@ const SETTINGS: SimSettings = {
   sizeVar: 0.4,
   roleVar: 0.5,
   initialBacklog: 20,
+  minSpecializations: 1,
 }
 
 describe('feat-001: simulace průběhu vývoje', () => {

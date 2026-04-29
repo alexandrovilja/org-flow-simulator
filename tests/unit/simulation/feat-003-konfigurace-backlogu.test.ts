@@ -8,6 +8,7 @@ const BASE: SimSettings = {
   sizeVar: 0,
   roleVar: 0,
   initialBacklog: 30,
+  minSpecializations: 1,
 }
 
 describe('feat-003: konfigurace backlogu', () => {

@@ -8,6 +8,7 @@ const SETTINGS: SimSettings = {
   sizeVar: 0,       // uniformní features — snazší předvídatelnost
   roleVar: 0,       // všechny features vyžadují stejné role
   initialBacklog: 5,
+  minSpecializations: 1,
 }
 
 describe('feat-002: konfigurace týmu', () => {

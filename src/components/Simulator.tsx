@@ -22,6 +22,7 @@ const DEFAULT_SETTINGS: SimSettings = {
   sizeVar: 0.4,
   roleVar: 0.5,
   initialBacklog: 100,
+  minSpecializations: 1,
 }
 
 export function Simulator() {
@@ -311,26 +312,37 @@ export function Simulator() {
 
         <div style={{ flex: '0 0 auto', padding: '12px 14px 14px', display: 'flex', flexDirection: 'column', gap: 12, background: 'var(--panel)' }}>
           <h3 style={{ margin: 0, fontSize: 12, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5, color: 'var(--ink-2)' }}>Controls</h3>
+          {/* Generate button — první a full-width, aby byl vždy viditelný a snadno dostupný */}
+          <button onClick={handleRegenerate} style={{
+            background: 'var(--ink)', border: 'none', borderRadius: 4,
+            padding: '7px 0', fontSize: 11, fontWeight: 600, color: 'white',
+            cursor: 'pointer', width: '100%', letterSpacing: 0.2,
+          }}>
+            ♻ Generate new backlog
+          </button>
           <Slider
-            label="Backlog size (on regenerate)"
+            label="Backlog size"
             value={settings.initialBacklog}
             min={10} max={1000} step={10}
             onChange={v => setSettings(s => ({ ...s, initialBacklog: v }))}
             format={v => `${v} items`}
+            tooltip="Number of features generated when clicking 'Generate new backlog'. Larger backlogs reveal long-term flow patterns."
           />
-          <button onClick={handleRegenerate} style={{
-            background: 'var(--panel)', border: '1px solid var(--line)', borderRadius: 4,
-            padding: '5px 10px', fontSize: 11, fontWeight: 500, color: 'var(--ink-2)',
-            cursor: 'pointer', alignSelf: 'flex-start',
-          }} title="Generate a fresh backlog using the current size & variability settings">
-            ♻ Generate new backlog
-          </button>
+          <Slider
+            label="Min. specializations per item"
+            value={settings.minSpecializations}
+            min={1} max={6} step={1}
+            onChange={v => setSettings(s => ({ ...s, minSpecializations: v }))}
+            format={v => v === 1 ? 'no minimum' : `≥ ${v} roles`}
+            tooltip="Minimum number of different specializations each backlog item must require. Higher values force cross-functional collaboration on every item."
+          />
           <Slider
             label="Item size variability"
             value={settings.sizeVar}
             min={0} max={1} step={0.05}
             onChange={v => setSettings(s => ({ ...s, sizeVar: v }))}
             format={v => v < 0.1 ? 'uniform' : v < 0.5 ? 'low' : v < 0.85 ? 'high' : 'extreme'}
+            tooltip="How much effort varies between items. Uniform = all items take the same work. Extreme = some items are tiny, some very large — mimics real project unpredictability."
           />
           <Slider
             label="Role-mix variability"
@@ -338,6 +350,7 @@ export function Simulator() {
             min={0} max={1} step={0.05}
             onChange={v => setSettings(s => ({ ...s, roleVar: v }))}
             format={v => v < 0.1 ? '2 roles' : v < 0.5 ? 'low' : v < 0.85 ? 'high' : '1–6 roles'}
+            tooltip="How many different roles each item requires. Low = every item needs the same 2 roles. High = items require random mixes of up to 6 roles."
           />
           <div style={{ paddingTop: 8, borderTop: '1px solid var(--line)', marginTop: 4 }}>
             <button

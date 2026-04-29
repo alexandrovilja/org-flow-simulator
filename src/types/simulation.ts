@@ -152,6 +152,12 @@ export interface SimSettings {
   roleVar: number
   /** Počet features vygenerovaných na začátku simulace. */
   initialBacklog: number
+  /**
+   * Minimální počet různých specializací, které musí každá feature obsahovat.
+   * Hodnota 1 = výchozí (žádný vynucený minimum), hodnota 6 = každá feature vyžaduje všechny role.
+   * Platí při generování nového backlogu nebo inicializaci.
+   */
+  minSpecializations: number
 }
 
 /** Vypočtené statistiky z historie Lead Time.
