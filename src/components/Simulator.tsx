@@ -31,7 +31,13 @@ export function Simulator() {
   const [, forceUpdate] = useState(0)
 
   /** Statistiky posledního dokončeného běhu — slouží pro srovnání s aktuálním během. */
-  const [prevStats, setPrevStats] = useState<{ avgLt: number; avgWip: number } | null>(null)
+  const [prevStats, setPrevStats] = useState<{ avgLt: number; avgWip: number; totalTime: number } | null>(null)
+  /**
+   * Statistiky právě dokončeného běhu — uložené při konci simulace.
+   * Propagují se do prevStats až při startu nového běhu (reset/regenerate),
+   * aby delta zůstala viditelná i po dokončení aktuálního běhu.
+   */
+  const lastFinishedRef = useRef<{ avgLt: number; avgWip: number; totalTime: number } | null>(null)
 
   /** Konfigurace specializací — kopie ROLE_META, upravitelná uživatelem.
    *  Předává se do engine funkcí (tick, makeInitialState, regenerate). */
@@ -68,13 +74,13 @@ export function Simulator() {
           tick(state, dtSim, settingsRef.current, rngRef.current, roleConfigRef.current)
           if (state.finished) {
             setPaused(true)
-            // Simulace právě doběhla — uložíme statistiky tohoto běhu jako referenci
-            // pro srovnání s příštím během. Ukládáme zde (ne na kliknutí tlačítka),
-            // aby srovnání fungovalo bez ohledu na to, jak uživatel spustí nový běh.
+            // Simulace právě doběhla — uložíme statistiky do lastFinishedRef.
+            // Do prevStats je nepropagujeme hned, aby delta zůstala viditelná
+            // i po skončení běhu. Propagace proběhne až při startu nového běhu.
             const finishedStats = computeStats(state.leadTimes)
             const finishedAvgWip = state.simTime > 0.5 ? state.wipIntegral / state.simTime : 0
             if (finishedStats.count > 0) {
-              setPrevStats({ avgLt: finishedStats.avg, avgWip: finishedAvgWip })
+              lastFinishedRef.current = { avgLt: finishedStats.avg, avgWip: finishedAvgWip, totalTime: state.simTime }
             }
           }
         }
@@ -114,6 +120,7 @@ export function Simulator() {
   }, [])
 
   const handleReset = useCallback(() => {
+    if (lastFinishedRef.current) setPrevStats(lastFinishedRef.current)
     if (stateRef.current) resetFromSnapshot(stateRef.current)
     forceUpdate(n => n + 1)
   }, [])
@@ -131,10 +138,10 @@ export function Simulator() {
   }, [])
 
   const handleRegenerate = useCallback(() => {
+    if (lastFinishedRef.current) setPrevStats(lastFinishedRef.current)
     const { state, rng } = regenerate(settingsRef.current, roleConfigRef.current)
     stateRef.current = state
     rngRef.current = rng
-    // prevStats záměrně necháváme — uživatel může porovnat nový běh s předchozím
     setPaused(true)
     setHasStarted(false)
     forceUpdate(n => n + 1)
@@ -170,6 +177,11 @@ export function Simulator() {
 
   const wipDelta = prevStats && avgWip !== null
     ? calcDelta(avgWip, prevStats.avgWip)
+    : undefined
+
+  // Total time delta zobrazujeme jen po dokončení běhu — průběžný čas nemá smysl porovnávat
+  const timeDelta = prevStats && s.finished
+    ? calcDelta(s.simTime, prevStats.totalTime)
     : undefined
 
   return (
@@ -358,6 +370,7 @@ export function Simulator() {
               finished={s.finished}
               wide
               tooltip="Elapsed simulation time. Stops when the last backlog item is done."
+              delta={timeDelta}
             />
             <StatTile
               label="Avg Lead Time"
