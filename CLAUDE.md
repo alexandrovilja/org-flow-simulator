@@ -72,3 +72,24 @@ docs/               # Conventions and strategy docs
 5. CI green → merge
 
 Full workflow: see `workflow.md`.
+
+## Workflow enforcement — CRITICAL RULES (never skip)
+
+These rules exist because agents tend to jump straight to implementation when the user describes a change. That skips the human checkpoints that catch bad decisions early.
+
+**Rule 1 — Spec first, always.**
+When a user describes a new feature or UI change, the agent's FIRST response must be to write or update the feature spec (`features/feat-NNN.md`), not to write code. Do not touch `src/` until the spec is approved.
+
+**Rule 2 — Tests before code.**
+After the spec is approved, write tests (`tests/unit/feat-NNN.test.ts`) and wait for explicit human approval before writing any implementation. The approved tests are the contract — implementation must satisfy them, nothing more.
+
+**Rule 3 — One phase at a time.**
+Never combine phases in one response (e.g. "here's the spec AND here's the implementation"). Each phase ends with a human checkpoint. Wait for the human to say "ok", "ano", "pokračuj", or equivalent before entering the next phase.
+
+**Rule 4 — Report phase at end of every response.**
+End every response with the current workflow phase and a suggested next step. Format:
+
+---
+**Fáze workflow:** `2 – Feature Spec` (feat-006)
+**Návrh:** Spec je připraven → odsouhlasit a přejít do fáze 3 (UI Design) nebo fáze 4 (TDD).
+---
