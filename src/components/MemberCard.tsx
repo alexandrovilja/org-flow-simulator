@@ -3,17 +3,29 @@
 import { useState } from 'react'
 import { ROLES, ROLE_META } from '@/simulation/engine'
 import { RoleChip } from './RoleChip'
-import type { Feature, Member, Task, Role } from '@/types/simulation'
+import type { Feature, Member, Task, Role, RoleMeta } from '@/types/simulation'
 
 interface MemberCardProps {
   member: Member
   currentFeature: Feature | null
   currentTask: Task | null
+  /** Aktuální konfigurace specializací — pro zobrazení plných názvů rolí. */
+  roleConfig: Record<Role, RoleMeta>
   onAddRole: (memberId: number, role: Role) => void
   onRemoveRole: (memberId: number, role: Role) => void
+  /** Callback pro přejmenování jednotky. */
+  onRename: (memberId: number, name: string) => void
+  /** Callback pro odebrání jednotky. Volající zajistí uvolnění aktivního úkolu. */
+  onRemove: (memberId: number) => void
 }
 
-export function MemberCard({ member, currentFeature, currentTask, onAddRole, onRemoveRole }: MemberCardProps) {
+/**
+ * Karta jednoho člena týmu zobrazující:
+ * - editovatelné jméno + tlačítko pro odebrání jednotky
+ * - přiřazené specializace (chipy s plným názvem)
+ * - progress bar aktivního úkolu, nebo idle stav
+ */
+export function MemberCard({ member, currentFeature, currentTask, roleConfig, onAddRole, onRemoveRole, onRename, onRemove }: MemberCardProps) {
   const [adding, setAdding] = useState(false)
   const availableRoles = ROLES.filter(r => !member.roles.includes(r))
   const taskMeta = currentTask ? ROLE_META[currentTask.role] : null
@@ -28,18 +40,58 @@ export function MemberCard({ member, currentFeature, currentTask, onAddRole, onR
       display: 'flex', flexDirection: 'column', gap: 4,
       minHeight: 0, overflow: 'hidden',
     }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', position: 'relative' }}>
+      {/* Řádek 1: avatar + editovatelné jméno + tlačítko smazání */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6, position: 'relative' }}>
         <div style={{
           width: 18, height: 18, borderRadius: '50%',
           background: 'var(--ink)', color: 'white',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           fontSize: 9, fontWeight: 600, flexShrink: 0,
         }}>
-          {member.name[0]}
+          {member.name[0]?.toUpperCase() ?? '?'}
         </div>
-        <span style={{ fontWeight: 600, fontSize: 12, marginRight: 2 }}>{member.name}</span>
+
+        {/* Inline name input — vždy editovatelný, uloží při blur nebo Enter */}
+        <input
+          type="text"
+          value={member.name}
+          onChange={e => onRename(member.id, e.target.value)}
+          onKeyDown={e => { if (e.key === 'Enter') e.currentTarget.blur() }}
+          style={{
+            flex: 1, minWidth: 0,
+            fontSize: 12, fontWeight: 600, fontFamily: 'inherit',
+            background: 'transparent', border: 'none', outline: 'none',
+            color: 'var(--ink)', padding: 0,
+          }}
+        />
+
+        {/* Tlačítko odebrání jednotky */}
+        <button
+          onClick={() => onRemove(member.id)}
+          title="Remove unit"
+          style={{
+            flexShrink: 0,
+            width: 16, height: 16,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            background: 'transparent',
+            border: '1px solid var(--line)',
+            borderRadius: 3, color: 'var(--ink-3)',
+            fontSize: 11, lineHeight: 1, cursor: 'pointer',
+            padding: 0,
+          }}
+        >×</button>
+      </div>
+
+      {/* Řádek 2: specializační chipy + tlačítko přidání role */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'wrap', position: 'relative' }}>
         {member.roles.map(r => (
-          <RoleChip key={r} role={r} removable onRemove={() => onRemoveRole(member.id, r)} />
+          <RoleChip
+            key={r}
+            role={r}
+            label={roleConfig[r].label}
+            removable
+            onRemove={() => onRemoveRole(member.id, r)}
+          />
         ))}
         {!adding && availableRoles.length > 0 && (
           <button onClick={() => setAdding(true)} style={{
@@ -67,9 +119,12 @@ export function MemberCard({ member, currentFeature, currentTask, onAddRole, onR
                 background: ROLE_META[r].color,
                 border: 'none', color: 'white',
                 fontSize: 10, fontWeight: 600,
-                padding: '2px 6px', borderRadius: 3,
+                padding: '2px 8px', borderRadius: 3,
                 letterSpacing: 0.3, cursor: 'pointer',
-              }}>{r}</button>
+              }}>
+                {/* Plný název specializace z roleConfig */}
+                {roleConfig[r].label}
+              </button>
             ))}
             <button onClick={() => setAdding(false)} style={{
               background: 'transparent', border: 'none',
@@ -79,7 +134,8 @@ export function MemberCard({ member, currentFeature, currentTask, onAddRole, onR
         )}
       </div>
 
-      <div style={{ minHeight: 16, display: 'flex', flexDirection: 'column', gap: 2 }}>
+      {/* Řádek 3: progress bar nebo idle stav */}
+      <div style={{ minHeight: 22, display: 'flex', flexDirection: 'column', gap: 2 }}>
         {currentFeature && currentTask && taskMeta ? (
           <>
             <div style={{
@@ -95,11 +151,13 @@ export function MemberCard({ member, currentFeature, currentTask, onAddRole, onR
                 {currentFeature.name}
               </span>
               <span className="mono" style={{ fontSize: 9, fontWeight: 600, color: taskMeta.color, flexShrink: 0 }}>
-                {currentTask.role}
+                {/* Plný název aktuálně pracované specializace */}
+                {roleConfig[currentTask.role].label}
               </span>
             </div>
-            <div style={{ height: 14, background: 'var(--line)', borderRadius: 4, overflow: 'hidden' }}>
-              <div style={{ height: '100%', width: `${fillPct}%`, background: taskMeta.color }} />
+            {/* Wider progress bar — height 22px */}
+            <div style={{ height: 22, background: 'var(--line)', borderRadius: 4, overflow: 'hidden' }}>
+              <div style={{ height: '100%', width: `${fillPct}%`, background: taskMeta.color, transition: 'width 0.1s linear' }} />
             </div>
           </>
         ) : (

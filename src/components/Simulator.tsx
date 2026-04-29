@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import {
-  ROLE_META, mulberry32,
+  ROLE_META, MEMBER_NAMES, mulberry32,
   makeInitialState, resetFromSnapshot, regenerate, tick, computeStats,
 } from '@/simulation/engine'
 import type { SimSettings, SimState, Role, RoleMeta } from '@/types/simulation'
@@ -122,6 +122,47 @@ export function Simulator() {
   const handleReset = useCallback(() => {
     if (lastFinishedRef.current) setPrevStats(lastFinishedRef.current)
     if (stateRef.current) resetFromSnapshot(stateRef.current)
+    forceUpdate(n => n + 1)
+  }, [])
+
+  /** Přejmenuje jednotku. Změna se projeví okamžitě v UI. */
+  const handleRenameMember = useCallback((memberId: number, name: string) => {
+    const m = stateRef.current?.team.find(m => m.id === memberId)
+    if (m) m.name = name
+    forceUpdate(n => n + 1)
+  }, [])
+
+  /**
+   * Odebere jednotku z týmu.
+   * Pokud právě pracuje na úkolu, úkol se vrátí do stavu 'todo'
+   * a zůstane ve feature pro přiřazení jinému členovi.
+   */
+  const handleRemoveMember = useCallback((memberId: number) => {
+    const s = stateRef.current
+    if (!s) return
+    const m = s.team.find(m => m.id === memberId)
+    if (m?.currentTask) {
+      const f = s.inProgress.find(f => f.id === m.currentTask!.featureId)
+      const t = f?.tasks.find(t => t.id === m.currentTask!.taskId)
+      if (t) { t.status = 'todo'; t.assignee = null; t.progress = 0 }
+    }
+    s.team = s.team.filter(m => m.id !== memberId)
+    forceUpdate(n => n + 1)
+  }, [])
+
+  /**
+   * Přidá novou jednotku bez rolí.
+   * Jméno se vybere z MEMBER_NAMES podle počtu existujících členů,
+   * nebo "Unit N" pokud jsou všechna jména obsazena.
+   */
+  const handleAddMember = useCallback(() => {
+    const s = stateRef.current
+    if (!s) return
+    const usedNames = new Set(s.team.map(m => m.name))
+    const name = MEMBER_NAMES.find(n => !usedNames.has(n))
+      ?? `Unit ${s.team.length + 1}`
+    const maxId = s.team.reduce((max, m) => Math.max(max, m.id), 0)
+    s.team.push({ id: maxId + 1, name, roles: [], currentTask: null })
     forceUpdate(n => n + 1)
   }, [])
 
@@ -323,7 +364,7 @@ export function Simulator() {
         <div style={{ flex: '0 0 auto', padding: '10px 16px 12px', background: 'var(--panel)', display: 'flex', flexDirection: 'column', gap: 6 }}>
           <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', flexShrink: 0 }}>
             <h3 style={{ margin: 0, fontSize: 12, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5, color: 'var(--ink-2)' }}>
-              Team <span className="mono" style={{ color: 'var(--ink-3)', fontWeight: 500 }}>{s.team.length}</span>
+              Units <span className="mono" style={{ color: 'var(--ink-3)', fontWeight: 500 }}>{s.team.length}</span>
             </h3>
             <span style={{ fontSize: 11, color: 'var(--ink-3)' }}>
               Click <span className="mono" style={{ color: 'var(--ink-2)' }}>+</span> to add a specialty
@@ -342,12 +383,29 @@ export function Simulator() {
                   member={m}
                   currentFeature={cf ?? null}
                   currentTask={ct ?? null}
+                  roleConfig={roleConfig}
                   onAddRole={handleAddRole}
                   onRemoveRole={handleRemoveRole}
+                  onRename={handleRenameMember}
+                  onRemove={handleRemoveMember}
                 />
               )
             })}
           </div>
+          {/* Tlačítko pro přidání nové jednotky */}
+          <button
+            onClick={handleAddMember}
+            style={{
+              marginTop: 2,
+              width: '100%', padding: '5px 0',
+              fontSize: 11, fontFamily: 'inherit', cursor: 'pointer',
+              border: '1px dashed var(--line-2)', borderRadius: 4,
+              background: 'transparent', color: 'var(--ink-3)',
+              fontWeight: 500, letterSpacing: 0.3,
+            }}
+          >
+            + Add unit
+          </button>
         </div>
       </section>
 

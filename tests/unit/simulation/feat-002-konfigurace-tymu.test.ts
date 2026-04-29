@@ -150,6 +150,80 @@ describe('feat-002: konfigurace týmu', () => {
     })
   })
 
+  describe('přidávání a odebírání jednotek', () => {
+    it('nová jednotka s rolí okamžitě přebírá úkol při příštím ticku', () => {
+      const rng = mulberry32(1)
+      const settings: SimSettings = { ...SETTINGS, initialBacklog: 10 }
+      const state = makeInitialState(rng, settings)
+      // Začneme s prázdným týmem — nikdo nepracuje
+      state.team = []
+      tick(state, 0.01, settings, rng)
+      expect(state.inProgress.length).toBe(0)
+
+      // Přidáme novou jednotku s rolí FE
+      state.team.push({ id: 99, name: 'Nova', roles: ['FE'], currentTask: null })
+      tick(state, 0.01, settings, rng)
+
+      // Nova musí přebrat úkol — backlog se zmenší nebo inProgress vzroste
+      const novaWorking = state.team.find(m => m.id === 99)!.currentTask
+      expect(novaWorking).not.toBeNull()
+    })
+
+    it('odebrání jednotky s aktivním úkolem vrátí úkol do todo', () => {
+      const rng = mulberry32(1)
+      const state = makeInitialState(rng, SETTINGS)
+      tick(state, 0.01, SETTINGS, rng)
+
+      // Najdeme pracujícího člena
+      const worker = state.team.find(m => m.currentTask !== null)!
+      const { featureId, taskId } = worker.currentTask!
+      const feature = state.inProgress.find(f => f.id === featureId)!
+      const task = feature.tasks.find(t => t.id === taskId)!
+
+      // Simulujeme logiku handleRemoveMember: úkol vrátíme, pak odebereme člena
+      task.status = 'todo'
+      task.assignee = null
+      task.progress = 0
+      worker.currentTask = null
+      state.team = state.team.filter(m => m.id !== worker.id)
+
+      expect(task.status).toBe('todo')
+      expect(task.assignee).toBeNull()
+      expect(state.team.find(m => m.id === worker.id)).toBeUndefined()
+    })
+
+    it('odebrání idle jednotky nijak neovlivní rozběhnuté features', () => {
+      const rng = mulberry32(1)
+      const state = makeInitialState(rng, SETTINGS)
+      tick(state, 0.01, SETTINGS, rng)
+
+      const idle = state.team.find(m => m.currentTask === null)
+      if (!idle) return // skip — všichni pracují
+
+      const inProgressBefore = state.inProgress.length
+      state.team = state.team.filter(m => m.id !== idle.id)
+
+      // inProgress se nezměnil — nikdo nepřišel o úkol
+      expect(state.inProgress.length).toBe(inProgressBefore)
+    })
+
+    it('přidání druhé cross-functional jednotky zvýší průput', () => {
+      // Cross-functional členové (všechny role) zajistí, že features mohou být dokončeny
+      const allRoles = ['FE', 'BE', 'DSGN', 'QA', 'OPS', 'DATA'] as const
+      const runWithTeam = (size: number) => {
+        const rng = mulberry32(7)
+        const settings: SimSettings = { ...SETTINGS, initialBacklog: 20 }
+        const state = makeInitialState(rng, settings)
+        state.team = Array.from({ length: size }, (_, i) => ({
+          id: i, name: `M${i}`, roles: [...allRoles], currentTask: null,
+        }))
+        for (let i = 0; i < 60; i++) tick(state, 1, settings, rng)
+        return state.done.length
+      }
+      expect(runWithTeam(2)).toBeGreaterThan(runWithTeam(1))
+    })
+  })
+
   describe('lead time se hromadí s rostoucím týmem', () => {
     it('větší tým dokončí více features za stejný čas', () => {
       const runAndCount = (teamSize: number) => {

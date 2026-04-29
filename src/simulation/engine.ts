@@ -35,8 +35,9 @@ const FEATURE_NAMES = [
 ]
 
 /** Jména členů týmu přiřazovaná v pořadí při inicializaci.
- *  Kratší jména záměrně — lépe se vejdou do karet v UI. */
-const MEMBER_NAMES = ['Ada', 'Ben', 'Chen', 'Dani', 'Eli', 'Fae', 'Gus', 'Hari']
+ *  Kratší jména záměrně — lépe se vejdou do karet v UI.
+ *  Exportováno, aby Simulator mohl přiřadit jméno nové jednotce přidané za běhu. */
+export const MEMBER_NAMES = ['Ada', 'Ben', 'Chen', 'Dani', 'Eli', 'Fae', 'Gus', 'Hari']
 
 /**
  * Vytvoří deterministický generátor náhodných čísel (PRNG) s daným seedem.
