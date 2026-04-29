@@ -19,7 +19,7 @@ Jako agilní kouč chci nastavit název, pořadí fáze (level) a povinnost kaž
     - **Barevný bod** — vizuální identifikátor (fixní, není editovatelný)
     - **Name** — textový input; výchozí hodnoty: Frontend, Backend, Design, QA, DevOps, Data
     - **Phase** — stepper s tlačítky `−` a `+` (rozsah 1–5); zobrazuje aktuální číslo
-    - **Req.** — checkbox; pokud zaškrtnuto, každá feature musí obsahovat alespoň jeden úkol dané specializace
+    - **Req.** — checkbox; pokud zaškrtnuto, každá feature musí obsahovat právě jeden úkol dané specializace
   - Pod tabulkou nápověda: `Phase: 1 = first phase, 2 = second, … Same phase = parallel. Req.: always in every backlog item (takes effect on regenerate).`
 
 ## Specification by Example
@@ -64,7 +64,7 @@ Jako agilní kouč chci nastavit název, pořadí fáze (level) a povinnost kaž
 - Sémantika level: **nižší číslo = dřívější fáze**. Level 1 = první fáze (začíná jako první). Úkol level N může začít až poté, co jsou hotové všechny úkoly s level < N ve stejné feature. Úkoly na stejném levelu mohou probíhat paralelně.
 - Engine `tick()`: před přiřazením úkolu kontroluje `isAvailable(task, feature)` — ověřuje, zda jsou všechny úkoly nižší úrovně (level < task.level) v téže feature ve stavu `done`
 - Engine `makeFeature()`: povinné role (required) dostanou vždy právě 1 úkol; extra úkoly (z `sizeVar`) se rozdělují pouze mezi volitelné role. Volitelné role se přidávají náhodně dle `roleVar`; projeví se jen při generování nového backlogu (`regenerate()`) nebo inicializaci (`makeInitialState()`)
-- `FeatureCard` zobrazuje tasky seřazené podle fáze (`roleConfig[role].level` vzestupně) — fáze 1 vlevo. Potřebuje `roleConfig` jako prop.
+- `makeFeature()` při generování seřadí tasky podle `roleConfig[role].level` vzestupně — fáze 1 první. `FeatureCard` zobrazuje tasky v pořadí, v jakém jsou uloženy na `feature.tasks`; nepotřebuje `roleConfig` jako prop.
 - Dotčené funkce: `tick(state, dtSim, settings, rng, roleConfig)`, `makeInitialState(rng, settings, roleConfig)`, `regenerate(settings, roleConfig)` — všechny přijímají `roleConfig` jako volitelný parametr s výchozí hodnotou `ROLE_META`
 
 ## Open Questions

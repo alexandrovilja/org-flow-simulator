@@ -59,7 +59,7 @@ Jako agilní kouč chci spustit animovanou simulaci průtoku backlogu týmem, ab
 - Typy: `SimState`, `SimSettings` v `src/types/simulation.ts`
 - Seedable RNG: `mulberry32` — stejný seed = stejný průběh
 - **Přiřazování úkolů — priorita:** každá feature má pole `priority: number` přiřazené při vzniku (nižší číslo = vyšší priorita). Člen týmu vždy vezme úkol z dostupné feature s nejnižším číslem priority, bez ohledu na to, jestli je v backlogu nebo inProgress. Feature se přesouvá z backlogu do inProgress až ve chvíli, kdy na ni někdo začne pracovat.
-- **Přiřazování úkolů — úrovně (level):** v rámci jedné feature musí být dokončeny všechny úkoly vyšší úrovně dříve, než lze zahájit úkoly nižší úrovně. Úkoly na stejné úrovni mohou probíhat paralelně. Konfigurace úrovní viz feat-005.
+- **Přiřazování úkolů — úrovně (level):** v rámci jedné feature musí být dokončeny všechny úkoly nižší úrovně (nižší číslo = dřívější fáze) dříve, než lze zahájit úkoly vyšší úrovně. Úkoly na stejné úrovni mohou probíhat paralelně. Konfigurace úrovní viz feat-005.
 - Dotčené soubory: `src/simulation/engine.ts` (`tick`, `makeInitialState`), `src/types/simulation.ts` (`Feature.priority`)
 
 ## Open Questions

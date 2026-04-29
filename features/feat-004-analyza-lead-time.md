@@ -12,10 +12,11 @@ Jako agilní kouč chci vidět živý čítač celkové doby zpracování backlo
 ## UI / Design
 - Analytická sekce je v pravém panelu, nad historií hotových features
 - **Záhlaví sekce:** nadpis "Lead Time" + text `N features sampled` vpravo
-- **3 statistické dlaždice** (StatTile komponenty):
+- **4 statistické dlaždice** (StatTile komponenty), zobrazeny jako jeden sloupec:
   - **Total Time** — živý čítač ve formátu `MM:SS.d`; po dokončení simulace zmrazí hodnotu a zobrazí `✓ Complete` se zeleným rámečkem
   - **Avg Lead Time** — průměrná lead time hotových features v sekundách; po druhém a dalším běhu zobrazí delta indikátor (viz níže)
   - **Avg WIP** — průměrný počet features v in-progress (Little's Law); po druhém a dalším běhu zobrazí delta indikátor
+  - **Total Wait** — součet idle sekund všech členů s rolemi, kteří čekají na dostupnou práci; delta se zobrazí jen po dokončení běhu
 - **Delta indikátor** (zobrazí se automaticky po dokončení druhého běhu):
   - `↓ 23%  vs prev run` — zelená, metrika se zlepšila (snížila)
   - `↑ 15%  vs prev run` — červená, metrika se zhoršila (zvýšila)
@@ -39,9 +40,9 @@ Jako agilní kouč chci vidět živý čítač celkové doby zpracování backlo
 - Then: Simulace se automaticky zastaví; čítač zamrzne (např. `04:17.8`); dlaždice přepne do zeleného stavu `✓ Complete`; Play se deaktivuje
 
 **Příklad 3: Delta srovnání po druhém běhu**
-- Given: První běh dokončen, výsledný Avg Lead Time byl 8.4 s, Avg WIP byl 4.2
-- When: Kouč resetuje nebo vygeneruje nový backlog, změní tým a dokončí druhý běh s Avg Lead Time 6.1 s, Avg WIP 3.0
-- Then: Pod hodnotami se zobrazí `↓ 27%  vs prev run` (zelená) pro Avg Lead Time a `↓ 29%  vs prev run` pro Avg WIP
+- Given: První běh dokončen, výsledný Avg Lead Time byl 8.4 s, Avg WIP byl 4.2, Total Wait 120 s
+- When: Kouč resetuje nebo vygeneruje nový backlog, změní tým a dokončí druhý běh s Avg Lead Time 6.1 s, Avg WIP 3.0, Total Wait 80 s
+- Then: Pod hodnotami se zobrazí `↓ 27%  vs prev run` (zelená) pro Avg Lead Time, `↓ 29%` pro Avg WIP a `↓ 33%` pro Total Wait
 
 **Příklad 4: Srovnání při zhoršení**
 - Given: Předchozí běh měl Avg Lead Time 6.1 s
@@ -62,7 +63,7 @@ Jako agilní kouč chci vidět živý čítač celkové doby zpracování backlo
 - Formátování čítače: `src/lib/formatTime.ts` — `formatTime(simSec)` → `MM:SS.d`; používá `Math.floor` (ne round) aby čítač nikdy nepřeskočil hodnotu
 - Metriky: `computeStats()` v `src/simulation/engine.ts` — vrací `avg`, `p85`, histogramy
 - Podmínka ukončení: `backlog.length === 0 && inProgress.length === 0` → `state.finished = true` — detekováno na konci `tick()`
-- Delta uložení: `prevStats` state (`{ avgLt, avgWip }`) v `Simulator.tsx`; nastavuje se v RAF smyčce ve chvíli kdy `state.finished` přejde na `true`; přetrvává přes reset i generování nového backlogu
+- Delta uložení: `lastFinishedRef` (typ `RunSnapshot = { avgLt, avgWip, totalTime, totalWait }`) se uloží při konci simulace; do `prevStats` state se propaguje až při reset/regenerate — delta tak zůstane viditelná i po skončení běhu
 - Stav `finished`: `SimState.finished: boolean` v `src/types/simulation.ts`; po nastavení na `true` RAF smyčka přestane volat `tick()`
 - Animace pulzujícího indikátoru: CSS keyframes `timer-pulse` v `globals.css`
 
