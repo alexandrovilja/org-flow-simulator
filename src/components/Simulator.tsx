@@ -68,14 +68,16 @@ export function Simulator() {
 
   useEffect(() => {
     let raf: number
-    let lastT = performance.now()
     const step = (t: number) => {
-      const dtMs = Math.min(100, t - lastT)
-      lastT = t
       if (!pausedRef.current && stateRef.current) {
         const state = stateRef.current
         if (!state.finished) {
-          const dtSim = dtMs / 1000 * speedRef.current
+          // Pevný simulační krok na snímek: 1/60 sim-sekundy × speed multiplier.
+          // Dřívější přístup (reálný elapsed čas z performance.now) způsoboval
+          // nedeterministické výsledky — každý snímek trvá trochu jinak dlouho,
+          // takže stejná konfigurace dávala různé sim-time výsledky run od runu.
+          // Pevný dt eliminuje závislost na frame rate a zaručuje reprodukovatelné výsledky.
+          const dtSim = (1 / 60) * speedRef.current
           tick(state, dtSim, settingsRef.current, rngRef.current, roleConfigRef.current)
           if (state.finished) {
             setPaused(true)

@@ -107,6 +107,53 @@ describe('tick', () => {
   })
 })
 
+describe('determinismus simulace', () => {
+  it('dva běhy se stejným seedem a stejným fixním dtSim producují identický simTime', () => {
+    // Engine je deterministický: stejný seed + stejná sekvence dtSim → stejný výsledek.
+    // UI zajišťuje deterministický dtSim (pevný 1/60 × speed), ne reálný elapsed čas.
+    const FIXED_DT = 1 / 60
+
+    const runSimulation = () => {
+      const rng = mulberry32(42)
+      const state = makeInitialState(rng, DEFAULT_SETTINGS)
+      let ticks = 0
+      while (!state.finished && ticks < 100_000) {
+        tick(state, FIXED_DT, DEFAULT_SETTINGS, rng)
+        ticks++
+      }
+      return state.simTime
+    }
+
+    const result1 = runSimulation()
+    const result2 = runSimulation()
+    expect(result1).toBe(result2)
+  })
+
+  it('resetFromSnapshot + stejný fixní dtSim produkuje stejný výsledek jako první běh', () => {
+    // Reset musí vrátit backlog do přesně stejného stavu → druhý běh musí doběhnout
+    // ve stejném sim čase jako první.
+    const FIXED_DT = 1 / 60
+    const rng = mulberry32(7)
+    const settings: SimSettings = { ...DEFAULT_SETTINGS, initialBacklog: 10 }
+    const state = makeInitialState(rng, settings)
+
+    const runUntilDone = () => {
+      let ticks = 0
+      while (!state.finished && ticks < 100_000) {
+        tick(state, FIXED_DT, settings, rng)
+        ticks++
+      }
+      return state.simTime
+    }
+
+    const firstRun = runUntilDone()
+    resetFromSnapshot(state)
+    const secondRun = runUntilDone()
+
+    expect(secondRun).toBe(firstRun)
+  })
+})
+
 describe('computeStats', () => {
   it('returns zero stats for empty input', () => {
     const stats = computeStats([])
