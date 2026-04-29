@@ -1,3 +1,5 @@
+import Link from 'next/link'
+
 export default function NotFound() {
   return (
     <div style={{
@@ -9,9 +11,10 @@ export default function NotFound() {
     }}>
       <h1 style={{ fontSize: 48, fontWeight: 700, margin: 0 }}>404</h1>
       <p style={{ color: '#8a8a92', marginTop: 8 }}>Page not found</p>
-      <a href="/" style={{ marginTop: 16, color: 'oklch(58% 0.13 240)', textDecoration: 'none', fontSize: 14 }}>
+      {/* Use Next.js Link for internal navigation so client-side routing works */}
+      <Link href="/" style={{ marginTop: 16, color: 'oklch(58% 0.13 240)', textDecoration: 'none', fontSize: 14 }}>
         ← Back to simulator
-      </a>
+      </Link>
     </div>
   )
 }
