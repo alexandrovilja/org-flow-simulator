@@ -155,9 +155,10 @@ export function MemberCard({ member, currentFeature, currentTask, roleConfig, on
                 {roleConfig[currentTask.role].label}
               </span>
             </div>
-            {/* Wider progress bar — height 22px */}
+            {/* Progress bar — bez CSS transition, simulace běží na 60 fps a mutuje
+                progress přímo; transition by přidávala lag a artefakty při přepnutí úkolu */}
             <div style={{ height: 22, background: 'var(--line)', borderRadius: 4, overflow: 'hidden' }}>
-              <div style={{ height: '100%', width: `${fillPct}%`, background: taskMeta.color, transition: 'width 0.1s linear' }} />
+              <div style={{ height: '100%', width: `${fillPct}%`, background: taskMeta.color }} />
             </div>
           </>
         ) : (

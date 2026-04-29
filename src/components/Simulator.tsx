@@ -89,7 +89,11 @@ export function Simulator() {
           }
         }
       }
-      forceUpdate(n => (n + 1) & 0xFFFF)
+      // Re-render jen když simulace běží — při pauze se stav nemění,
+      // zbytečné renders by přidávaly frame budget zátěž a mohly způsobit frame drops
+      if (!pausedRef.current) {
+        forceUpdate(n => (n + 1) & 0xFFFF)
+      }
       raf = requestAnimationFrame(step)
     }
     raf = requestAnimationFrame(step)
