@@ -161,7 +161,7 @@ describe('feat-002: konfigurace týmu', () => {
       expect(state.inProgress.length).toBe(0)
 
       // Přidáme novou jednotku s rolí FE
-      state.team.push({ id: 99, name: 'Nova', roles: ['FE'], currentTask: null })
+      state.team.push({ id: 99, name: 'Nova', roles: ['FE'], currentTask: null, idleSec: 0 })
       tick(state, 0.01, settings, rng)
 
       // Nova musí přebrat úkol — backlog se zmenší nebo inProgress vzroste
@@ -215,7 +215,7 @@ describe('feat-002: konfigurace týmu', () => {
         const settings: SimSettings = { ...SETTINGS, initialBacklog: 20 }
         const state = makeInitialState(rng, settings)
         state.team = Array.from({ length: size }, (_, i) => ({
-          id: i, name: `M${i}`, roles: [...allRoles], currentTask: null,
+          id: i, name: `M${i}`, roles: [...allRoles], currentTask: null, idleSec: 0,
         }))
         for (let i = 0; i < 60; i++) tick(state, 1, settings, rng)
         return state.done.length
@@ -237,6 +237,7 @@ describe('feat-002: konfigurace týmu', () => {
           name: `P${i}`,
           roles: [roles[i % roles.length]],
           currentTask: null,
+          idleSec: 0,
         }))
         for (let i = 0; i < 60; i++) tick(state, 1, settings, rng)
         return state.done.length

@@ -85,6 +85,12 @@ export interface Member {
   roles: Role[]
   /** Odkaz na úkol, který člen právě zpracovává. Null pokud je idle. */
   currentTask: { featureId: number; taskId: number } | null
+  /**
+   * Kumulovaný idle čas v simulačních sekundách.
+   * Narůstá každý tick, kdy má člen alespoň jednu roli ale žádný úkol.
+   * Člen bez rolí idle čas neakumuluje — nemůže pracovat ze strukturálních důvodů.
+   */
+  idleSec: number
 }
 
 /** Jeden záznam o době dokončení feature (Lead Time).

@@ -30,14 +30,17 @@ export function Simulator() {
   const [hasStarted, setHasStarted] = useState(false)
   const [, forceUpdate] = useState(0)
 
+  /** Snapshot statistik jednoho dokončeného běhu — slouží pro delta výpočty. */
+  type RunSnapshot = { avgLt: number; avgWip: number; totalTime: number; totalWait: number }
+
   /** Statistiky posledního dokončeného běhu — slouží pro srovnání s aktuálním během. */
-  const [prevStats, setPrevStats] = useState<{ avgLt: number; avgWip: number; totalTime: number } | null>(null)
+  const [prevStats, setPrevStats] = useState<RunSnapshot | null>(null)
   /**
    * Statistiky právě dokončeného běhu — uložené při konci simulace.
    * Propagují se do prevStats až při startu nového běhu (reset/regenerate),
    * aby delta zůstala viditelná i po dokončení aktuálního běhu.
    */
-  const lastFinishedRef = useRef<{ avgLt: number; avgWip: number; totalTime: number } | null>(null)
+  const lastFinishedRef = useRef<RunSnapshot | null>(null)
 
   /** Konfigurace specializací — kopie ROLE_META, upravitelná uživatelem.
    *  Předává se do engine funkcí (tick, makeInitialState, regenerate). */
@@ -80,7 +83,8 @@ export function Simulator() {
             const finishedStats = computeStats(state.leadTimes)
             const finishedAvgWip = state.simTime > 0.5 ? state.wipIntegral / state.simTime : 0
             if (finishedStats.count > 0) {
-              lastFinishedRef.current = { avgLt: finishedStats.avg, avgWip: finishedAvgWip, totalTime: state.simTime }
+              const finishedTotalWait = state.team.reduce((sum, m) => sum + m.idleSec, 0)
+              lastFinishedRef.current = { avgLt: finishedStats.avg, avgWip: finishedAvgWip, totalTime: state.simTime, totalWait: finishedTotalWait }
             }
           }
         }
@@ -162,7 +166,7 @@ export function Simulator() {
     const name = MEMBER_NAMES.find(n => !usedNames.has(n))
       ?? `Unit ${s.team.length + 1}`
     const maxId = s.team.reduce((max, m) => Math.max(max, m.id), 0)
-    s.team.push({ id: maxId + 1, name, roles: [], currentTask: null })
+    s.team.push({ id: maxId + 1, name, roles: [], currentTask: null, idleSec: 0 })
     forceUpdate(n => n + 1)
   }, [])
 
@@ -223,6 +227,14 @@ export function Simulator() {
   // Total time delta zobrazujeme jen po dokončení běhu — průběžný čas nemá smysl porovnávat
   const timeDelta = prevStats && s.finished
     ? calcDelta(s.simTime, prevStats.totalTime)
+    : undefined
+
+  // Celkový čas čekání — součet idleSec za všechny členy (u členů bez rolí je vždy 0)
+  const totalWait = s.team.reduce((sum, m) => sum + m.idleSec, 0)
+  // Zobrazujeme jen po dokončení běhu — průběžná hodnota by byla zavádějící
+  // (aktuální run má méně idle než finální, delta by ukazovala falešné zlepšení)
+  const waitDelta = prevStats && s.finished
+    ? calcDelta(totalWait, prevStats.totalWait)
     : undefined
 
   return (
@@ -420,7 +432,7 @@ export function Simulator() {
               {stats.count} feature{stats.count !== 1 ? 's' : ''} sampled
             </span>
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 6 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 6 }}>
             <StatTile
               label="Total Time"
               value={totalTimeDisplay}
@@ -442,6 +454,13 @@ export function Simulator() {
               value={avgWip !== null ? avgWip.toFixed(1) : '—'}
               tooltip="Average Work In Progress — lower usually means lower lead time (Little's Law)."
               delta={wipDelta}
+            />
+            <StatTile
+              label="Total Wait"
+              value={totalWait > 0 ? totalWait.toFixed(1) : '—'}
+              unit={totalWait > 0 ? 's' : undefined}
+              tooltip="Total idle time accumulated by all units with roles — time spent waiting for available work."
+              delta={waitDelta}
             />
           </div>
         </div>

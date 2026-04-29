@@ -43,8 +43,8 @@ describe('feat-005: konfigurace specializací', () => {
       const state = makeInitialState(rng, SETTINGS, cfg)
       // Tým: pouze FE a DSGN specialisté, aby test byl izolovaný
       state.team = [
-        { id: 1, name: 'DSGN', roles: ['DSGN'], currentTask: null },
-        { id: 2, name: 'FE',   roles: ['FE'],   currentTask: null },
+        { id: 1, name: 'DSGN', roles: ['DSGN'], currentTask: null, idleSec: 0 },
+        { id: 2, name: 'FE',   roles: ['FE'],   currentTask: null, idleSec: 0 },
       ]
 
       tick(state, 0.01, SETTINGS, rng, cfg)
@@ -65,8 +65,8 @@ describe('feat-005: konfigurace specializací', () => {
       const rng = mulberry32(1)
       const state = makeInitialState(rng, SETTINGS, cfg)
       state.team = [
-        { id: 1, name: 'DSGN', roles: ['DSGN'], currentTask: null },
-        { id: 2, name: 'FE',   roles: ['FE'],   currentTask: null },
+        { id: 1, name: 'DSGN', roles: ['DSGN'], currentTask: null, idleSec: 0 },
+        { id: 2, name: 'FE',   roles: ['FE'],   currentTask: null, idleSec: 0 },
       ]
 
       // Nastavíme VŠECHNY DSGN úkoly první feature na done
@@ -90,8 +90,8 @@ describe('feat-005: konfigurace specializací', () => {
       const rng = mulberry32(1)
       const state = makeInitialState(rng, SETTINGS, cfg)
       state.team = [
-        { id: 1, name: 'FE', roles: ['FE'], currentTask: null },
-        { id: 2, name: 'BE', roles: ['BE'], currentTask: null },
+        { id: 1, name: 'FE', roles: ['FE'], currentTask: null, idleSec: 0 },
+        { id: 2, name: 'BE', roles: ['BE'], currentTask: null, idleSec: 0 },
       ]
 
       tick(state, 0.01, SETTINGS, rng, cfg)
@@ -116,9 +116,9 @@ describe('feat-005: konfigurace specializací', () => {
       const rng = mulberry32(1)
       const state = makeInitialState(rng, SETTINGS, cfg)
       state.team = [
-        { id: 1, name: 'DSGN', roles: ['DSGN'], currentTask: null },
-        { id: 2, name: 'FE',   roles: ['FE'],   currentTask: null },
-        { id: 3, name: 'QA',   roles: ['QA'],   currentTask: null },
+        { id: 1, name: 'DSGN', roles: ['DSGN'], currentTask: null, idleSec: 0 },
+        { id: 2, name: 'FE',   roles: ['FE'],   currentTask: null, idleSec: 0 },
+        { id: 3, name: 'QA',   roles: ['QA'],   currentTask: null, idleSec: 0 },
       ]
 
       // Nastavíme DSGN (fáze 1) jako hotovou, FE (fáze 2) jako rozběhnutou (doing)

@@ -179,6 +179,7 @@ function makeMember(i: number, role: Role): Member {
     name: MEMBER_NAMES[i] ?? `P${i + 1}`,
     roles: [role],
     currentTask: null,
+    idleSec: 0,
   }
 }
 
@@ -280,9 +281,10 @@ export function resetFromSnapshot(state: SimState): SimState {
   state.startedAt = null
   state.finished = false
 
-  // Uvolníme všechna přiřazení — žádný člen nebude mít rozpracovaný úkol
+  // Uvolníme všechna přiřazení a vynulujeme idle čas pro nový běh
   for (const m of state.team) {
     m.currentTask = null
+    m.idleSec = 0
   }
   return state
 }
@@ -336,6 +338,14 @@ export function tick(
 
   // Průběžně akumulujeme WIP × čas pro výpočet průměrného WIP (Little's Law)
   state.wipIntegral += state.inProgress.length * dtSim
+
+  // Akumulujeme idle čas pro každého člena, který má role ale žádný úkol.
+  // Člen bez rolí se nepočítá — není blokován procesem, jen nemá specializaci.
+  for (const m of state.team) {
+    if (m.roles.length > 0 && m.currentTask === null) {
+      m.idleSec += dtSim
+    }
+  }
 
   // Zaznamenáme čas prvního ticku jako startedAt simulace
   if (state.startedAt === null) state.startedAt = state.simTime
