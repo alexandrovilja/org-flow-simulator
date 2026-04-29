@@ -58,7 +58,9 @@ Jako agilní kouč chci spustit animovanou simulaci průtoku backlogu týmem, ab
 - Snapshot mechanika: `resetFromSnapshot()` obnoví stav bez nové randomizace
 - Typy: `SimState`, `SimSettings` v `src/types/simulation.ts`
 - Seedable RNG: `mulberry32` — stejný seed = stejný průběh
-- **Přiřazování úkolů:** člen týmu preferuje novou feature z backlogu před dokončením rozběhnuté (záměrně zvyšuje WIP — demonstruje efekt multitaskingu ve workshopu); pokud backlog nemá vhodnou feature, teprve pak pomůže dokončit rozběhlou
+- **Přiřazování úkolů — priorita:** každá feature má pole `priority: number` přiřazené při vzniku (nižší číslo = vyšší priorita). Člen týmu vždy vezme úkol z dostupné feature s nejnižším číslem priority, bez ohledu na to, jestli je v backlogu nebo inProgress. Feature se přesouvá z backlogu do inProgress až ve chvíli, kdy na ni někdo začne pracovat.
+- **Přiřazování úkolů — úrovně (level):** v rámci jedné feature musí být dokončeny všechny úkoly vyšší úrovně dříve, než lze zahájit úkoly nižší úrovně. Úkoly na stejné úrovni mohou probíhat paralelně. Konfigurace úrovní viz feat-005.
+- Dotčené soubory: `src/simulation/engine.ts` (`tick`, `makeInitialState`), `src/types/simulation.ts` (`Feature.priority`)
 
 ## Open Questions
 —

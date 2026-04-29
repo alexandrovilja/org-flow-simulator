@@ -13,18 +13,18 @@ Jako agilní kouč chci přidávat a odebírat členy týmu a měnit jejich spec
 - Tým je zobrazen ve středovém panelu jako seznam **MemberCard** komponent
 - Každá karta zobrazuje:
   - Avatar s iniciálou a jménem
-  - **Role chips** (FE, BE, DSGN, QA, OPS, DATA) s tlačítkem × pro odebrání role
+  - **Role chips** se specializacemi člena a tlačítkem × pro odebrání
   - Aktuální úkol (feature + role + progress bar 0–100 %), nebo status "idle" / "no roles"
-- Tlačítko **"+"** pod seznamem otevře dropdown s dostupnými rolemi — kliknutím se přidá nový člen s danou specializací
+- Tlačítko **"+"** pod seznamem otevře dropdown s dostupnými specializacemi — kliknutím se přidá nový člen s danou specializací
 - Odebrání role (×) okamžitě přeruší úkol, pokud člen na dané roli pracoval
 
-**Dostupné specializace:**
-| Kód | Název | Barva |
-|-----|-------|-------|
+**Dostupné specializace (výchozí sada, konfigurovatelná viz feat-005):**
+| Kód | Výchozí název | Barva |
+|-----|---------------|-------|
 | FE | Frontend | modrá |
 | BE | Backend | fialová |
 | DSGN | Design | oranžová |
-| QA | Quality Assurance | zelená |
+| QA | QA | zelená |
 | OPS | DevOps | žlutá |
 | DATA | Data | růžová |
 
@@ -53,9 +53,10 @@ Jako agilní kouč chci přidávat a odebírat členy týmu a měnit jejich spec
 
 ## Technical Notes
 - Komponenta: `src/components/MemberCard.tsx` (`'use client'`)
-- Typy: `Member`, `Role` v `src/types/simulation.ts`
-- Definice rolí a metadat: `ROLES`, `ROLE_META` v `src/simulation/engine.ts`
-- Přiřazování úkolů: logika v `tick()` — člen dostane úkol odpovídající jeho roli
+- Typy: `Member`, `Role`, `RoleMeta` v `src/types/simulation.ts`
+- Výchozí konfigurace specializací: `ROLES`, `ROLE_META` v `src/simulation/engine.ts`
+- Uživatelská konfigurace specializací (název, level, required): `roleConfig` state v `Simulator.tsx`, předáváno do `tick()` a `makeInitialState()` — viz feat-005
+- Přiřazování úkolů: logika v `tick()` — člen dostane úkol z nejvíce prioritní feature, na které může pracovat; respektuje `level` specializace (vyšší level musí být hotov dříve)
 
 ## Open Questions
 —

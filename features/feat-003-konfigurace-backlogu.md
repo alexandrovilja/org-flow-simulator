@@ -48,7 +48,8 @@ Jako agilní kouč chci nastavit velikost backlogu a míru variability (velikost
 - Slider komponenta: `src/components/Slider.tsx`
 - 30 předpřipravených jmen features (Login flow, Search filters, Dark mode…)
 - Počet úkolů na feature: 1–5 (závisí na `sizeVar`)
-- Role na feature: 1–6 různých (závisí na `roleVar`)
+- Role na feature: 1–6 různých (závisí na `roleVar`); povinné role (required z feat-005) jsou vždy zahrnuty bez ohledu na `roleVar`
+- `Feature.priority`: přiřazeno při vzniku (1 = nejdůležitější), nemění se — určuje pořadí zpracování týmem (viz feat-001)
 
 ## Open Questions
 —

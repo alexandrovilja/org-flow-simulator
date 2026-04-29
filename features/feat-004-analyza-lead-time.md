@@ -1,72 +1,70 @@
 # Feature: Analýza Lead Time
 
 ## Status
-draft
+implemented
 
 ## Problem
-Agilní koučové potřebují konkrétní čísla, která potvrdí nebo vyvrátí intuici klientů o výkonu týmu. Bez měření lead time a celkové doby zpracování backlogu je diskuse o zlepšení jen spekulativní — kouč nemůže ukázat, o kolik se zkrátila celková doba dodání po změně struktury týmu. Aktuální metrika Throughput (propustnost za 60s okno) navíc neposkytuje jasnou "cílovou čáru", která by dávala workshopu dramatický závěr.
+Agilní koučové potřebují konkrétní čísla, která potvrdí nebo vyvrátí intuici klientů o výkonu týmu. Bez měření lead time a celkové doby zpracování backlogu je diskuse o zlepšení jen spekulativní. Kouč potřebuje ukázat nejen výsledný čas, ale také přímé srovnání s předchozím nastavením — aby klienti viděli dopad změny týmu nebo konfigurace v reálném čase.
 
 ## User Story
-Jako agilní kouč chci vidět živý čítač celkové doby zpracování celého backlogu, který se zastaví ve chvíli, kdy je zpracována poslední položka, abych klientům ukázal jasný, měřitelný výsledek a mohl porovnávat, jak různá nastavení týmu zkrátí nebo prodlouží celkovou dobu dodání.
+Jako agilní kouč chci vidět živý čítač celkové doby zpracování backlogu a po každém dalším běhu simulace porovnání s předchozím výsledkem, abych klientům ukázal měřitelný rozdíl způsobený změnou struktury týmu nebo konfigurace.
 
 ## UI / Design
 - Analytická sekce je v pravém panelu, nad historií hotových features
-- **Lead Time graf** (bodový scatter plot):
-  - Osa X: pořadí dokončených features (chronologicky)
-  - Osa Y: lead time v sekundách (od vytvoření do dokončení)
-  - Každý bod = jedna dokončená feature
-  - Horizontální čára = průměr (avg)
-  - Horizontální čára = p85 percentil (výstražná hranice)
-  - Automatické škálování osy Y (max = 1.1 × nejvyšší hodnota)
-- **4 statistické dlaždice** (StatTile komponenty) pod grafem:
-  - **Avg** — průměrná lead time všech hotových features
-  - **Median (p50)** — 50. percentil lead time
-  - **Avg WIP** — průměrný počet features v in-progress (Little's Law)
-  - **Celkový čas** — živý čítač ve formátu `MM:SS.d` (minuty, sekundy, desetiny sekundy); tiká od spuštění simulace, zamrzne ve chvíli, kdy je zpracována poslední položka backlogu
-- Tlačítko **"Reset stats"** — vyčistí historii lead times a statistiky (backlog a tým zůstanou)
+- **Záhlaví sekce:** nadpis "Lead Time" + text `N features sampled` vpravo
+- **3 statistické dlaždice** (StatTile komponenty):
+  - **Total Time** — živý čítač ve formátu `MM:SS.d`; po dokončení simulace zmrazí hodnotu a zobrazí `✓ Complete` se zeleným rámečkem
+  - **Avg Lead Time** — průměrná lead time hotových features v sekundách; po druhém a dalším běhu zobrazí delta indikátor (viz níže)
+  - **Avg WIP** — průměrný počet features v in-progress (Little's Law); po druhém a dalším běhu zobrazí delta indikátor
+- **Delta indikátor** (zobrazí se automaticky po dokončení druhého běhu):
+  - `↓ 23%  vs prev run` — zelená, metrika se zlepšila (snížila)
+  - `↑ 15%  vs prev run` — červená, metrika se zhoršila (zvýšila)
+  - Reference se nastaví automaticky při dokončení simulace (`state.finished = true`); žádné ruční tlačítko
 - Po zpracování poslední položky backlogu:
-  - Simulace se automaticky zastaví (pauza)
-  - Tlačítko Play se deaktivuje (disabled) — nelze znovu spustit
+  - Simulace se automaticky zastaví
+  - Tlačítko Play se deaktivuje
   - Čítač zamrzne na výsledném čase
-  - Veškeré výpočty statistik (Avg, Median, WIP) se zastaví
+  - Dlaždice Total Time přepne do stavu "Complete" (zelený rámeček, text `✓ Complete`)
 
 ## Specification by Example
 
 **Příklad 1: Živý čítač během simulace**
 - Given: Simulace je spuštěna, backlog obsahuje 20 features
-- When: Simulace běží a features se postupně dokončují
-- Then: Dlaždice "Celkový čas" zobrazuje živý čítač ve formátu `01:23.4`; tiká plynule s každým tickem simulace
+- When: Simulace běží
+- Then: Dlaždice "Total Time" zobrazuje živý čítač `01:23.4`; tiká plynule s každým tickem
 
-**Příklad 2: Zastavení simulace po zpracování posledního itemu**
-- Given: Simulace běží, v backlogu i in-progress zbývá poslední feature
+**Příklad 2: Automatické zastavení a zmrazení čítače**
+- Given: V backlogu i in-progress zbývá poslední feature
 - When: Poslední feature přejde do Done
-- Then: Simulace se automaticky zastaví; čítač zamrzne na výsledném čase (např. `04:17.8`); tlačítko Play se deaktivuje; ostatní dlaždice (Avg, Median, WIP) také přestanou aktualizovat
+- Then: Simulace se automaticky zastaví; čítač zamrzne (např. `04:17.8`); dlaždice přepne do zeleného stavu `✓ Complete`; Play se deaktivuje
 
-**Příklad 3: Porovnání výsledného času při různých konfiguracích týmu**
-- Given: Kouč dokončil simulaci s týmem 3 členů — výsledný čas byl `06:42.1`; resetoval backlog a přidal 2 členy
-- When: Spustí simulaci znovu
-- Then: Simulace proběhne rychleji; čítač zamrzne na nižší hodnotě (např. `03:55.3`); kouč může porovnat obě čísla klientům
+**Příklad 3: Delta srovnání po druhém běhu**
+- Given: První běh dokončen, výsledný Avg Lead Time byl 8.4 s, Avg WIP byl 4.2
+- When: Kouč resetuje nebo vygeneruje nový backlog, změní tým a dokončí druhý běh s Avg Lead Time 6.1 s, Avg WIP 3.0
+- Then: Pod hodnotami se zobrazí `↓ 27%  vs prev run` (zelená) pro Avg Lead Time a `↓ 29%  vs prev run` pro Avg WIP
 
-**Příklad 4: Reset statistik**
-- Given: Graf obsahuje 20 bodů z předchozího běhu, čítač zobrazuje `04:17.8`
-- When: Kouč klikne na "Reset stats"
-- Then: Graf se vyčistí, všechny dlaždice se vynulují včetně čítače; tlačítko Play se znovu aktivuje; backlog a tým zůstanou beze změny; simulaci lze spustit znovu
+**Příklad 4: Srovnání při zhoršení**
+- Given: Předchozí běh měl Avg Lead Time 6.1 s
+- When: Kouč zmenší tým a dokončí nový běh s Avg Lead Time 9.3 s
+- Then: Zobrazí se `↑ 52%  vs prev run` (červená)
 
 ## Out of Scope
-- Export grafu nebo statistik do PDF, PNG, CSV
-- Historické porovnání více měření (ukládání snapshotů statistik)
-- Konfigurace zobrazených percentilů (p85 je pevně nastaveno)
+- Graf Lead Time (scatter plot) — odstraněn, nepřidával workshopovou hodnotu
+- Median (p50) jako samostatná statistická dlaždice — odstraněn
+- Tlačítko "Reset stats" — odstraněno; reference na předchozí běh se ukládá automaticky
+- Export statistik do PDF, PNG, CSV
+- Konfigurace zobrazených percentilů
 - Cycle time nebo flow efficiency jako samostatné metriky
-- Možnost pokračovat v simulaci po zpracování posledního itemu (simulace je u konce)
+- Možnost pokračovat v simulaci po zpracování posledního itemu
 
 ## Technical Notes
-- Komponenta: `src/components/LeadTimeChart.tsx`, `src/components/StatTile.tsx`
-- Metriky: `computeStats()` v `src/simulation/engine.ts` — odstranit Throughput, přidat `totalTime`
-- Typy: `SimStats` v `src/types/simulation.ts` — nahradit pole `throughput` za `totalTime: number`
-- Podmínka ukončení: backlog prázdný AND in-progress prázdný AND všechny úkoly dokončeny — detekovat v `tick()` v `src/simulation/engine.ts`
-- Čítač zobrazuje simulační čas (ne reálný čas) — formát `MM:SS.d`, např. `04:17.8`
-- Po detekci konce: nastavit příznak `finished: boolean` v `SimState`; Simulator.tsx reaguje zastavením smyčky a deaktivací Play tlačítka
-- Reset stats musí také vyčistit příznak `finished` a znovu aktivovat Play tlačítko
+- Komponenty: `src/components/StatTile.tsx` (prop `delta?: number` pro delta indikátor, prop `variant="timer"` pro Total Time)
+- Formátování čítače: `src/lib/formatTime.ts` — `formatTime(simSec)` → `MM:SS.d`; používá `Math.floor` (ne round) aby čítač nikdy nepřeskočil hodnotu
+- Metriky: `computeStats()` v `src/simulation/engine.ts` — vrací `avg`, `p85`, histogramy
+- Podmínka ukončení: `backlog.length === 0 && inProgress.length === 0` → `state.finished = true` — detekováno na konci `tick()`
+- Delta uložení: `prevStats` state (`{ avgLt, avgWip }`) v `Simulator.tsx`; nastavuje se v RAF smyčce ve chvíli kdy `state.finished` přejde na `true`; přetrvává přes reset i generování nového backlogu
+- Stav `finished`: `SimState.finished: boolean` v `src/types/simulation.ts`; po nastavení na `true` RAF smyčka přestane volat `tick()`
+- Animace pulzujícího indikátoru: CSS keyframes `timer-pulse` v `globals.css`
 
 ## Open Questions
 —
