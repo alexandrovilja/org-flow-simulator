@@ -429,9 +429,11 @@ export function tick(
   // i po dokončení celé simulace nebo v teamech, kde daná role vůbec není potřeba).
   for (const m of state.team) {
     if (m.roles.length === 0 || m.currentTask !== null) continue
-    const hasMatchingWork = [...state.backlog, ...state.inProgress].some(f =>
-      f.tasks.some(t => t.status !== 'done' && m.roles.includes(t.role))
-    )
+    // Dva oddělené .some() místo [...a, ...b].some() — vyhýbáme se zbytečné
+    // alokaci dočasného pole, které by vznikalo 60× za sekundu × počet idle členů.
+    const hasMatchingWork =
+      state.backlog.some(f => f.tasks.some(t => t.status !== 'done' && m.roles.includes(t.role))) ||
+      state.inProgress.some(f => f.tasks.some(t => t.status !== 'done' && m.roles.includes(t.role)))
     if (hasMatchingWork) m.idleSec += dtSim
   }
 

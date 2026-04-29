@@ -53,7 +53,7 @@ describe('feat-002: waiting time', () => {
       expect(state.team[0].idleSec).toBe(1.5)
     })
 
-    it('člen s rolemi akumuluje idleSec, pokud jeho role nemá žádné todo úkoly (práce jiné role zbývá)', () => {
+    it('člen s rolemi NEakumuluje idleSec, pokud práce jeho role neexistuje (zbývá jen jiná role)', () => {
       // Backlog obsahuje pouze QA úkoly — FE člen nemá co dělat → idle SE NEPOČÍTÁ
       const rng = mulberry32(1)
       const state = makeInitialState(rng, SETTINGS)
