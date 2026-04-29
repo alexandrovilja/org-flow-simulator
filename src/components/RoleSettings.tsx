@@ -41,7 +41,7 @@ export function RoleSettings({ roleConfig, onChange }: RoleSettingsProps) {
       }}>
         <span />
         <span style={{ fontSize: 9, color: 'var(--ink-3)', textTransform: 'uppercase', letterSpacing: 0.5 }}>Name</span>
-        <span style={{ fontSize: 9, color: 'var(--ink-3)', textTransform: 'uppercase', letterSpacing: 0.5, textAlign: 'center' }}>Level</span>
+        <span style={{ fontSize: 9, color: 'var(--ink-3)', textTransform: 'uppercase', letterSpacing: 0.5, textAlign: 'center' }}>Phase</span>
         <span style={{ fontSize: 9, color: 'var(--ink-3)', textTransform: 'uppercase', letterSpacing: 0.5, textAlign: 'center' }}>Req.</span>
       </div>
 
@@ -82,7 +82,7 @@ export function RoleSettings({ roleConfig, onChange }: RoleSettingsProps) {
                 onClick={() => onChange(roleId, { level: Math.max(1, meta.level - 1) })}
                 disabled={meta.level <= 1}
                 style={stepperBtn}
-                title="Decrease level"
+                title="Decrease phase"
               >−</button>
               <span style={{
                 fontSize: 11, fontWeight: 600, color: 'var(--ink)',
@@ -92,7 +92,7 @@ export function RoleSettings({ roleConfig, onChange }: RoleSettingsProps) {
                 onClick={() => onChange(roleId, { level: Math.min(MAX_LEVEL, meta.level + 1) })}
                 disabled={meta.level >= MAX_LEVEL}
                 style={stepperBtn}
-                title="Increase level"
+                title="Increase phase"
               >+</button>
             </div>
 
@@ -117,7 +117,7 @@ export function RoleSettings({ roleConfig, onChange }: RoleSettingsProps) {
         margin: 0, marginTop: 4,
         fontSize: 9, color: 'var(--ink-3)', lineHeight: 1.5,
       }}>
-        <strong>Level:</strong> higher = must finish first. Same level = parallel.{' '}
+        <strong>Phase:</strong> 1 = first phase, 2 = second, … Same phase = parallel.{' '}
         <strong>Req.:</strong> always in every backlog item (takes effect on regenerate).
       </p>
     </div>

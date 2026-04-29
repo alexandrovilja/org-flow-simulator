@@ -11,9 +11,9 @@ export interface RoleMeta {
   /** Barva specializace v oklch prostoru — slouží k vizuálnímu rozlišení v UI. */
   color: string
   /**
-   * Úroveň specializace — určuje pořadí fází v rámci jedné feature.
-   * Vyšší číslo = dříve musí být hotovo.
-   * Příklad: Design (level 3) → FE+BE (level 2) → QA (level 1).
+   * Fáze specializace — určuje pořadí fází v rámci jedné feature.
+   * Nižší číslo = dřívější fáze. Level 1 = první fáze (začíná jako první).
+   * Příklad: Design (level 1) → FE+BE (level 2) → QA (level 3).
    * Úkoly na stejné úrovni mohou probíhat paralelně.
    * Výchozí hodnota 1 = všechny role ve stejné fázi (chování jako dosud).
    */

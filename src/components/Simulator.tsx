@@ -36,6 +36,8 @@ export function Simulator() {
   /** Konfigurace specializací — kopie ROLE_META, upravitelná uživatelem.
    *  Předává se do engine funkcí (tick, makeInitialState, regenerate). */
   const [roleConfig, setRoleConfig] = useState<Record<Role, RoleMeta>>(() => ({ ...ROLE_META }))
+  /** Viditelnost panelu Specializations — výchozí stav skrytý. */
+  const [showRoleSettings, setShowRoleSettings] = useState(false)
   /** Ref pro přístup k roleConfig uvnitř RAF smyčky bez potřeby restartovat effect. */
   const roleConfigRef = useRef(roleConfig)
   useEffect(() => { roleConfigRef.current = roleConfig }, [roleConfig])
@@ -266,10 +268,25 @@ export function Simulator() {
             format={v => v < 0.1 ? '2 roles' : v < 0.5 ? 'low' : v < 0.85 ? 'high' : '1–6 roles'}
           />
           <div style={{ paddingTop: 8, borderTop: '1px solid var(--line)', marginTop: 4 }}>
-            <h3 style={{ margin: '0 0 8px', fontSize: 12, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5, color: 'var(--ink-2)' }}>
-              Specializations
-            </h3>
-            <RoleSettings roleConfig={roleConfig} onChange={handleRoleChange} />
+            <button
+              onClick={() => setShowRoleSettings(v => !v)}
+              style={{
+                width: '100%', textAlign: 'left',
+                fontSize: 11, fontFamily: 'inherit', cursor: 'pointer',
+                border: '1px solid var(--line)', borderRadius: 4,
+                padding: '4px 8px',
+                background: showRoleSettings ? 'var(--line)' : 'var(--bg)',
+                color: showRoleSettings ? 'var(--ink)' : 'var(--ink-2)',
+                fontWeight: showRoleSettings ? 600 : 400,
+              }}
+            >
+              ⚙ Specializations
+            </button>
+            {showRoleSettings && (
+              <div style={{ marginTop: 8 }}>
+                <RoleSettings roleConfig={roleConfig} onChange={handleRoleChange} />
+              </div>
+            )}
           </div>
         </div>
       </section>

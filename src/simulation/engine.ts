@@ -116,9 +116,12 @@ function makeFeature(
   const additionalCount = totalRoleCount - requiredRoles.length
   const chosenRoles = [...requiredRoles, ...shuffledOptional.slice(0, additionalCount)]
 
-  // Rozdělíme taskCount úkolů mezi vybrané role — každá role dostane alespoň 1
+  // Rozdělíme úkoly mezi vybrané role — každá role dostane alespoň 1.
+  // Pokud je rolí víc než taskCount (required role překrývají vygenerovaný počet),
+  // rozšíříme efektivní počet úkolů tak, aby každá role dostala alespoň 1.
+  const effectiveTaskCount = Math.max(taskCount, chosenRoles.length)
   const counts = new Array(chosenRoles.length).fill(1) as number[]
-  let remaining = taskCount - chosenRoles.length
+  let remaining = effectiveTaskCount - chosenRoles.length
   while (remaining > 0) {
     counts[Math.floor(rng() * chosenRoles.length)]++
     remaining--
@@ -340,9 +343,9 @@ export function tick(
   // Priorita platí po celou dobu simulace — člen si vybere to nejdůležitější,
   // bez ohledu na to, jestli feature leží v backlogu nebo je již rozběhnutá.
   //
-  // Uvnitř každé feature platí pořadí úrovní: úkol úrovně N lze začít až poté,
-  // co jsou všechny úkoly vyšší úrovně (> N) v téže feature dokončeny.
-  // Úkoly na stejné úrovni mohou probíhat paralelně.
+  // Uvnitř každé feature platí pořadí fází: úkol fáze N lze začít až poté,
+  // co jsou všechny úkoly nižší fáze (< N) v téže feature dokončeny.
+  // Úkoly na stejné fázi mohou probíhat paralelně.
   for (const m of state.team) {
     if (m.currentTask) continue    // člen již pracuje
     if (m.roles.length === 0) continue // člen bez specializace nemůže pracovat
@@ -352,15 +355,15 @@ export function tick(
      * Úkol je dostupný, když:
      *  1. Je ve stavu 'todo'
      *  2. Člen má potřebnou roli
-     *  3. Všechny úkoly vyšší úrovně v téže feature jsou hotovy
+     *  3. Všechny úkoly nižší fáze v téže feature jsou hotovy
      */
     const isAvailable = (t: Task, f: Feature): boolean => {
       if (t.status !== 'todo') return false
       if (!m.roles.includes(t.role)) return false
       const taskLevel = roleConfig[t.role].level
-      // Každý úkol stejné nebo nižší úrovně smí čekat; jen vyšší úroveň musí být hotova
+      // Úkol fáze N může začít až poté, co jsou hotovy všechny úkoly fáze < N
       return f.tasks.every(
-        other => roleConfig[other.role].level <= taskLevel || other.status === 'done'
+        other => roleConfig[other.role].level >= taskLevel || other.status === 'done'
       )
     }
 
