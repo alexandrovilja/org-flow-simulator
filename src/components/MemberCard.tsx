@@ -83,7 +83,8 @@ export function MemberCard({ member, currentFeature, currentTask, roleConfig, on
       </div>
 
       {/* Řádek 2: specializační chipy + tlačítko přidání role */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'wrap', position: 'relative' }}>
+      {/* Řádek chipů + tlačítko přidání */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'wrap' }}>
         {member.roles.map(r => (
           <RoleChip
             key={r}
@@ -102,37 +103,36 @@ export function MemberCard({ member, currentFeature, currentTask, roleConfig, on
             fontWeight: 500, lineHeight: 1.2, cursor: 'pointer',
           }}>+</button>
         )}
-        {adding && (
-          <div style={{
-            position: 'absolute', top: 'calc(100% + 4px)', left: 0, zIndex: 10,
-            display: 'flex', gap: 4, flexWrap: 'wrap',
-            padding: 6, background: 'var(--panel)',
-            border: '1px solid var(--line-2)', borderRadius: 6,
-            boxShadow: '0 4px 12px rgba(0,0,0,0.08)', minWidth: 'max-content',
-          }}>
-            {availableRoles.map(r => (
-              <button key={r} onMouseDown={(e) => {
-                e.preventDefault()
-                onAddRole(member.id, r)
-                setAdding(false)
-              }} style={{
-                background: ROLE_META[r].color,
-                border: 'none', color: 'white',
-                fontSize: 10, fontWeight: 600,
-                padding: '2px 8px', borderRadius: 3,
-                letterSpacing: 0.3, cursor: 'pointer',
-              }}>
-                {/* Plný název specializace z roleConfig */}
-                {roleConfig[r].label}
-              </button>
-            ))}
-            <button onClick={() => setAdding(false)} style={{
-              background: 'transparent', border: 'none',
-              color: 'var(--ink-3)', fontSize: 10, padding: '0 4px', cursor: 'pointer',
-            }}>cancel</button>
-          </div>
-        )}
       </div>
+
+      {/* Picker specializací — inline pod chipy, žádné absolutní pozicování.
+          Zobrazí se jen při kliknutí na +, vždy celý viditelný v rámci karty. */}
+      {adding && (
+        <div style={{
+          display: 'flex', gap: 4, flexWrap: 'wrap', alignItems: 'center',
+          padding: '4px 6px',
+          background: 'var(--bg)',
+          border: '1px solid var(--line-2)', borderRadius: 5,
+        }}>
+          {availableRoles.map(r => (
+            <button key={r} onClick={() => { onAddRole(member.id, r); setAdding(false) }} style={{
+              background: ROLE_META[r].color,
+              border: 'none', color: 'white',
+              fontSize: 10, fontWeight: 600,
+              padding: '2px 8px', borderRadius: 3,
+              letterSpacing: 0.3, cursor: 'pointer',
+            }}>
+              {roleConfig[r].label}
+            </button>
+          ))}
+          {/* Tlačítko zavření — vždy viditelné, protože je ve flow */}
+          <button onClick={() => setAdding(false)} style={{
+            background: 'transparent', border: 'none',
+            color: 'var(--ink-3)', fontSize: 10,
+            padding: '0 2px', cursor: 'pointer', marginLeft: 'auto',
+          }}>✕</button>
+        </div>
+      )}
 
       {/* Řádek 3: progress bar nebo idle stav */}
       <div style={{ minHeight: 22, display: 'flex', flexDirection: 'column', gap: 2 }}>
