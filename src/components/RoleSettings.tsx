@@ -7,18 +7,27 @@ import type { RoleMeta } from '@/types/simulation'
 const MAX_LEVEL = 5
 
 /**
- * Předvolby barev pro specializace — 8 hue hodnot v oklch prostoru.
+ * Předvolby barev pro specializace — 16 hue hodnot rovnoměrně rozložených
+ * přes barevný kruh v oklch prostoru.
  * Stejná sada se používá pro výběr barvy nové i existující specializace.
  */
 export const COLOR_PRESETS: { hue: number; color: string }[] = [
-  { hue: 250, color: 'oklch(70% 0.14 250)' },
-  { hue: 285, color: 'oklch(66% 0.14 285)' },
-  { hue: 25,  color: 'oklch(72% 0.13 25)'  },
-  { hue: 145, color: 'oklch(68% 0.13 145)' },
-  { hue: 75,  color: 'oklch(68% 0.13 75)'  },
-  { hue: 320, color: 'oklch(64% 0.14 320)' },
-  { hue: 180, color: 'oklch(68% 0.13 180)' },
-  { hue: 30,  color: 'oklch(70% 0.14 30)'  },
+  { hue:   0, color: 'oklch(65% 0.18   0)' },  // červená
+  { hue:  25, color: 'oklch(72% 0.13  25)' },  // oranžovo-červená
+  { hue:  45, color: 'oklch(74% 0.14  45)' },  // oranžová
+  { hue:  75, color: 'oklch(72% 0.14  75)' },  // žlutozelená
+  { hue: 100, color: 'oklch(68% 0.15 100)' },  // zelená
+  { hue: 145, color: 'oklch(68% 0.13 145)' },  // smaragdová
+  { hue: 170, color: 'oklch(67% 0.13 170)' },  // tyrkysová
+  { hue: 200, color: 'oklch(68% 0.13 200)' },  // azurová
+  { hue: 220, color: 'oklch(69% 0.14 220)' },  // nebeská modrá
+  { hue: 250, color: 'oklch(70% 0.14 250)' },  // modrá
+  { hue: 270, color: 'oklch(66% 0.15 270)' },  // fialovo-modrá
+  { hue: 285, color: 'oklch(66% 0.14 285)' },  // fialová
+  { hue: 305, color: 'oklch(65% 0.15 305)' },  // purpurová
+  { hue: 320, color: 'oklch(64% 0.14 320)' },  // růžovo-fialová
+  { hue: 340, color: 'oklch(66% 0.15 340)' },  // růžová
+  { hue: 355, color: 'oklch(65% 0.16 355)' },  // tmavě růžová
 ]
 
 /** Sentinelová hodnota openPickerId pro color picker formuláře nové specializace. */
@@ -148,7 +157,7 @@ export function RoleSettings({ roleConfig, onChange, onAdd, onDelete }: RoleSett
                     border: '1px solid var(--line)',
                     borderRadius: 6,
                     padding: 8,
-                    display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 5,
+                    display: 'grid', gridTemplateColumns: 'repeat(8, 1fr)', gap: 5,
                     boxShadow: '0 4px 12px rgba(0,0,0,0.12)',
                   }}>
                     {COLOR_PRESETS.map(p => (
@@ -301,7 +310,7 @@ export function RoleSettings({ roleConfig, onChange, onAdd, onDelete }: RoleSett
                 background: 'var(--panel)',
                 border: '1px solid var(--line)',
                 borderRadius: 6, padding: 8,
-                display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 5,
+                display: 'grid', gridTemplateColumns: 'repeat(8, 1fr)', gap: 5,
                 boxShadow: '0 4px 12px rgba(0,0,0,0.12)',
               }}>
                 {COLOR_PRESETS.map(p => (
