@@ -88,10 +88,14 @@ export function Simulator() {
       if (!pausedRef.current && stateRef.current) {
         const state = stateRef.current
         if (!state.finished) {
-          accumulated += elapsed
+          // Speed škáluje accumulated čas, NE velikost dtSim.
+          // Díky tomu dtSim zůstává konstantní (TARGET_DT_MS/1000) bez ohledu
+          // na rychlost simulace — engine vždy dostane stejně velký krok a výsledky
+          // jsou deterministické při speed=1 i speed=10 (nebo jakémkoli jiném).
+          accumulated += elapsed * speedRef.current
           // Spotřebujeme nahromaděný čas v pevných krocích — každý tick má stejný dtSim.
           while (accumulated >= TARGET_DT_MS && !state.finished) {
-            const dtSim = TARGET_DT_MS / 1000 * speedRef.current
+            const dtSim = TARGET_DT_MS / 1000   // konstantní, nezávisí na speed
             tick(state, dtSim, settingsRef.current, rngRef.current, roleConfigRef.current)
             accumulated -= TARGET_DT_MS
           }

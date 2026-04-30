@@ -108,11 +108,11 @@ describe('tick', () => {
 })
 
 describe('determinismus simulace', () => {
+  // Pevný dt odpovídá jednomu snímku při 60 fps — stejná hodnota jako TARGET_DT_MS/1000 v UI.
+  const FIXED_DT = 1 / 60
+
   it('dva běhy se stejným seedem a stejným fixním dtSim producují identický simTime', () => {
     // Engine je deterministický: stejný seed + stejná sekvence dtSim → stejný výsledek.
-    // UI zajišťuje deterministický dtSim (pevný 1/60 × speed), ne reálný elapsed čas.
-    const FIXED_DT = 1 / 60
-
     const runSimulation = () => {
       const rng = mulberry32(42)
       const state = makeInitialState(rng, DEFAULT_SETTINGS)
@@ -124,15 +124,12 @@ describe('determinismus simulace', () => {
       return state.simTime
     }
 
-    const result1 = runSimulation()
-    const result2 = runSimulation()
-    expect(result1).toBe(result2)
+    expect(runSimulation()).toBe(runSimulation())
   })
 
   it('resetFromSnapshot + stejný fixní dtSim produkuje stejný výsledek jako první běh', () => {
     // Reset musí vrátit backlog do přesně stejného stavu → druhý běh musí doběhnout
     // ve stejném sim čase jako první.
-    const FIXED_DT = 1 / 60
     const rng = mulberry32(7)
     const settings: SimSettings = { ...DEFAULT_SETTINGS, initialBacklog: 10 }
     const state = makeInitialState(rng, settings)
@@ -151,6 +148,54 @@ describe('determinismus simulace', () => {
     const secondRun = runUntilDone()
 
     expect(secondRun).toBe(firstRun)
+  })
+
+  it('různý dtSim (různé speed) dává různý simTime — izolace bugu', () => {
+    // Bug: Simulator předával dtSim = FIXED_DT * speed. Velký dtSim způsobí jiné
+    // floating-point zaokrouhlení při progress += dtSim → různý simTime.
+    // Tento test dokumentuje chování enginu: dtSim MUSÍ být konstantní.
+    const settings: SimSettings = { ...DEFAULT_SETTINGS, initialBacklog: 5 }
+
+    const runWithDt = (dtSim: number) => {
+      const rng = mulberry32(42)
+      const state = makeInitialState(rng, settings)
+      let ticks = 0
+      while (!state.finished && ticks < 100_000) {
+        tick(state, dtSim, settings, rng)
+        ticks++
+      }
+      return state.simTime
+    }
+
+    // Různé dtSim → různé výsledky (floating point accumulation differs per step size)
+    expect(runWithDt(FIXED_DT)).not.toBe(runWithDt(FIXED_DT * 10))
+  })
+
+  it('speed=1 a speed=10 dávají stejný simTime pokud dtSim je fixní a speed mění počet ticků', () => {
+    // FIX: speed řídí počet ticků za snímek, ne velikost dtSim.
+    // Simulujeme UI accumulator: accumulated += elapsed * speed, dtSim = fixed.
+    const TARGET_DT_MS = 1000 / 60
+    const ELAPSED_MS = TARGET_DT_MS  // jeden "frame" při 60 Hz
+    const settings: SimSettings = { ...DEFAULT_SETTINGS, initialBacklog: 5 }
+
+    const runWithSpeed = (speed: number) => {
+      const rng = mulberry32(42)
+      const state = makeInitialState(rng, settings)
+      let accumulated = 0
+      let safetyTicks = 0
+      while (!state.finished && safetyTicks < 1_000_000) {
+        // Přidáme elapsed čas škálovaný speedem — více accumulated = více ticků/frame
+        accumulated += ELAPSED_MS * speed
+        while (accumulated >= TARGET_DT_MS && !state.finished) {
+          tick(state, FIXED_DT, settings, rng)
+          accumulated -= TARGET_DT_MS
+          safetyTicks++
+        }
+      }
+      return state.simTime
+    }
+
+    expect(runWithSpeed(1)).toBe(runWithSpeed(10))
   })
 })
 
