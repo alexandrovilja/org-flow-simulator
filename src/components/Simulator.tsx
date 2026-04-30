@@ -14,6 +14,7 @@ import { StatTile } from '@/components/StatTile'
 import { Slider } from '@/components/Slider'
 import { SpeedControl } from '@/components/SpeedControl'
 import { PanelHeader } from '@/components/PanelHeader'
+import { SegmentedControl } from '@/components/SegmentedControl'
 import { formatTime } from '@/lib/formatTime'
 import { featureMaxWork } from '@/lib/featureSize'
 import { addRole, deleteRole } from '@/simulation/roleManagement'
@@ -472,66 +473,38 @@ export function Simulator() {
         </div>
 
         <div style={{ flex: '0 0 auto', padding: '10px 16px 12px', background: 'var(--panel)', display: 'flex', flexDirection: 'column', gap: 6 }}>
-          <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', flexShrink: 0 }}>
-            <h3 style={{ margin: 0, fontSize: 12, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5, color: 'var(--ink-2)' }}>
+          {/* Header row: title + both controls + hint */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0, flexWrap: 'nowrap', overflow: 'hidden' }}>
+            <h3 style={{ margin: 0, fontSize: 12, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5, color: 'var(--ink-2)', flexShrink: 0 }}>
               Units <span className="mono" style={{ color: 'var(--ink-3)', fontWeight: 500 }}>{s.team.length}</span>
             </h3>
-            <span style={{ fontSize: 11, color: 'var(--ink-3)' }}>
+            <SegmentedControl
+              options={[
+                { value: 'priority' as FocusMode, label: 'Priority' },
+                { value: 'continuity' as FocusMode, label: 'Continuity' },
+              ]}
+              value={focusMode}
+              onChange={setFocusMode}
+              hint={focusMode === 'priority'
+                ? 'Focus: units always pick the highest-priority feature available.'
+                : 'Focus: units prefer to finish what they started — reduces handoffs.'}
+            />
+            <SegmentedControl
+              options={[
+                { value: 'priority' as WipMode, label: 'Priority' },
+                { value: 'reduce-wip' as WipMode, label: 'Reduce WIP' },
+              ]}
+              value={wipMode}
+              onChange={setWipMode}
+              hint={wipMode === 'priority'
+                ? 'WIP: units can start new features freely based on priority.'
+                : 'WIP: units finish in-progress features before pulling new ones.'}
+            />
+            <span style={{ marginLeft: 'auto', fontSize: 11, color: 'var(--ink-3)', flexShrink: 0 }}>
               Click <span className="mono" style={{ color: 'var(--ink-2)' }}>+</span> to add a specialty
             </span>
           </div>
 
-          {/* Focus toggle — Priority vs. Continuity */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-            <div style={{ display: 'flex', gap: 0, border: '1px solid var(--line-2)', borderRadius: 5, overflow: 'hidden', alignSelf: 'flex-start' }}>
-              {(['priority', 'continuity'] as FocusMode[]).map(mode => (
-                <button
-                  key={mode}
-                  onClick={() => setFocusMode(mode)}
-                  style={{
-                    padding: '3px 9px', fontSize: 10, fontFamily: 'inherit', fontWeight: 500,
-                    letterSpacing: 0.2, cursor: 'pointer', border: 'none',
-                    background: focusMode === mode ? 'var(--ink)' : 'transparent',
-                    color: focusMode === mode ? 'var(--surface)' : 'var(--ink-3)',
-                    textTransform: 'capitalize',
-                  }}
-                >
-                  {mode === 'priority' ? 'Priority' : 'Continuity'}
-                </button>
-              ))}
-            </div>
-            <span style={{ fontSize: 10, color: 'var(--ink-3)', lineHeight: 1.4 }}>
-              {focusMode === 'priority'
-                ? 'Units always pick the highest-priority feature available.'
-                : 'Units prefer to finish what they started — reduces handoffs in cross-functional teams.'}
-            </span>
-          </div>
-
-          {/* WIP toggle — Priority vs. Reduce WIP */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-            <div style={{ display: 'flex', gap: 0, border: '1px solid var(--line-2)', borderRadius: 5, overflow: 'hidden', alignSelf: 'flex-start' }}>
-              {(['priority', 'reduce-wip'] as WipMode[]).map(mode => (
-                <button
-                  key={mode}
-                  onClick={() => setWipMode(mode)}
-                  style={{
-                    padding: '3px 9px', fontSize: 10, fontFamily: 'inherit', fontWeight: 500,
-                    letterSpacing: 0.2, cursor: 'pointer', border: 'none',
-                    background: wipMode === mode ? 'var(--ink)' : 'transparent',
-                    color: wipMode === mode ? 'var(--surface)' : 'var(--ink-3)',
-                    textTransform: 'capitalize',
-                  }}
-                >
-                  {mode === 'priority' ? 'Priority' : 'Reduce WIP'}
-                </button>
-              ))}
-            </div>
-            <span style={{ fontSize: 10, color: 'var(--ink-3)', lineHeight: 1.4 }}>
-              {wipMode === 'priority'
-                ? 'Units can start new features freely based on priority.'
-                : 'Units finish in-progress features before pulling new ones — lowers average WIP.'}
-            </span>
-          </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gridAutoRows: 'min-content', gap: 6, alignContent: 'start' }}>
             {s.team.map(m => {
               let cf = null, ct = null
