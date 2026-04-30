@@ -89,6 +89,7 @@ export function deleteRole(
   }
 
   // 5. Vrátit nový roleConfig bez smazaného klíče (imutabilní — původní cfg zůstane).
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { [roleId]: _removed, ...rest } = roleConfig
   return { roleConfig: rest }
 }

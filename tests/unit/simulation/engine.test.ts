@@ -208,9 +208,9 @@ describe('computeStats', () => {
 
   it('computes correct avg for known values', () => {
     const stats = computeStats([
-      { id: 1, ms: 10, finishedAt: 10 },
-      { id: 2, ms: 20, finishedAt: 20 },
-      { id: 3, ms: 30, finishedAt: 30 },
+      { id: 1, ms: 10, finishedAt: 10, handoffs: 0 },
+      { id: 2, ms: 20, finishedAt: 20, handoffs: 0 },
+      { id: 3, ms: 30, finishedAt: 30, handoffs: 0 },
     ])
     expect(stats.avg).toBe(20)
     expect(stats.min).toBe(10)
@@ -219,7 +219,7 @@ describe('computeStats', () => {
   })
 
   it('computes p50 correctly', () => {
-    const entries = [1, 2, 3, 4, 5].map((ms, i) => ({ id: i, ms, finishedAt: ms }))
+    const entries = [1, 2, 3, 4, 5].map((ms, i) => ({ id: i, ms, finishedAt: ms, handoffs: 0 }))
     const stats = computeStats(entries)
     expect(stats.p50).toBe(3)
   })

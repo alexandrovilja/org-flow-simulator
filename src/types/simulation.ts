@@ -105,6 +105,9 @@ export interface LeadTimeEntry {
   ms: number
   /** Simulační čas, kdy byla feature dokončena — slouží pro výpočet throughput. */
   finishedAt: number
+  /** Počet předání mezi jednotkami: kolikrát bylo nutné předat práci jinému členu
+   *  při přechodu mezi fázemi. Závisí na konfiguraci fází (level) a cross-funkčnosti týmu. */
+  handoffs: number
 }
 
 /** Celý stav simulace v jednom okamžiku.
@@ -185,4 +188,17 @@ export interface SimStats {
   bucketSize: number
   /** Maximální hodnota osy Y histogramu. */
   maxBucket: number
+  /** Průměrný počet předání mezi jednotkami na feature.
+   *  Odráží míru koordinační zátěže — nižší = efektivnější tok práce. */
+  avgHandoffs: number
 }
+
+/** Režim přiřazování úkolů z hlediska kontinuity — zda člen preferuje vlastní feature.
+ *  'priority'   = vždy nejvýše prioritní dostupná feature (výchozí)
+ *  'continuity' = preferuje feature, na které již pracoval; snižuje počet předání */
+export type FocusMode = 'priority' | 'continuity'
+
+/** Režim přiřazování úkolů z hlediska WIP — zda člen preferuje rozběhnuté features.
+ *  'priority'    = žádné rozlišení mezi backlogem a in-progress (výchozí)
+ *  'reduce-wip'  = in-progress features jsou preferovány před backlogovými */
+export type WipMode = 'priority' | 'reduce-wip'
