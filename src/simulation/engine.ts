@@ -1,6 +1,7 @@
 import type {
   Role, RoleMeta, Feature, Task, Member,
   SimState, SimSettings, SimStats, LeadTimeEntry,
+  FocusMode, WipMode,
 } from '@/types/simulation'
 
 /** Všechny dostupné specializace v systému — pořadí odpovídá výchozímu týmu. */
@@ -309,6 +310,45 @@ export function regenerate(
 }
 
 /**
+ * Spočítá počet předání mezi jednotkami pro jednu dokončenou feature.
+ *
+ * Předání nastane při přechodu fáze N → N+1, pokud člen který dokončil task
+ * ve fázi N není mezi členy pracujícími ve fázi N+1.
+ * Konkrétně: pro každý task fáze N, jehož assignee není v množině assignee fáze N+1,
+ * přičteme 1 předání.
+ *
+ * @param feature    - Dokončená feature (všechny tasky mají assignee)
+ * @param roleConfig - Konfigurace specializací; určuje level (fázi) každé role
+ * @returns Počet předání (nezáporné celé číslo)
+ */
+export function computeHandoffs(feature: Feature, roleConfig: Record<Role, RoleMeta>): number {
+  // Seskupíme tasky dle fáze (level) — každý level je jedna fáze zpracování
+  const byLevel = new Map<number, typeof feature.tasks>()
+  for (const t of feature.tasks) {
+    const level = roleConfig[t.role].level
+    const group = byLevel.get(level)
+    if (group) group.push(t)
+    else byLevel.set(level, [t])
+  }
+
+  // Seřadíme unikátní levely vzestupně pro procházení po sobě jdoucích přechodů
+  const levels = [...byLevel.keys()].sort((a, b) => a - b)
+
+  let handoffs = 0
+  for (let i = 0; i < levels.length - 1; i++) {
+    const current = byLevel.get(levels[i])!
+    const next    = byLevel.get(levels[i + 1])!
+    // Množina assignee ve fázi N+1 — pro rychlé vyhledávání
+    const nextAssignees = new Set(next.map(t => t.assignee))
+    // Každý task fáze N, jehož assignee v N+1 chybí, generuje 1 předání
+    for (const t of current) {
+      if (!nextAssignees.has(t.assignee)) handoffs++
+    }
+  }
+  return handoffs
+}
+
+/**
  * Posune simulaci o jeden časový krok (jeden snímek animace).
  * Tato funkce je volána 60× za sekundu z requestAnimationFrame.
  *
@@ -327,6 +367,8 @@ export function regenerate(
  * @param settings   - Konfigurace simulace
  * @param rng        - Seeded RNG pro případné doplnění backlogu
  * @param roleConfig - Konfigurace specializací (level, required); výchozí = ROLE_META
+ * @param focusMode  - Zda členové preferují vlastní feature ('continuity') nebo nejvyšší prioritu ('priority')
+ * @param wipMode    - Zda členové preferují in-progress features ('reduce-wip') nebo vybírají dle priority ('priority')
  * @returns Stejný objekt state po aktualizaci
  */
 export function tick(
@@ -335,6 +377,8 @@ export function tick(
   settings: SimSettings,
   rng: () => number,
   roleConfig: Record<Role, RoleMeta> = ROLE_META,
+  focusMode: FocusMode = 'priority',
+  wipMode: WipMode = 'priority',
 ): SimState {
   state.simTime += dtSim
 
@@ -400,8 +444,28 @@ export function tick(
 
     if (candidates.length === 0) continue
 
-    // Seřadíme podle priority — nižší číslo = důležitější feature
-    candidates.sort((a, b) => a.f.priority - b.f.priority)
+    // Třístupňové řazení — každý stupeň se uplatní jen pokud je příslušný režim aktivní:
+    // 1. Reduce WIP: in-progress features před backlogovými
+    // 2. Continuity: features kde člen již pracoval (má done task) před ostatními
+    // 3. Priorita: vždy jako finální tiebreaker
+    //
+    // workedFeatureIds se předpočítá jednou před sort() — predikát závisí jen na f.id
+    // a m.id, ne na argumentech comparatoru, takže je zbytečné ho počítat O(N log N)×.
+    const workedFeatureIds = focusMode === 'continuity'
+      ? new Set(candidates.filter(c => c.f.tasks.some(t => t.assignee === m.id && t.status === 'done')).map(c => c.f.id))
+      : null
+    candidates.sort((a, b) => {
+      if (wipMode === 'reduce-wip') {
+        // backlogIdx === -1 znamená feature je již v inProgress
+        const wipDiff = (a.backlogIdx === -1 ? 0 : 1) - (b.backlogIdx === -1 ? 0 : 1)
+        if (wipDiff !== 0) return wipDiff
+      }
+      if (workedFeatureIds) {
+        const contDiff = (workedFeatureIds.has(a.f.id) ? 0 : 1) - (workedFeatureIds.has(b.f.id) ? 0 : 1)
+        if (contDiff !== 0) return contDiff
+      }
+      return a.f.priority - b.f.priority
+    })
     const best = candidates[0]
 
     // Pokud je nejvíce prioritní feature ještě v backlogu, přesuneme ji do inProgress
@@ -463,8 +527,13 @@ export function tick(
       f.status = 'done'
       f.finishedAt = state.simTime
 
-      // Uložíme Lead Time záznam pro statistiky
-      const lt: LeadTimeEntry = { id: f.id, ms: f.finishedAt - f.createdAt, finishedAt: f.finishedAt }
+      // Uložíme Lead Time záznam pro statistiky; handoffs se počítají z aktuálního roleConfig
+      const lt: LeadTimeEntry = {
+        id: f.id,
+        ms: f.finishedAt - f.createdAt,
+        finishedAt: f.finishedAt,
+        handoffs: computeHandoffs(f, roleConfig),
+      }
       state.leadTimes.push(lt)
 
       // Omezíme historii na 200 záznamů aby nezabírala příliš paměti
@@ -496,7 +565,7 @@ export function tick(
  */
 export function computeStats(leadTimes: LeadTimeEntry[]): SimStats {
   if (leadTimes.length === 0) {
-    return { count: 0, avg: 0, min: 0, max: 0, p50: 0, p85: 0, buckets: [], bucketSize: 0, maxBucket: 0 }
+    return { count: 0, avg: 0, min: 0, max: 0, p50: 0, p85: 0, buckets: [], bucketSize: 0, maxBucket: 0, avgHandoffs: 0 }
   }
 
   const vals = leadTimes.map(l => l.ms)
@@ -520,5 +589,7 @@ export function computeStats(leadTimes: LeadTimeEntry[]): SimStats {
     buckets[idx]++
   }
 
-  return { count: vals.length, avg, min, max, p50: pct(0.5), p85: pct(0.85), buckets, bucketSize, maxBucket }
+  const avgHandoffs = leadTimes.reduce((s, l) => s + l.handoffs, 0) / leadTimes.length
+
+  return { count: vals.length, avg, min, max, p50: pct(0.5), p85: pct(0.85), buckets, bucketSize, maxBucket, avgHandoffs }
 }

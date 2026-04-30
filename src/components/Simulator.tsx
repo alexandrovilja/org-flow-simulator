@@ -6,7 +6,7 @@ import {
   ROLE_META, MEMBER_NAMES, mulberry32,
   makeInitialState, resetFromSnapshot, regenerate, tick, computeStats,
 } from '@/simulation/engine'
-import type { SimSettings, SimState, Role, RoleMeta } from '@/types/simulation'
+import type { SimSettings, SimState, Role, RoleMeta, FocusMode, WipMode } from '@/types/simulation'
 import { FeatureCard } from '@/components/FeatureCard'
 import { MemberCard } from '@/components/MemberCard'
 import { RoleSettings } from '@/components/RoleSettings'
@@ -34,7 +34,7 @@ export function Simulator() {
   const [, forceUpdate] = useState(0)
 
   /** Snapshot statistik jednoho dokončeného běhu — slouží pro delta výpočty. */
-  type RunSnapshot = { avgLt: number; avgWip: number; totalTime: number; totalWait: number }
+  type RunSnapshot = { avgLt: number; avgWip: number; totalTime: number; totalWait: number; avgHandoffs: number }
 
   /** Statistiky posledního dokončeného běhu — slouží pro srovnání s aktuálním během. */
   const [prevStats, setPrevStats] = useState<RunSnapshot | null>(null)
@@ -50,6 +50,18 @@ export function Simulator() {
   const [roleConfig, setRoleConfig] = useState<Record<Role, RoleMeta>>(() => ({ ...ROLE_META }))
   /** Viditelnost panelu Specializations — výchozí stav skrytý. */
   const [showRoleSettings, setShowRoleSettings] = useState(false)
+
+  /** Režim přiřazování — zda členové preferují vlastní feature nebo nejvyšší prioritu. */
+  const [focusMode, setFocusMode] = useState<FocusMode>('priority')
+  /** Ref pro přístup k focusMode uvnitř RAF smyčky. */
+  const focusModeRef = useRef<FocusMode>('priority')
+  useEffect(() => { focusModeRef.current = focusMode }, [focusMode])
+
+  /** Režim WIP — zda členové preferují in-progress features nebo vybírají dle priority. */
+  const [wipMode, setWipMode] = useState<WipMode>('priority')
+  /** Ref pro přístup k wipMode uvnitř RAF smyčky. */
+  const wipModeRef = useRef<WipMode>('priority')
+  useEffect(() => { wipModeRef.current = wipMode }, [wipMode])
   /** Ref pro přístup k roleConfig uvnitř RAF smyčky bez potřeby restartovat effect. */
   const roleConfigRef = useRef(roleConfig)
   useEffect(() => { roleConfigRef.current = roleConfig }, [roleConfig])
@@ -97,7 +109,7 @@ export function Simulator() {
           // Spotřebujeme nahromaděný čas v pevných krocích — každý tick má stejný dtSim.
           while (accumulated >= TARGET_DT_MS && !state.finished) {
             const dtSim = TARGET_DT_MS / 1000   // konstantní, nezávisí na speed
-            tick(state, dtSim, settingsRef.current, rngRef.current, roleConfigRef.current)
+            tick(state, dtSim, settingsRef.current, rngRef.current, roleConfigRef.current, focusModeRef.current, wipModeRef.current)
             accumulated -= TARGET_DT_MS
           }
           if (state.finished) {
@@ -109,7 +121,7 @@ export function Simulator() {
             const finishedAvgWip = state.simTime > 0.5 ? state.wipIntegral / state.simTime : 0
             if (finishedStats.count > 0) {
               const finishedTotalWait = state.team.reduce((sum, m) => sum + m.idleSec, 0)
-              lastFinishedRef.current = { avgLt: finishedStats.avg, avgWip: finishedAvgWip, totalTime: state.simTime, totalWait: finishedTotalWait }
+              lastFinishedRef.current = { avgLt: finishedStats.avg, avgWip: finishedAvgWip, totalTime: state.simTime, totalWait: finishedTotalWait, avgHandoffs: finishedStats.avgHandoffs }
             }
           }
         }
@@ -274,6 +286,11 @@ export function Simulator() {
     ? calcDelta(totalWait, prevStats.totalWait)
     : undefined
 
+  // avgHandoffs je průměr per-feature (stejně jako avgLt) — delta je smysluplná průběžně od první hotové feature
+  const handoffsDelta = prevStats && stats.count > 0
+    ? calcDelta(stats.avgHandoffs, prevStats.avgHandoffs)
+    : undefined
+
   return (
     <div style={{
       height: '100vh',
@@ -431,6 +448,58 @@ export function Simulator() {
               Click <span className="mono" style={{ color: 'var(--ink-2)' }}>+</span> to add a specialty
             </span>
           </div>
+
+          {/* Focus toggle — Priority vs. Continuity */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+            <div style={{ display: 'flex', gap: 0, border: '1px solid var(--line-2)', borderRadius: 5, overflow: 'hidden', alignSelf: 'flex-start' }}>
+              {(['priority', 'continuity'] as FocusMode[]).map(mode => (
+                <button
+                  key={mode}
+                  onClick={() => setFocusMode(mode)}
+                  style={{
+                    padding: '3px 9px', fontSize: 10, fontFamily: 'inherit', fontWeight: 500,
+                    letterSpacing: 0.2, cursor: 'pointer', border: 'none',
+                    background: focusMode === mode ? 'var(--ink)' : 'transparent',
+                    color: focusMode === mode ? 'var(--surface)' : 'var(--ink-3)',
+                    textTransform: 'capitalize',
+                  }}
+                >
+                  {mode === 'priority' ? 'Priority' : 'Continuity'}
+                </button>
+              ))}
+            </div>
+            <span style={{ fontSize: 10, color: 'var(--ink-3)', lineHeight: 1.4 }}>
+              {focusMode === 'priority'
+                ? 'Units always pick the highest-priority feature available.'
+                : 'Units prefer to finish what they started — reduces handoffs in cross-functional teams.'}
+            </span>
+          </div>
+
+          {/* WIP toggle — Priority vs. Reduce WIP */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+            <div style={{ display: 'flex', gap: 0, border: '1px solid var(--line-2)', borderRadius: 5, overflow: 'hidden', alignSelf: 'flex-start' }}>
+              {(['priority', 'reduce-wip'] as WipMode[]).map(mode => (
+                <button
+                  key={mode}
+                  onClick={() => setWipMode(mode)}
+                  style={{
+                    padding: '3px 9px', fontSize: 10, fontFamily: 'inherit', fontWeight: 500,
+                    letterSpacing: 0.2, cursor: 'pointer', border: 'none',
+                    background: wipMode === mode ? 'var(--ink)' : 'transparent',
+                    color: wipMode === mode ? 'var(--surface)' : 'var(--ink-3)',
+                    textTransform: 'capitalize',
+                  }}
+                >
+                  {mode === 'priority' ? 'Priority' : 'Reduce WIP'}
+                </button>
+              ))}
+            </div>
+            <span style={{ fontSize: 10, color: 'var(--ink-3)', lineHeight: 1.4 }}>
+              {wipMode === 'priority'
+                ? 'Units can start new features freely based on priority.'
+                : 'Units finish in-progress features before pulling new ones — lowers average WIP.'}
+            </span>
+          </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gridAutoRows: 'min-content', gap: 6, alignContent: 'start' }}>
             {s.team.map(m => {
               let cf = null, ct = null
@@ -510,6 +579,12 @@ export function Simulator() {
               unit={totalWait > 0 ? 's' : undefined}
               tooltip="Total idle time accumulated by all units with roles — time spent waiting for available work."
               delta={waitDelta}
+            />
+            <StatTile
+              label="Avg Handoffs"
+              value={stats.count > 0 ? stats.avgHandoffs.toFixed(1) : '—'}
+              tooltip="Average number of handoffs per feature — phase transitions where a different unit takes over. Requires multi-phase setup in Specializations (different levels). Lower means less coordination overhead."
+              delta={handoffsDelta}
             />
           </div>
         </div>
