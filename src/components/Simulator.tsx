@@ -15,6 +15,7 @@ import { Slider } from '@/components/Slider'
 import { SpeedControl } from '@/components/SpeedControl'
 import { PanelHeader } from '@/components/PanelHeader'
 import { formatTime } from '@/lib/formatTime'
+import { featureMaxWork } from '@/lib/featureSize'
 
 const DEFAULT_SETTINGS: SimSettings = {
   minBacklog: 0,
@@ -261,6 +262,10 @@ export function Simulator() {
     ? calcDelta(s.simTime, prevStats.totalTime)
     : undefined
 
+  // Maximální totalWork přes všechny viditelné features — základ pro proporcionální šířku barů.
+  // Zahrnujeme backlog i inProgress, aby se bary nezměnily při přechodu feature do WIP.
+  const maxWork = featureMaxWork(s.backlog, s.inProgress)
+
   // Celkový čas čekání — součet idleSec za všechny členy (u členů bez rolí je vždy 0)
   const totalWait = s.team.reduce((sum, m) => sum + m.idleSec, 0)
   // Zobrazujeme jen po dokončení běhu — průběžná hodnota by byla zavádějící
@@ -330,7 +335,7 @@ export function Simulator() {
             {s.backlog.length === 0 && (
               <div style={{ fontSize: 11, color: 'var(--ink-3)', fontStyle: 'italic', padding: '8px 4px' }}>No items waiting.</div>
             )}
-            {s.backlog.map(f => <FeatureCard key={f.id} feature={f} compact neutral />)}
+            {s.backlog.map(f => <FeatureCard key={f.id} feature={f} compact neutral maxWork={maxWork} />)}
           </div>
         </div>
 
@@ -413,7 +418,7 @@ export function Simulator() {
             {s.inProgress.length === 0 && (
               <div style={{ fontSize: 11, color: 'var(--ink-3)', fontStyle: 'italic', gridColumn: '1 / -1' }}>Nothing in flight.</div>
             )}
-            {s.inProgress.map(f => <FeatureCard key={f.id} feature={f} team={s.team} />)}
+            {s.inProgress.map(f => <FeatureCard key={f.id} feature={f} team={s.team} maxWork={maxWork} />)}
           </div>
         </div>
 
