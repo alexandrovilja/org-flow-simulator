@@ -9,7 +9,7 @@ export default defineConfig({
     globals: true,
     setupFiles: ['./tests/setup.ts'],
     // E2E testy používají Playwright (jiný test runner) — Vitest je musí ignorovat
-    exclude: ['**/node_modules/**', '**/tests/e2e/**'],
+    exclude: ['**/node_modules/**', '**/tests/e2e/**', '**/.claude/**'],
   },
   resolve: {
     alias: {

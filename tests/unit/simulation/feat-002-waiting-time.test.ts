@@ -36,9 +36,10 @@ describe('feat-002: waiting time', () => {
       expect(state.team[0].idleSec).toBe(0)
     })
 
-    it('člen s rolemi akumuluje idleSec, pokud práce jeho role existuje ale je nedostupná', () => {
-      // FE úkol existuje v inProgress ale je 'doing' (jiný člen ho právě dělá)
-      // → FE člen čeká → idle SE počítá
+    it('člen s rolemi NEakumuluje idleSec, pokud jediný úkol jeho role je "doing" (přiřazen jinému)', () => {
+      // BUG (opravený): FE úkol je 'doing' (jiný člen ho dělá) — idle FE člen
+      // na něj sáhnout nemůže, takže waiting time NESMÍ růst.
+      // Správná sémantika: hasMatchingWork respektuje pouze 'todo' úkoly.
       const rng = mulberry32(1)
       const state = makeInitialState(rng, SETTINGS)
       state.team = [{ id: 1, name: 'FE', roles: ['FE'], currentTask: null, idleSec: 0 }]
@@ -50,7 +51,31 @@ describe('feat-002: waiting time', () => {
       }]
 
       tick(state, 1.5, SETTINGS, rng)
-      expect(state.team[0].idleSec).toBe(1.5)
+      expect(state.team[0].idleSec).toBe(0)
+    })
+
+    it('člen s rolemi akumuluje idleSec, pokud existuje "todo" úkol jeho role (ale je fázově blokovaný)', () => {
+      // FE úkol (phase 2) je 'todo', ale Design (phase 1) ještě není hotový
+      // → FE člen nemůže začít, ale práce pro jeho roli EXISTUJE → idle SE počítá
+      const rng = mulberry32(1)
+      const state = makeInitialState(rng, SETTINGS)
+      state.team = [{ id: 1, name: 'FE', roles: ['FE'], currentTask: null, idleSec: 0 }]
+      state.backlog = []
+      state.inProgress = [{
+        id: 1, name: 'F-001', hue: 0, priority: 1,
+        createdAt: 0, startedAt: 0, finishedAt: null, status: 'in-progress',
+        tasks: [
+          { id: 1, role: 'DSGN', work: 10, progress: 2, status: 'doing', assignee: 99 },
+          { id: 2, role: 'FE',   work: 10, progress: 0, status: 'todo',  assignee: null },
+        ],
+      }]
+      // Nastavíme fáze: Design = 1 (musí být hotový dřív), FE = 2
+      const roleConfig = {
+        FE:   { label: 'FE',   color: 'oklch(70% 0.14 250)', level: 2, required: false },
+        DSGN: { label: 'DSGN', color: 'oklch(72% 0.13 25)',  level: 1, required: false },
+      }
+      tick(state, 1.5, SETTINGS, rng, roleConfig)
+      expect(state.team[0].idleSec).toBeCloseTo(1.5, 5)
     })
 
     it('člen s rolemi NEakumuluje idleSec, pokud práce jeho role neexistuje (zbývá jen jiná role)', () => {
@@ -189,11 +214,12 @@ describe('feat-002: waiting time', () => {
   })
 
   describe('celkový waiting time', () => {
-    it('tým čekající N sekund (s prací dostupnou) má totalWait = N * počet_blokovaných', () => {
+    it('end-of-simulation bug: "doing" tasky nezpůsobují falešný waiting time', () => {
+      // BUG (opravený): na konci simulace jsou všechny zbývající tasky 'doing'
+      // (jiní členové je zpracovávají). Idle člen se stejnou rolí na ně nemůže
+      // sáhnout — waiting time NESMÍ narůstat.
       const rng = mulberry32(1)
       const state = makeInitialState(rng, SETTINGS)
-      // Dva členové, oba mají práci ke své roli v inProgress ale task je 'doing'
-      // (jiný assignee) → oba jsou blokovaní → idle SE počítá
       state.team = [
         { id: 1, name: 'A', roles: ['FE'], currentTask: null, idleSec: 0 },
         { id: 2, name: 'B', roles: ['BE'], currentTask: null, idleSec: 0 },
@@ -210,7 +236,26 @@ describe('feat-002: waiting time', () => {
 
       tick(state, 3, SETTINGS, rng)
       const totalWait = state.team.reduce((sum, m) => sum + m.idleSec, 0)
-      expect(totalWait).toBeCloseTo(6, 5)
+      expect(totalWait).toBe(0)
+    })
+
+    it('totalWait roste, pokud existují "todo" úkoly které člen nemůže vzít (jiná role)', () => {
+      // Backlog obsahuje QA úkoly, FE člen nemá co dělat → idle SE nepočítá (jiná role)
+      // Backlog obsahuje FE úkoly, BE člen nemá co dělat → idle SE nepočítá (jiná role)
+      const rng = mulberry32(1)
+      const state = makeInitialState(rng, SETTINGS)
+      state.team = [
+        { id: 1, name: 'FE-only', roles: ['FE'], currentTask: null, idleSec: 0 },
+      ]
+      state.backlog = [{
+        id: 1, name: 'F-001', hue: 0, priority: 1,
+        createdAt: 0, startedAt: null, finishedAt: null, status: 'backlog',
+        tasks: [{ id: 1, role: 'BE', work: 10, progress: 0, status: 'todo', assignee: null }],
+      }]
+      state.inProgress = []
+
+      tick(state, 3, SETTINGS, rng)
+      expect(state.team[0].idleSec).toBe(0)
     })
 
     it('větší tým má vyšší nebo stejný totalWait při stejném backlogu', () => {

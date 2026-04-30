@@ -420,22 +420,29 @@ export function tick(
   }
 
   // Akumulujeme idle čas pro každého člena, který má role ale žádný úkol —
-  // ale pouze pokud pro jeho roli ještě existuje práce (todo nebo doing).
+  // ale pouze pokud pro jeho roli existuje NEPŘIŘAZENÁ ('todo') práce.
   // Záměrně až PO přiřazovacím loopu — člen, který právě dostal úkol, idle čas nedostane.
   //
   // Podmínka "má práci pro svou roli":
-  //   ∃ feature v backlogu nebo inProgress, která obsahuje task se stavem != 'done'
+  //   ∃ feature v backlogu nebo inProgress, která obsahuje task se stavem 'todo'
   //   a roli, kterou člen má.
-  // Pokud taková práce neexistuje, člen není "blokován" — práce prostě skončila.
-  // Idle čas pak nedává smysl počítat (workshop by ukazoval nesmyslné čekání
-  // i po dokončení celé simulace nebo v teamech, kde daná role vůbec není potřeba).
+  //
+  // Proč POUZE 'todo' (ne 'doing'):
+  //   Task ve stavu 'doing' je přiřazen jinému členovi — idle člen na něj sáhnout
+  //   nemůže. Počítání takového čekání by způsobovalo falešný waiting time zejména
+  //   na konci simulace, kdy jsou zbývající tasky rozebírány jiným členem.
+  //
+  // Proč NE pokud práce neexistuje vůbec:
+  //   Pokud pro roli žádný 'todo' task neexistuje, člen není "blokován" — práce
+  //   prostě skončila. Workshop by ukazoval nesmyslné čekání po konci simulace
+  //   nebo u rolí, které backlog vůbec nepotřebuje.
   for (const m of state.team) {
     if (m.roles.length === 0 || m.currentTask !== null) continue
     // Dva oddělené .some() místo [...a, ...b].some() — vyhýbáme se zbytečné
     // alokaci dočasného pole, které by vznikalo 60× za sekundu × počet idle členů.
     const hasMatchingWork =
-      state.backlog.some(f => f.tasks.some(t => t.status !== 'done' && m.roles.includes(t.role))) ||
-      state.inProgress.some(f => f.tasks.some(t => t.status !== 'done' && m.roles.includes(t.role)))
+      state.backlog.some(f => f.tasks.some(t => t.status === 'todo' && m.roles.includes(t.role))) ||
+      state.inProgress.some(f => f.tasks.some(t => t.status === 'todo' && m.roles.includes(t.role)))
     if (hasMatchingWork) m.idleSec += dtSim
   }
 
