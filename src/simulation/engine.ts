@@ -102,17 +102,19 @@ function makeFeature(
 
   // Výpočet počtu různých rolí: základní hodnota 2 ± rozptyl daný roleVar.
   // Uživatelské minSpecializations tvoří spodní hranici — nelze klesnout pod ni.
+  // Používáme Object.keys(roleConfig) — respektuje dynamický seznam rolí (uživatelsky přidané/odebrané).
+  const activeRoles = Object.keys(roleConfig)
   const baseRoles = 2
   const roleSpread = Math.round(settings.roleVar * 4)
   const computedMin = Math.max(1, baseRoles - Math.floor(roleSpread / 2))
-  const minRoles = Math.min(ROLES.length, Math.max(computedMin, settings.minSpecializations ?? 1))
-  const maxRoles = Math.min(ROLES.length, Math.max(minRoles, baseRoles + roleSpread))
+  const minRoles = Math.min(activeRoles.length, Math.max(computedMin, settings.minSpecializations ?? 1))
+  const maxRoles = Math.min(activeRoles.length, Math.max(minRoles, baseRoles + roleSpread))
   const roleCount = minRoles + Math.floor(rng() * (maxRoles - minRoles + 1))
 
   // Povinné role jsou vždy zahrnuty bez ohledu na roleVar
-  const requiredRoles = ROLES.filter(r => roleConfig[r].required)
+  const requiredRoles = activeRoles.filter(r => roleConfig[r].required)
   // Volitelné role jsou náhodně zamíchány a přidány do celkového počtu
-  const optionalRoles = ROLES.filter(r => !roleConfig[r].required)
+  const optionalRoles = activeRoles.filter(r => !roleConfig[r].required)
   const shuffledOptional = [...optionalRoles].sort(() => rng() - 0.5)
   // Celkový počet rolí musí pokrýt alespoň všechny povinné role
   const totalRoleCount = Math.max(requiredRoles.length, roleCount)
@@ -186,14 +188,14 @@ function makeMember(i: number, role: Role): Member {
 }
 
 /**
- * Vytvoří výchozí tým se 6 členy — jeden za každou specializaci.
+ * Vytvoří výchozí tým — jeden člen za každou aktivní specializaci.
  * Tím je zaručeno, že každý typ úkolu má alespoň jednoho zpracovatele.
  *
- * @returns Pole 6 členů týmu
+ * @param roleConfig - Aktuální konfigurace specializací; každá role dostane jednoho člena
+ * @returns Pole členů týmu (jeden na roli)
  */
-function defaultTeam(): Member[] {
-  const defaults: Role[] = ['FE', 'BE', 'DSGN', 'QA', 'OPS', 'DATA']
-  return defaults.map((r, i) => makeMember(i, r))
+function defaultTeam(roleConfig: Record<string, RoleMeta>): Member[] {
+  return Object.keys(roleConfig).map((r, i) => makeMember(i, r))
 }
 
 /**
@@ -243,7 +245,7 @@ export function makeInitialState(
     backlogSnapshot: [],
     inProgress: [],
     done: [],
-    team: defaultTeam(),
+    team: defaultTeam(roleConfig),
     leadTimes: [],
     simTime: 0,
     wipIntegral: 0,

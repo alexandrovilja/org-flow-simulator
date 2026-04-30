@@ -1,7 +1,10 @@
 /** Jedna ze šesti specializací, které může mít člen týmu.
  *  Každý úkol (Task) vyžaduje právě jednu roli — člen může úkol
  *  zpracovat jen pokud tuto roli má. */
-export type Role = 'FE' | 'BE' | 'DSGN' | 'QA' | 'OPS' | 'DATA'
+/** Identifikátor specializace — libovolný string.
+ *  Výchozí hodnoty: 'FE' | 'BE' | 'DSGN' | 'QA' | 'OPS' | 'DATA'.
+ *  Uživatel může přidat vlastní specializace (CUSTOM_<timestamp>) nebo odebrat stávající. */
+export type Role = string
 
 /** Konfigurace jedné specializace — zobrazovaná metadata i pravidla pro simulaci.
  *  Uložena v Record<Role, RoleMeta> v engine (výchozí) i v komponentě Simulator (uživatelská). */

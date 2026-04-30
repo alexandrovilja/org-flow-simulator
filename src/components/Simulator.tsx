@@ -16,6 +16,7 @@ import { SpeedControl } from '@/components/SpeedControl'
 import { PanelHeader } from '@/components/PanelHeader'
 import { formatTime } from '@/lib/formatTime'
 import { featureMaxWork } from '@/lib/featureSize'
+import { addRole, deleteRole } from '@/simulation/roleManagement'
 
 const DEFAULT_SETTINGS: SimSettings = {
   minBacklog: 0,
@@ -129,7 +130,7 @@ export function Simulator() {
     return () => cancelAnimationFrame(raf)
   }, [])
 
-  const handleAddRole = useCallback((memberId: number, role: Role) => {
+  const handleAssignRole = useCallback((memberId: number, role: Role) => {
     const m = stateRef.current?.team.find(m => m.id === memberId)
     if (m && !m.roles.includes(role)) m.roles.push(role)
     forceUpdate(n => n + 1)
@@ -205,14 +206,40 @@ export function Simulator() {
 
   /**
    * Aktualizuje konfiguraci jedné specializace.
-   * Změny label a level se projeví okamžitě (při příštím ticku).
+   * Změny label, color a level se projeví okamžitě (při příštím ticku).
    * Změna required se projeví při příštím generování backlogu.
    */
-  const handleRoleChange = useCallback((roleId: Role, updates: Partial<Pick<RoleMeta, 'label' | 'level' | 'required'>>) => {
+  const handleRoleChange = useCallback((roleId: string, updates: Partial<RoleMeta>) => {
     setRoleConfig(prev => ({
       ...prev,
       [roleId]: { ...prev[roleId], ...updates },
     }))
+  }, [])
+
+  /**
+   * Přidá novou specializaci do konfigurace.
+   * Nová specializace se okamžitě zobrazí v pickerech MemberCard.
+   * Vliv na backlog se projeví až při příštím generování.
+   */
+  const handleAddRole = useCallback((label: string, color: string) => {
+    setRoleConfig(prev => {
+      const { roleConfig: next } = addRole(prev, label, color)
+      return next
+    })
+  }, [])
+
+  /**
+   * Smaže specializaci a vyčistí závislosti v SimState.
+   * Tasky dané role se odstraní z backlogu a inProgress; členové ztratí tuto roli.
+   */
+  const handleDeleteRole = useCallback((roleId: string) => {
+    const s = stateRef.current
+    if (!s) return
+    setRoleConfig(prev => {
+      const { roleConfig: next } = deleteRole(s, prev, roleId)
+      return next
+    })
+    forceUpdate(n => n + 1)
   }, [])
 
   const handleRegenerate = useCallback(() => {
@@ -398,7 +425,12 @@ export function Simulator() {
             </button>
             {showRoleSettings && (
               <div style={{ marginTop: 8 }}>
-                <RoleSettings roleConfig={roleConfig} onChange={handleRoleChange} />
+                <RoleSettings
+                  roleConfig={roleConfig}
+                  onChange={handleRoleChange}
+                  onAdd={handleAddRole}
+                  onDelete={handleDeleteRole}
+                />
               </div>
             )}
           </div>
@@ -445,7 +477,7 @@ export function Simulator() {
                   currentFeature={cf ?? null}
                   currentTask={ct ?? null}
                   roleConfig={roleConfig}
-                  onAddRole={handleAddRole}
+                  onAddRole={handleAssignRole}
                   onRemoveRole={handleRemoveRole}
                   onRename={handleRenameMember}
                   onRemove={handleRemoveMember}
