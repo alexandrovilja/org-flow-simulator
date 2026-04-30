@@ -68,17 +68,33 @@ export function Simulator() {
 
   useEffect(() => {
     let raf: number
+    let lastT = performance.now()
+    let accumulated = 0
+    // Cílový krok simulace v ms — odpovídá jednomu snímku při 60 fps (≈ 16.67 ms).
+    // Fixed-timestep accumulator: reálný elapsed čas se hromadí v `accumulated`
+    // a spotřebovává se v krocích TARGET_DT_MS. Díky tomu:
+    //   • výsledky jsou deterministické (dtSim je vždy stejný)
+    //   • simulace běží stejně rychle na 60 Hz i 120 Hz monitorech
+    //   • na pomalejších displejích (<60 fps) se provede více ticků na snímek
+    //     (catch-up), takže sim-čas drží krok s reálným časem
+    const TARGET_DT_MS = 1000 / 60
+
     const step = (t: number) => {
+      // Cap 100 ms chrání před "spiral of death" po přepnutí tabu nebo resize okna,
+      // kdy by jinak jeden snímek mohl simulovat sekundy najednou.
+      const elapsed = Math.min(100, t - lastT)
+      lastT = t
+
       if (!pausedRef.current && stateRef.current) {
         const state = stateRef.current
         if (!state.finished) {
-          // Pevný simulační krok na snímek: 1/60 sim-sekundy × speed multiplier.
-          // Dřívější přístup (reálný elapsed čas z performance.now) způsoboval
-          // nedeterministické výsledky — každý snímek trvá trochu jinak dlouho,
-          // takže stejná konfigurace dávala různé sim-time výsledky run od runu.
-          // Pevný dt eliminuje závislost na frame rate a zaručuje reprodukovatelné výsledky.
-          const dtSim = (1 / 60) * speedRef.current
-          tick(state, dtSim, settingsRef.current, rngRef.current, roleConfigRef.current)
+          accumulated += elapsed
+          // Spotřebujeme nahromaděný čas v pevných krocích — každý tick má stejný dtSim.
+          while (accumulated >= TARGET_DT_MS && !state.finished) {
+            const dtSim = TARGET_DT_MS / 1000 * speedRef.current
+            tick(state, dtSim, settingsRef.current, rngRef.current, roleConfigRef.current)
+            accumulated -= TARGET_DT_MS
+          }
           if (state.finished) {
             setPaused(true)
             // Simulace právě doběhla — uložíme statistiky do lastFinishedRef.
@@ -92,14 +108,16 @@ export function Simulator() {
             }
           }
         }
-      }
-      // flushSync zajistí synchronní render PŘED koncem RAF callbacku.
-      // Bez toho React 18 (Concurrent Mode) plánuje render přes MessageChannel,
-      // který může přijít AŽ po dalším RAF → snímky se slučují → viditelná přerušovanost.
-      // flushSync je standardní řešení pro RAF-driven 60fps animace v React 18.
-      if (!pausedRef.current) {
+        // flushSync zajistí synchronní render PŘED koncem RAF callbacku.
+        // Bez toho React 18 (Concurrent Mode) plánuje render přes MessageChannel,
+        // který může přijít AŽ po dalším RAF → snímky se slučují → viditelná přerušovanost.
         flushSync(() => { forceUpdate(n => (n + 1) & 0xFFFF) })
+      } else {
+        // Při pauze zahodíme nahromaděný čas — při obnovení simulace nechceme
+        // skokové dohnání celé pauzy (burst ticků najednou).
+        accumulated = 0
       }
+
       raf = requestAnimationFrame(step)
     }
     raf = requestAnimationFrame(step)
