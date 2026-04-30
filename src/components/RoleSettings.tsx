@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import type { RoleMeta } from '@/types/simulation'
 
 /** Maximální povolená úroveň specializace (min je vždy 1). */
@@ -21,41 +21,57 @@ export const COLOR_PRESETS: { hue: number; color: string }[] = [
   { hue: 30,  color: 'oklch(70% 0.14 30)'  },
 ]
 
+/** Sentinelová hodnota openPickerId pro color picker formuláře nové specializace. */
+const NEW_ROLE_PICKER_ID = '__new__'
+
 interface RoleSettingsProps {
-  /** Aktuální konfigurace všech specializací (label, color, level, required). */
   roleConfig: Record<string, RoleMeta>
-  /**
-   * Callback volaný při změně jakékoliv vlastnosti specializace.
-   * @param roleId  - ID měněné role
-   * @param updates - Částečná aktualizace (pouze změněné vlastnosti)
-   */
   onChange: (roleId: string, updates: Partial<RoleMeta>) => void
-  /**
-   * Callback pro přidání nové specializace.
-   * @param label - Zobrazovaný název nové specializace
-   * @param color - Barva v oklch formátu
-   */
   onAdd: (label: string, color: string) => void
-  /**
-   * Callback pro smazání specializace.
-   * @param roleId - ID specializace k odstranění
-   */
   onDelete: (roleId: string) => void
 }
 
 /**
  * Panel pro konfiguraci specializací týmu.
- * Každá specializace má editovatelný název, inline color picker, úroveň fáze
+ * Každá specializace má editovatelný název, floating color picker, úroveň fáze
  * a příznak povinnosti. Lze přidávat nové a mazat existující specializace.
  */
 export function RoleSettings({ roleConfig, onChange, onAdd, onDelete }: RoleSettingsProps) {
-  /** ID specializace čekající na potvrzení smazání (null = žádné). */
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null)
-
-  /** Stav formuláře pro přidání nové specializace. */
   const [newLabel, setNewLabel] = useState('')
   const [newColor, setNewColor] = useState(COLOR_PRESETS[0].color)
   const [addError, setAddError] = useState('')
+
+  /**
+   * ID role s aktuálně otevřeným color pickerem.
+   * '__new__' = picker formuláře nové role, null = žádný otevřený.
+   */
+  const [openPickerId, setOpenPickerId] = useState<string | null>(null)
+
+  /** Ref kontejneru panelu — slouží k detekci kliknutí mimo picker. */
+  const containerRef = useRef<HTMLDivElement>(null)
+
+  // Zavřít picker při kliknutí mimo celý RoleSettings panel
+  useEffect(() => {
+    if (!openPickerId) return
+    const handleMouseDown = (e: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setOpenPickerId(null)
+      }
+    }
+    document.addEventListener('mousedown', handleMouseDown)
+    return () => document.removeEventListener('mousedown', handleMouseDown)
+  }, [openPickerId])
+
+  // Zavřít picker klávesou Escape
+  useEffect(() => {
+    if (!openPickerId) return
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setOpenPickerId(null)
+    }
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [openPickerId])
 
   const roleIds = Object.keys(roleConfig)
   const canDelete = roleIds.length > 1
@@ -77,16 +93,16 @@ export function RoleSettings({ roleConfig, onChange, onAdd, onDelete }: RoleSett
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+    <div ref={containerRef} style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
       {/* Záhlaví sloupců */}
       <div style={{
         display: 'grid',
-        gridTemplateColumns: 'auto 1fr 72px 40px 20px',
+        gridTemplateColumns: '24px 1fr 72px 40px 20px',
         gap: 6, alignItems: 'center',
         paddingBottom: 4,
         borderBottom: '1px solid var(--line)',
       }}>
-        <span style={{ fontSize: 9, color: 'var(--ink-3)', textTransform: 'uppercase', letterSpacing: 0.5 }}>Color</span>
+        <span style={{ fontSize: 9, color: 'var(--ink-3)', textTransform: 'uppercase', letterSpacing: 0.5 }}>Col.</span>
         <span style={{ fontSize: 9, color: 'var(--ink-3)', textTransform: 'uppercase', letterSpacing: 0.5 }}>Name</span>
         <span style={{ fontSize: 9, color: 'var(--ink-3)', textTransform: 'uppercase', letterSpacing: 0.5, textAlign: 'center' }}>Phase</span>
         <span style={{ fontSize: 9, color: 'var(--ink-3)', textTransform: 'uppercase', letterSpacing: 0.5, textAlign: 'center' }}>Req.</span>
@@ -97,35 +113,73 @@ export function RoleSettings({ roleConfig, onChange, onAdd, onDelete }: RoleSett
       {roleIds.map(roleId => {
         const meta = roleConfig[roleId]
         const isConfirming = confirmDelete === roleId
+        const pickerOpen = openPickerId === roleId
 
         return (
           <div key={roleId} style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
             <div style={{
               display: 'grid',
-              gridTemplateColumns: 'auto 1fr 72px 40px 20px',
+              gridTemplateColumns: '24px 1fr 72px 40px 20px',
               gap: 6, alignItems: 'center',
             }}>
-              {/* Inline color picker — sada barevných teček */}
-              <div style={{ display: 'flex', gap: 3, alignItems: 'center' }}>
-                {COLOR_PRESETS.map(p => (
-                  <button
-                    key={p.hue}
-                    title={`Color hue ${p.hue}`}
-                    onClick={() => onChange(roleId, { color: p.color })}
-                    style={{
-                      width: 10, height: 10,
-                      borderRadius: '50%',
-                      background: p.color,
-                      border: meta.color === p.color
-                        ? '2px solid var(--ink)'
-                        : '2px solid transparent',
-                      padding: 0, cursor: 'pointer', flexShrink: 0,
-                    }}
-                  />
-                ))}
+              {/* Barevný čtverec — klik otevře / zavře floating picker */}
+              <div style={{ position: 'relative' }}>
+                <button
+                  onClick={() => setOpenPickerId(pickerOpen ? null : roleId)}
+                  title="Change color"
+                  style={{
+                    width: 20, height: 20,
+                    borderRadius: 4,
+                    background: meta.color,
+                    border: pickerOpen ? '2px solid var(--ink)' : '2px solid transparent',
+                    cursor: 'pointer', padding: 0, flexShrink: 0,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  }}
+                >
+                  {/* Malá šipka signalizující, že je klikatelné */}
+                  <span style={{ fontSize: 7, color: 'rgba(255,255,255,0.7)', lineHeight: 1 }}>▾</span>
+                </button>
+
+                {/* Floating color picker panel */}
+                {pickerOpen && (
+                  <div style={{
+                    position: 'absolute', top: 26, left: 0, zIndex: 100,
+                    background: 'var(--panel)',
+                    border: '1px solid var(--line)',
+                    borderRadius: 6,
+                    padding: 8,
+                    display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 5,
+                    boxShadow: '0 4px 12px rgba(0,0,0,0.12)',
+                  }}>
+                    {COLOR_PRESETS.map(p => (
+                      <button
+                        key={p.hue}
+                        title={`Hue ${p.hue}`}
+                        onClick={() => {
+                          onChange(roleId, { color: p.color })
+                          setOpenPickerId(null)
+                        }}
+                        style={{
+                          width: 22, height: 22,
+                          borderRadius: 5,
+                          background: p.color,
+                          border: meta.color === p.color
+                            ? '2px solid var(--ink)'
+                            : '2px solid transparent',
+                          cursor: 'pointer', padding: 0,
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        }}
+                      >
+                        {meta.color === p.color && (
+                          <span style={{ fontSize: 10, color: 'white', fontWeight: 700 }}>✓</span>
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
 
-              {/* Název — editovatelný textový vstup */}
+              {/* Název */}
               <input
                 type="text"
                 value={meta.label}
@@ -145,21 +199,18 @@ export function RoleSettings({ roleConfig, onChange, onAdd, onDelete }: RoleSett
                   onClick={() => onChange(roleId, { level: Math.max(1, meta.level - 1) })}
                   disabled={meta.level <= 1}
                   style={stepperBtn}
-                  title="Decrease phase"
                 >−</button>
-                <span style={{
-                  fontSize: 11, fontWeight: 600, color: 'var(--ink)',
-                  minWidth: 16, textAlign: 'center',
-                }}>{meta.level}</span>
+                <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--ink)', minWidth: 16, textAlign: 'center' }}>
+                  {meta.level}
+                </span>
                 <button
                   onClick={() => onChange(roleId, { level: Math.min(MAX_LEVEL, meta.level + 1) })}
                   disabled={meta.level >= MAX_LEVEL}
                   style={stepperBtn}
-                  title="Increase phase"
                 >+</button>
               </div>
 
-              {/* Povinná role — checkbox */}
+              {/* Povinná role */}
               <div style={{ display: 'flex', justifyContent: 'center' }}>
                 <input
                   type="checkbox"
@@ -170,7 +221,7 @@ export function RoleSettings({ roleConfig, onChange, onAdd, onDelete }: RoleSett
                 />
               </div>
 
-              {/* Tlačítko smazání — skryté pokud je jen 1 role */}
+              {/* Smazání */}
               <div style={{ display: 'flex', justifyContent: 'center' }}>
                 {canDelete && (
                   <button
@@ -195,7 +246,9 @@ export function RoleSettings({ roleConfig, onChange, onAdd, onDelete }: RoleSett
                 border: '1px solid oklch(85% 0.08 25)',
                 borderRadius: 4, fontSize: 10, color: 'var(--ink-2)',
               }}>
-                <span style={{ flex: 1 }}>Delete <strong>{meta.label}</strong>? Tasks requiring it will be removed.</span>
+                <span style={{ flex: 1 }}>
+                  Delete <strong>{meta.label}</strong>? Tasks requiring it will be removed.
+                </span>
                 <button
                   onClick={() => { onDelete(roleId); setConfirmDelete(null) }}
                   style={{ ...actionBtn, background: 'oklch(50% 0.15 25)', color: 'white' }}
@@ -213,14 +266,69 @@ export function RoleSettings({ roleConfig, onChange, onAdd, onDelete }: RoleSett
       {/* Formulář pro přidání nové specializace */}
       <div style={{
         display: 'flex', flexDirection: 'column', gap: 6,
-        marginTop: 4,
-        paddingTop: 8,
+        marginTop: 4, paddingTop: 8,
         borderTop: '1px solid var(--line)',
       }}>
         <span style={{ fontSize: 9, color: 'var(--ink-3)', textTransform: 'uppercase', letterSpacing: 0.5 }}>
           Add specialization
         </span>
+
         <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+          {/* Barevný čtverec nové role s floating pickerem */}
+          <div style={{ position: 'relative', flexShrink: 0 }}>
+            <button
+              onClick={() => setOpenPickerId(
+                openPickerId === NEW_ROLE_PICKER_ID ? null : NEW_ROLE_PICKER_ID
+              )}
+              title="Pick color"
+              style={{
+                width: 28, height: 28,
+                borderRadius: 5,
+                background: newColor,
+                border: openPickerId === NEW_ROLE_PICKER_ID
+                  ? '2px solid var(--ink)'
+                  : '2px solid transparent',
+                cursor: 'pointer', padding: 0,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}
+            >
+              <span style={{ fontSize: 8, color: 'rgba(255,255,255,0.7)' }}>▾</span>
+            </button>
+
+            {openPickerId === NEW_ROLE_PICKER_ID && (
+              <div style={{
+                position: 'absolute', top: 34, left: 0, zIndex: 100,
+                background: 'var(--panel)',
+                border: '1px solid var(--line)',
+                borderRadius: 6, padding: 8,
+                display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 5,
+                boxShadow: '0 4px 12px rgba(0,0,0,0.12)',
+              }}>
+                {COLOR_PRESETS.map(p => (
+                  <button
+                    key={p.hue}
+                    title={`Hue ${p.hue}`}
+                    onClick={() => { setNewColor(p.color); setOpenPickerId(null) }}
+                    style={{
+                      width: 22, height: 22,
+                      borderRadius: 5,
+                      background: p.color,
+                      border: newColor === p.color
+                        ? '2px solid var(--ink)'
+                        : '2px solid transparent',
+                      cursor: 'pointer', padding: 0,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    }}
+                  >
+                    {newColor === p.color && (
+                      <span style={{ fontSize: 10, color: 'white', fontWeight: 700 }}>✓</span>
+                    )}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
           <input
             type="text"
             value={newLabel}
@@ -240,29 +348,9 @@ export function RoleSettings({ roleConfig, onChange, onAdd, onDelete }: RoleSett
             style={{
               ...actionBtn,
               background: 'var(--ink)', color: 'white',
-              padding: '3px 8px', fontSize: 11,
+              padding: '4px 10px', fontSize: 11,
             }}
           >Add</button>
-        </div>
-
-        {/* Color picker pro novou roli */}
-        <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
-          <span style={{ fontSize: 9, color: 'var(--ink-3)' }}>Color:</span>
-          {COLOR_PRESETS.map(p => (
-            <button
-              key={p.hue}
-              onClick={() => setNewColor(p.color)}
-              style={{
-                width: 14, height: 14,
-                borderRadius: '50%',
-                background: p.color,
-                border: newColor === p.color
-                  ? '2px solid var(--ink)'
-                  : '2px solid transparent',
-                padding: 0, cursor: 'pointer',
-              }}
-            />
-          ))}
         </div>
 
         {addError && (
