@@ -124,11 +124,11 @@ export function ComparePanel({
             bothFinished={bothFinished}
           />
           <MetricTile
-            label="Avg Lead Time"
+            label="Avg Cycle Time"
             value={stats.count > 0 ? `${stats.avg.toFixed(1)}s` : '—'}
             delta={ltDelta} vsLabel={vsLabel}
             deltaLabel={{ better: 'faster', worse: 'slower' }}
-            tooltip="Mean time from backlog entry to completion."
+            tooltip="Mean time from work start to completion (excludes backlog wait)."
             bothFinished={bothFinished}
           />
           <MetricTile
