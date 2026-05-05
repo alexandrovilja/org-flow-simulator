@@ -11,12 +11,12 @@ export const ROLES: Role[] = ['FE', 'BE', 'DSGN', 'QA', 'OPS', 'DATA']
  *  Všechny role mají level 1 (paralelní zpracování) a required false — zachovává stávající chování.
  *  Uživatel může konfiguraci změnit v panelu Specializations. */
 export const ROLE_META: Record<Role, RoleMeta> = {
-  FE:   { label: 'Frontend', color: 'oklch(70% 0.14 250)', level: 1, required: false },
-  BE:   { label: 'Backend',  color: 'oklch(66% 0.14 285)', level: 1, required: false },
+  FE:   { label: 'React',    color: 'oklch(70% 0.14 250)', level: 1, required: false },
+  BE:   { label: 'Java',     color: 'oklch(66% 0.14 285)', level: 1, required: false },
   DSGN: { label: 'Design',   color: 'oklch(72% 0.13 25)',  level: 1, required: false },
   QA:   { label: 'QA',       color: 'oklch(68% 0.13 145)', level: 1, required: false },
-  OPS:  { label: 'DevOps',   color: 'oklch(68% 0.13 75)',  level: 1, required: false },
-  DATA: { label: 'Data',     color: 'oklch(64% 0.14 320)', level: 1, required: false },
+  OPS:  { label: 'Ops',      color: 'oklch(68% 0.13 75)',  level: 1, required: false },
+  DATA: { label: 'Database', color: 'oklch(64% 0.14 320)', level: 1, required: false },
 }
 
 /** Paleta 9 barevných odstínů pro vizuální rozlišení features v UI.
@@ -94,11 +94,13 @@ function makeFeature(
   const hue = FEATURE_HUES[(id - 1) % FEATURE_HUES.length]
   const name = FEATURE_NAMES[(id - 1) % FEATURE_NAMES.length]
 
-  // Výpočet počtu úkolů: základní hodnota 3 ± rozptyl daný sizeVar
+  // Výpočet počtu úkolů: základní hodnota 3 ± rozptyl daný sizeVar.
+  // Pokud jsou nastaveny minTasks/maxTasks, přepíší vypočtené hranice úplně.
+  // Pokud by minTasks > maxTasks, Math.max zajišťuje, že rozsah není záporný.
   const baseSize = 3
   const spread = Math.round(settings.sizeVar * 3)
-  const minSize = Math.max(1, baseSize - spread)
-  const maxSize = baseSize + spread
+  const minSize = settings.minTasks ?? Math.max(1, baseSize - spread)
+  const maxSize = Math.max(minSize, settings.maxTasks ?? (baseSize + spread))
   const taskCount = minSize + Math.floor(rng() * (maxSize - minSize + 1))
 
   // Výpočet počtu různých rolí: základní hodnota 2 ± rozptyl daný roleVar.

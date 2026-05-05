@@ -164,6 +164,10 @@ export interface SimSettings {
    * Platí při generování nového backlogu nebo inicializaci.
    */
   minSpecializations: number
+  /** Hard lower bound on task count per feature. Overrides the sizeVar-derived minimum when set. */
+  minTasks?: number
+  /** Hard upper bound on task count per feature. Overrides the sizeVar-derived maximum when set. */
+  maxTasks?: number
 }
 
 /** Vypočtené statistiky z historie Lead Time.
