@@ -658,13 +658,13 @@ export function Simulator() {
       <aside style={{ borderLeft: '1px solid var(--line)', background: 'var(--panel)', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
         <div style={{ padding: '12px 14px 14px', borderBottom: '1px solid var(--line)', display: 'flex', flexDirection: 'column', gap: 10 }}>
           <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 8 }}>
-            <h3 style={{ margin: 0, fontSize: 12, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5, color: 'var(--ink-2)' }}>Lead Time</h3>
+            <h3 style={{ margin: 0, fontSize: 12, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5, color: 'var(--ink-2)' }}>Cycle Time</h3>
             <span style={{ fontSize: 10, color: 'var(--ink-3)' }}>{stats.count} feature{stats.count !== 1 ? 's' : ''} sampled</span>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 6 }}>
             <StatTile label="Total Time" value={totalTimeDisplay} variant="timer" finished={s.finished} wide tooltip="Elapsed simulation time." delta={timeDelta} />
-            <StatTile label="Avg Lead Time" value={stats.count ? stats.avg.toFixed(1) : '—'} unit={stats.count ? 's' : undefined} tooltip="Mean lead time across all completed features." delta={ltDelta} />
-            <StatTile label="Avg WIP" value={avgWip !== null ? avgWip.toFixed(1) : '—'} tooltip="Average Work In Progress — lower usually means lower lead time (Little's Law)." delta={wipDelta} />
+            <StatTile label="Avg Cycle Time" value={stats.count ? stats.avg.toFixed(1) : '—'} unit={stats.count ? 's' : undefined} tooltip="Mean cycle time across all completed features (from work start to delivery)." delta={ltDelta} />
+            <StatTile label="Avg WIP" value={avgWip !== null ? avgWip.toFixed(1) : '—'} tooltip="Average Work In Progress — lower usually means lower cycle time (Little's Law)." delta={wipDelta} />
             <StatTile label="Total Wait" value={totalWait > 0 ? totalWait.toFixed(1) : '—'} unit={totalWait > 0 ? 's' : undefined} tooltip="Total idle time across all units with roles." delta={waitDelta} />
             <StatTile label="Avg Handoffs" value={stats.count > 0 ? stats.avgHandoffs.toFixed(1) : '—'} tooltip="Average number of handoffs per feature." delta={handoffsDelta} />
           </div>

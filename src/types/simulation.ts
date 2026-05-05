@@ -53,7 +53,7 @@ export interface Task {
 
 /** Jedna feature (položka backlogu) procházející vývojovým procesem.
  *  Sledujeme časy vytvoření, zahájení a dokončení, abychom mohli
- *  měřit Lead Time (čas od vytvoření do dodání). */
+ *  měřit Cycle Time (čas od zahájení práce do dodání). */
 export interface Feature {
   /** Unikátní identifikátor feature napříč celou simulací. */
   id: number
@@ -96,12 +96,13 @@ export interface Member {
   idleSec: number
 }
 
-/** Jeden záznam o době dokončení feature (Lead Time).
+/** Jeden záznam o Cycle Time dokončené feature.
  *  Ukládáme historii, abychom mohli počítat statistiky jako průměr a percentily. */
 export interface LeadTimeEntry {
   /** ID dokončené feature. */
   id: number
-  /** Délka Lead Time v simulačních sekundách (finishedAt - createdAt). */
+  /** Cycle Time v simulačních sekundách (finishedAt − startedAt).
+   *  Měří pouze dobu aktivní práce — bez čekání feature v backlogu. */
   ms: number
   /** Simulační čas, kdy byla feature dokončena — slouží pro výpočet throughput. */
   finishedAt: number
@@ -124,7 +125,7 @@ export interface SimState {
   /** Posledních 40 dokončených features (starší se zahazují kvůli paměti). */
   done: Feature[]
   team: Member[]
-  /** Historie Lead Time pro výpočet statistik. Ukládáme max. 200 záznamů. */
+  /** Historie Cycle Time pro výpočet statistik. Ukládáme max. 200 záznamů. */
   leadTimes: LeadTimeEntry[]
   /** Uplynulý simulační čas v sekundách od spuštění. */
   simTime: number
@@ -170,23 +171,23 @@ export interface SimSettings {
   maxTasks?: number
 }
 
-/** Vypočtené statistiky z historie Lead Time.
+/** Vypočtené statistiky z historie Cycle Time.
  *  Slouží k zobrazení v grafu a StatTile komponentách. */
 export interface SimStats {
   /** Počet dokončených features, ze kterých jsou statistiky počítány. */
   count: number
-  /** Průměrná Lead Time (aritmetický průměr). */
+  /** Průměrný Cycle Time (aritmetický průměr). */
   avg: number
-  /** Nejkratší Lead Time. */
+  /** Nejkratší Cycle Time. */
   min: number
-  /** Nejdelší Lead Time. */
+  /** Nejdelší Cycle Time. */
   max: number
   /** Medián — 50 % features bylo dokončeno rychleji než tato hodnota. */
   p50: number
   /** 85. percentil — 85 % features bylo dokončeno rychleji.
-   *  Používá se jako "výstražná hranice" v Lead Time grafu. */
+   *  Používá se jako "výstražná hranice" v Cycle Time grafu. */
   p85: number
-  /** Histogram hodnot Lead Time rozdělený do buckets pro zobrazení v grafu. */
+  /** Histogram hodnot Cycle Time rozdělený do buckets pro zobrazení v grafu. */
   buckets: number[]
   /** Šířka jednoho bucketu v grafu (v simulačních sekundách). */
   bucketSize: number

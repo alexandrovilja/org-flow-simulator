@@ -538,10 +538,12 @@ export function tick(
       f.status = 'done'
       f.finishedAt = state.simTime
 
-      // Uložíme Lead Time záznam pro statistiky; handoffs se počítají z aktuálního roleConfig
+      // Uložíme Cycle Time záznam pro statistiky; handoffs se počítají z aktuálního roleConfig
       const lt: LeadTimeEntry = {
         id: f.id,
-        ms: f.finishedAt - f.createdAt,
+        // Cycle Time = čas aktivní práce (startedAt → finishedAt), bez čekání v backlogu.
+        // Fallback na createdAt je obranný — startedAt nemůže být null ve chvíli dokončení.
+        ms: f.finishedAt - (f.startedAt ?? f.createdAt),
         finishedAt: f.finishedAt,
         handoffs: computeHandoffs(f, roleConfig),
       }
