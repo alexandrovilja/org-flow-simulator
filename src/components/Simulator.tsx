@@ -433,12 +433,19 @@ export function Simulator() {
             }}
             disabled={bothFinished && compareHasStarted}
             style={{
-              padding: '7px 22px', borderRadius: 7,
-              background: comparePaused ? 'var(--ink)' : 'oklch(58% 0.13 240)',
-              color: 'white', border: 'none',
-              fontSize: 13, fontWeight: 700, cursor: bothFinished && compareHasStarted ? 'default' : 'pointer',
-              opacity: bothFinished && compareHasStarted ? 0.5 : 1,
-              display: 'flex', alignItems: 'center', gap: 7,
+              padding: '9px 28px', borderRadius: 8, border: 'none',
+              background: comparePaused
+                ? 'oklch(52% 0.22 150)'
+                : 'oklch(58% 0.13 240)',
+              color: 'white',
+              fontSize: 14, fontWeight: 700, letterSpacing: 0.2,
+              cursor: bothFinished && compareHasStarted ? 'default' : 'pointer',
+              opacity: bothFinished && compareHasStarted ? 0.4 : 1,
+              display: 'flex', alignItems: 'center', gap: 8,
+              // Pulse glow before first click draws the eye; stops once simulation has started.
+              animation: comparePaused && !compareHasStarted ? 'run-cta-pulse 2s ease-out infinite' : 'none',
+              boxShadow: comparePaused ? '0 2px 8px oklch(52% 0.22 150 / 0.35)' : 'none',
+              transition: 'background 0.2s, box-shadow 0.2s, opacity 0.2s',
             }}
           >
             {comparePaused ? '▶ Run' : '⏸ Pause'}
