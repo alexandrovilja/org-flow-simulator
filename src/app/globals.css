@@ -56,3 +56,9 @@ button {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.25; }
 }
+
+/* Glow pulse on the Run button before first click — stops once simulation starts. */
+@keyframes run-cta-pulse {
+  0%, 100% { box-shadow: 0 2px 8px oklch(52% 0.22 150 / 0.35), 0 0 0 0 oklch(52% 0.22 150 / 0.45); }
+  60%       { box-shadow: 0 2px 8px oklch(52% 0.22 150 / 0.35), 0 0 0 7px oklch(52% 0.22 150 / 0); }
+}
