@@ -16,7 +16,6 @@ import { SpeedControl } from '@/components/SpeedControl'
 import { PanelHeader } from '@/components/PanelHeader'
 import { SegmentedControl } from '@/components/SegmentedControl'
 import { ComparePanel } from '@/components/ComparePanel'
-import { WinnerBanner } from '@/components/WinnerBanner'
 import { formatTime } from '@/lib/formatTime'
 import { featureMaxWork } from '@/lib/featureSize'
 import { addRole, deleteRole } from '@/simulation/roleManagement'
@@ -471,30 +470,6 @@ export function Simulator() {
       <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', background: 'var(--bg)' }}>
         {header}
 
-        {/* Winner banner — visible only after both sims finish */}
-        {bothFinished && (
-          <div style={{ paddingTop: 12 }}>
-            <WinnerBanner stateA={sA} statsA={statsA} stateB={sB} statsB={statsB} />
-          </div>
-        )}
-
-        {/* Identical backlog badge */}
-        <div style={{
-          display: 'flex', justifyContent: 'center', alignItems: 'center',
-          padding: '8px 0 4px',
-          gap: 6,
-        }}>
-          <div style={{
-            display: 'inline-flex', alignItems: 'center', gap: 6,
-            padding: '4px 12px', borderRadius: 20,
-            background: 'var(--panel)', border: '1px solid var(--line)',
-            fontSize: 11, color: 'var(--ink-3)',
-          }}>
-            <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--ink-3)', display: 'inline-block' }} />
-            Identical backlog · {COMPARE_SETTINGS.initialBacklog} items
-          </div>
-        </div>
-
         {/* Two-column comparison — each team in its own bordered card */}
         <div style={{
           flex: 1, display: 'grid', gridTemplateColumns: '1fr 1fr',
@@ -504,26 +479,22 @@ export function Simulator() {
         }}>
           <div style={{ borderRadius: 12, overflow: 'hidden', border: '1px solid var(--line)', background: 'var(--panel)' }}>
             <ComparePanel
-              team="A"
-              teamLabel="Single Skill Specialists"
-              teamDescription="One specialist per skill — handoffs between every role"
+              teamLabel="Single-skill specialists team"
               state={sA}
               stats={statsA}
               opponentStats={statsB}
               opponentState={sB}
-              opponentLabel="Multi Skill Specialists"
+              opponentLabel="Multi-skill specialists team"
             />
           </div>
           <div style={{ borderRadius: 12, overflow: 'hidden', border: '1px solid var(--line)', background: 'var(--panel)' }}>
             <ComparePanel
-              team="B"
-              teamLabel="Multi Skill Specialists"
-              teamDescription="Each person covers two skills — fewer handoffs"
+              teamLabel="Multi-skill specialists team"
               state={sB}
               stats={statsB}
               opponentStats={statsA}
               opponentState={sA}
-              opponentLabel="Single Skill Specialists"
+              opponentLabel="Single-skill specialists team"
             />
           </div>
         </div>
