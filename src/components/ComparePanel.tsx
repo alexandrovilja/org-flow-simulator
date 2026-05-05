@@ -8,10 +8,7 @@ import { featureMaxWork } from '@/lib/featureSize'
 import type { SimState, SimStats } from '@/types/simulation'
 
 interface ComparePanelProps {
-  /** Which team this panel represents — A or B. */
-  team: 'A' | 'B'
   teamLabel: string
-  teamDescription: string
   state: SimState
   stats: SimStats
   opponentStats: SimStats
@@ -27,7 +24,7 @@ interface ComparePanelProps {
  * 4. Team composition — pinned at bottom
  */
 export function ComparePanel({
-  team, teamLabel, teamDescription,
+  teamLabel,
   state, stats, opponentStats, opponentState, opponentLabel,
 }: ComparePanelProps) {
   const avgWip         = state.simTime > 0.5 ? state.wipIntegral / state.simTime : null
@@ -42,12 +39,6 @@ export function ComparePanel({
     ? calcCompareDelta(opponentState.simTime, state.simTime)
     : undefined
   const wipDelta  = calcCompareDelta(opponentAvgWip, avgWip)
-  const totalWait        = state.team.reduce((s, m) => s + m.idleSec, 0)
-  const opponentTotalWait = opponentState.team.reduce((s, m) => s + m.idleSec, 0)
-  const waitDelta = state.finished && opponentState.finished
-    ? calcCompareDelta(opponentTotalWait > 0 ? opponentTotalWait : null, totalWait > 0 ? totalWait : null)
-    : undefined
-
   const vsLabel = `vs ${opponentLabel}`
 
   // Compute max feature size across all columns so bar widths are proportional.
@@ -62,24 +53,14 @@ export function ComparePanel({
 
       {/* ── Team header ── */}
       <div style={{
-        padding: '14px 18px 12px',
+        padding: '12px 16px 10px',
         borderBottom: '1px solid var(--line)',
         flexShrink: 0,
+        textAlign: 'center',
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
-          <span style={{
-            padding: '3px 10px', borderRadius: 20, flexShrink: 0,
-            fontSize: 11, fontWeight: 700, letterSpacing: 0.3,
-            background: 'var(--bg)', border: '1px solid var(--line-2)',
-            color: 'var(--ink-2)',
-          }}>
-            TEAM {team}
-          </span>
-        </div>
-        <div style={{ fontSize: 20, fontWeight: 800, color: 'var(--ink)', letterSpacing: -0.5, marginBottom: 4 }}>
+        <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--ink)', letterSpacing: -0.4 }}>
           {teamLabel}
         </div>
-        <div style={{ fontSize: 12, color: 'var(--ink-3)' }}>{teamDescription}</div>
       </div>
 
       {/* ── Kanban board — fills all available vertical space ── */}
@@ -131,10 +112,9 @@ export function ComparePanel({
         </KanbanColumn>
       </div>
 
-      {/* ── Metrics — pinned below kanban ── */}
-      <div style={{ padding: '10px 14px', borderTop: '1px solid var(--line)', flexShrink: 0 }}>
-        <SectionTitle>Metrics</SectionTitle>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
+      {/* ── Metrics — pinned below kanban, single row ── */}
+      <div style={{ padding: '8px 12px', borderTop: '1px solid var(--line)', flexShrink: 0 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 6 }}>
           <MetricTile
             label="Total Time"
             value={state.simTime > 0 || state.finished ? formatTime(state.simTime) : '—'}
@@ -157,14 +137,6 @@ export function ComparePanel({
             delta={wipDelta} vsLabel={vsLabel}
             deltaLabel={{ better: 'lower', worse: 'higher' }}
             tooltip="Average Work In Progress — lower usually means lower lead time (Little's Law)."
-            bothFinished={bothFinished}
-          />
-          <MetricTile
-            label="Total Wait"
-            value={totalWait > 0 ? `${totalWait.toFixed(1)}s` : '—'}
-            delta={waitDelta} vsLabel={vsLabel}
-            deltaLabel={{ better: 'lower', worse: 'higher' }}
-            tooltip="Total idle time across all team members."
             bothFinished={bothFinished}
           />
         </div>
