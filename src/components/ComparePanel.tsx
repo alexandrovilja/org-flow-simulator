@@ -2,29 +2,48 @@
 
 import { ROLE_META } from '@/simulation/engine'
 import { calcCompareDelta } from '@/simulation/compareMode'
+import type { TeamType } from '@/simulation/compareMode'
 import { formatTime } from '@/lib/formatTime'
 import { FeatureCard } from '@/components/FeatureCard'
 import { featureMaxWork } from '@/lib/featureSize'
 import type { SimState, SimStats } from '@/types/simulation'
 
+/** Labels and descriptions for the three team types shown in the picker. */
+const TEAM_TYPE_OPTIONS: { value: TeamType; label: string; title: string }[] = [
+  { value: 'single', label: 'Single', title: 'Single-skill specialists — each member has 1 role' },
+  { value: 'double', label: 'Double', title: 'Double-skill specialists — each member has 2 adjacent roles' },
+  { value: 'multi',  label: 'Multi',  title: 'Multi-skill specialists — each member has 3 adjacent roles' },
+]
+
+/** Full team-type labels used as the panel heading. */
+const TEAM_TYPE_LABELS: Record<TeamType, string> = {
+  single: 'Single-skill specialists team',
+  double: 'Double-skill specialists team',
+  multi:  'Multi-skill specialists team',
+}
+
 interface ComparePanelProps {
-  teamLabel: string
+  /** Currently selected team type for this column. */
+  teamType: TeamType
+  /** Called when the user selects a different team type. */
+  onChangeType: (type: TeamType) => void
   state: SimState
   stats: SimStats
   opponentStats: SimStats
   opponentState: SimState
-  opponentLabel: string
+  /** Team type of the opposing column — used to build the "vs …" label in metric tiles. */
+  opponentLabel: TeamType
 }
 
 /**
  * One column of the Compare view. Layout from top to bottom:
- * 1. Team header (name + badge)
+ * 1. Team header (type picker + label)
  * 2. Kanban board (To Do / In Progress / Done) — takes all available space
  * 3. Metrics — pinned near bottom
  * 4. Team composition — pinned at bottom
  */
 export function ComparePanel({
-  teamLabel,
+  teamType, onChangeType,
   state, stats, opponentStats, opponentState, opponentLabel,
 }: ComparePanelProps) {
   const avgWip         = state.simTime > 0.5 ? state.wipIntegral / state.simTime : null
@@ -39,7 +58,8 @@ export function ComparePanel({
     ? calcCompareDelta(opponentState.simTime, state.simTime)
     : undefined
   const wipDelta  = calcCompareDelta(opponentAvgWip, avgWip)
-  const vsLabel = `vs ${opponentLabel}`
+  // opponentLabel is always a valid TeamType, so the lookup is guaranteed to succeed.
+  const vsLabel = `vs ${TEAM_TYPE_OPTIONS.find(o => o.value === opponentLabel)!.label}`
 
   // Compute max feature size across all columns so bar widths are proportional.
   // Using all three columns keeps the scale stable as items flow through.
@@ -53,13 +73,35 @@ export function ComparePanel({
 
       {/* ── Team header ── */}
       <div style={{
-        padding: '12px 16px 10px',
+        padding: '10px 16px 10px',
         borderBottom: '1px solid var(--line)',
         flexShrink: 0,
         textAlign: 'center',
+        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8,
       }}>
-        <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--ink)', letterSpacing: -0.4 }}>
-          {teamLabel}
+        {/* Team-type picker — three compact buttons */}
+        <div style={{ display: 'flex', border: '1px solid var(--line)', borderRadius: 7, overflow: 'hidden' }}>
+          {TEAM_TYPE_OPTIONS.map(opt => (
+            <button
+              key={opt.value}
+              title={opt.title}
+              onClick={() => onChangeType(opt.value)}
+              style={{
+                padding: '5px 12px', fontSize: 12,
+                fontWeight: teamType === opt.value ? 700 : 400,
+                background: teamType === opt.value ? 'var(--ink)' : 'transparent',
+                color: teamType === opt.value ? 'white' : 'var(--ink-3)',
+                border: 'none', cursor: 'pointer',
+                borderRight: opt !== TEAM_TYPE_OPTIONS.at(-1) ? '1px solid var(--line)' : 'none',
+                transition: 'background 0.15s, color 0.15s',
+              }}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
+        <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', letterSpacing: -0.2 }}>
+          {TEAM_TYPE_LABELS[teamType]}
         </div>
       </div>
 
