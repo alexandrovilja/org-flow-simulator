@@ -18,6 +18,7 @@ import { SegmentedControl } from '@/components/SegmentedControl'
 import { ComparePanel } from '@/components/ComparePanel'
 import { formatTime } from '@/lib/formatTime'
 import { featureMaxWork } from '@/lib/featureSize'
+import { parseXlsFile, downloadTemplate, type ImportResult } from '@/lib/xlsImport'
 import { addRole, deleteRole } from '@/simulation/roleManagement'
 import {
   makeCompareStates, COMPARE_SETTINGS,
@@ -87,6 +88,9 @@ export function Simulator() {
 
   const [roleConfig, setRoleConfig] = useState<Record<Role, RoleMeta>>(() => ({ ...ROLE_META }))
   const [showRoleSettings, setShowRoleSettings] = useState(false)
+  // Import status message — null = no message, object = show message
+  const [importMsg, setImportMsg] = useState<{ ok: boolean; text: string } | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
   const [focusMode, setFocusMode] = useState<FocusMode>('priority')
   const [wipMode, setWipMode]     = useState<WipMode>('priority')
 
@@ -260,6 +264,56 @@ export function Simulator() {
       }
     }
     forceUpdate(n => n + 1)
+  }, [])
+
+  /** Builds a fresh SimState from ImportResult — replaces backlog, team and roleConfig. */
+  const handleXlsImport = useCallback((file: File) => {
+    setImportMsg(null)
+    file.arrayBuffer().then(buffer => {
+      let result: ImportResult
+      try {
+        result = parseXlsFile(buffer)
+      } catch (err) {
+        setImportMsg({ ok: false, text: err instanceof Error ? err.message : 'Nepodařilo se načíst soubor.' })
+        return
+      }
+
+      // Build a new SimState from imported data
+      const newState: SimState = {
+        backlog: result.features,
+        // Deep-clone features for snapshot so reset works correctly
+        backlogSnapshot: result.features.map(f => ({
+          ...f,
+          tasks: f.tasks.map(t => ({ ...t })),
+        })),
+        inProgress: [],
+        done: [],
+        team: result.team,
+        leadTimes: [],
+        simTime: 0,
+        wipIntegral: 0,
+        lastGenAt: 0,
+        startedAt: null,
+        finished: false,
+      }
+
+      stateRef.current = newState
+      setRoleConfig(result.roleConfig)
+      setPaused(true)
+      setHasStarted(false)
+      forceUpdate(n => n + 1)
+
+      const taskCount = result.features.reduce((n, f) => n + f.tasks.length, 0)
+      const msg = `Importováno: ${result.features.length} features, ${taskCount} tasků, ${result.team.length} členů týmu.`
+      const fullMsg = result.warnings.length > 0 ? `${msg} ${result.warnings.join(' ')}` : msg
+      setImportMsg({ ok: true, text: fullMsg })
+      setTimeout(() => setImportMsg(null), 4000)
+
+      // Switch to experiment mode if not already there
+      setMode('experiment')
+    }).catch(() => {
+      setImportMsg({ ok: false, text: 'Soubor se nepodařilo přečíst.' })
+    })
   }, [])
 
   const handleReset = useCallback(() => {
@@ -565,6 +619,58 @@ export function Simulator() {
 
         <div style={{ flex: '0 0 auto', padding: '12px 14px 14px', display: 'flex', flexDirection: 'column', gap: 12, background: 'var(--panel)' }}>
           <h3 style={{ margin: 0, fontSize: 12, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5, color: 'var(--ink-2)' }}>Controls</h3>
+
+          {/* Hidden file input — triggered by the Import button below */}
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".xlsx,.xls"
+            style={{ display: 'none' }}
+            onChange={e => {
+              const file = e.target.files?.[0]
+              if (file) handleXlsImport(file)
+              // Reset input so the same file can be re-imported
+              e.target.value = ''
+            }}
+          />
+
+          <div style={{ display: 'flex', gap: 6 }}>
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              style={{
+                flex: 1, border: '1px solid var(--ink-2)', borderRadius: 4,
+                padding: '6px 0', fontSize: 11, fontWeight: 600,
+                background: 'var(--bg)', color: 'var(--ink)',
+                cursor: 'pointer', letterSpacing: 0.2,
+              }}
+            >
+              ↑ Import XLS
+            </button>
+            <button
+              onClick={downloadTemplate}
+              style={{
+                flex: 1, border: '1px solid var(--line)', borderRadius: 4,
+                padding: '6px 0', fontSize: 11, fontWeight: 400,
+                background: 'var(--bg)', color: 'var(--ink-2)',
+                cursor: 'pointer', letterSpacing: 0.2,
+              }}
+            >
+              ↓ Šablona
+            </button>
+          </div>
+
+          {importMsg && (
+            <div style={{
+              fontSize: 11, padding: '5px 8px', borderRadius: 4,
+              background: importMsg.ok ? 'oklch(95% 0.05 145)' : 'oklch(95% 0.05 25)',
+              color: importMsg.ok ? 'oklch(35% 0.13 145)' : 'oklch(35% 0.13 25)',
+              border: `1px solid ${importMsg.ok ? 'oklch(75% 0.1 145)' : 'oklch(75% 0.1 25)'}`,
+              lineHeight: 1.4,
+            }}>
+              {importMsg.ok ? '✓' : '✗'} {importMsg.text}
+            </div>
+          )}
+
           <button onClick={handleRegenerate} style={{
             background: 'var(--ink)', border: 'none', borderRadius: 4,
             padding: '7px 0', fontSize: 11, fontWeight: 600, color: 'white',
