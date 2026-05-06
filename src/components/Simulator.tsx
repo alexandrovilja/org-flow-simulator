@@ -22,6 +22,7 @@ import { addRole, deleteRole } from '@/simulation/roleManagement'
 import {
   makeCompareStates, COMPARE_SETTINGS,
 } from '@/simulation/compareMode'
+import type { TeamType } from '@/simulation/compareMode'
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -58,14 +59,16 @@ export function Simulator() {
   const [comparePaused, setComparePaused]       = useState(true)
   const [compareHasStarted, setCompareHasStarted] = useState(false)
   const [compareSpeed, setCompareSpeed]         = useState<0.5 | 1 | 10>(1)
+  const [compareTypeA, setCompareTypeA] = useState<TeamType>('single')
+  const [compareTypeB, setCompareTypeB] = useState<TeamType>('double')
   const comparePausedRef = useRef(true)
   // Direct ref — updated synchronously in the click handler so RAF sees the new speed immediately.
   const compareSpeedRef  = useRef<0.5 | 1 | 10>(1)
   useEffect(() => { comparePausedRef.current = comparePaused }, [comparePaused])
 
-  // Initialise compare states once on mount.
+  // Initialise compare states once on mount with default types (single vs double).
   if (compareStateARef.current === null) {
-    const { stateA, rngA, stateB, rngB } = makeCompareStates(COMPARE_SETTINGS)
+    const { stateA, rngA, stateB, rngB } = makeCompareStates('single', 'double', COMPARE_SETTINGS)
     compareStateARef.current = stateA
     compareStateBRef.current = stateB
     compareRngARef.current   = rngA
@@ -182,7 +185,9 @@ export function Simulator() {
   const handleSwitchToCompare = useCallback(() => {
     setComparePaused(true)
     setCompareHasStarted(false)
-    const { stateA, rngA, stateB, rngB } = makeCompareStates(COMPARE_SETTINGS)
+    setCompareTypeA('single')
+    setCompareTypeB('double')
+    const { stateA, rngA, stateB, rngB } = makeCompareStates('single', 'double', COMPARE_SETTINGS)
     compareStateARef.current = stateA
     compareStateBRef.current = stateB
     compareRngARef.current   = rngA
@@ -199,7 +204,9 @@ export function Simulator() {
   // ── Compare mode handlers ──────────────────────────────────────────────────
 
   const handleCompareReset = useCallback(() => {
-    const { stateA, rngA, stateB, rngB } = makeCompareStates(COMPARE_SETTINGS)
+    setCompareTypeA('single')
+    setCompareTypeB('double')
+    const { stateA, rngA, stateB, rngB } = makeCompareStates('single', 'double', COMPARE_SETTINGS)
     compareStateARef.current = stateA
     compareStateBRef.current = stateB
     compareRngARef.current   = rngA
@@ -208,6 +215,26 @@ export function Simulator() {
     setCompareHasStarted(false)
     forceUpdate(n => n + 1)
   }, [])
+
+  /**
+   * Called when the user picks a new team type in one of the ComparePanel columns.
+   * Rebuilds both simulations from scratch so the backlog stays identical for the new team pair.
+   */
+  const handleCompareTypeChange = useCallback((column: 'A' | 'B', newType: TeamType) => {
+    // Determine the effective types after this change.
+    const nextTypeA = column === 'A' ? newType : compareTypeA
+    const nextTypeB = column === 'B' ? newType : compareTypeB
+    if (column === 'A') setCompareTypeA(newType)
+    else                setCompareTypeB(newType)
+    const { stateA, rngA, stateB, rngB } = makeCompareStates(nextTypeA, nextTypeB, COMPARE_SETTINGS)
+    compareStateARef.current = stateA
+    compareStateBRef.current = stateB
+    compareRngARef.current   = rngA
+    compareRngBRef.current   = rngB
+    setComparePaused(true)
+    setCompareHasStarted(false)
+    forceUpdate(n => n + 1)
+  }, [compareTypeA, compareTypeB])
 
   // ── Experiment mode handlers ───────────────────────────────────────────────
 
@@ -486,22 +513,24 @@ export function Simulator() {
         }}>
           <div style={{ borderRadius: 12, overflow: 'hidden', border: '1px solid var(--line)', background: 'var(--panel)' }}>
             <ComparePanel
-              teamLabel="Single-skill specialists team"
+              teamType={compareTypeA}
+              onChangeType={t => handleCompareTypeChange('A', t)}
               state={sA}
               stats={statsA}
               opponentStats={statsB}
               opponentState={sB}
-              opponentLabel="Multi-skill specialists team"
+              opponentLabel={compareTypeB}
             />
           </div>
           <div style={{ borderRadius: 12, overflow: 'hidden', border: '1px solid var(--line)', background: 'var(--panel)' }}>
             <ComparePanel
-              teamLabel="Multi-skill specialists team"
+              teamType={compareTypeB}
+              onChangeType={t => handleCompareTypeChange('B', t)}
               state={sB}
               stats={statsB}
               opponentStats={statsA}
               opponentState={sA}
-              opponentLabel="Single-skill specialists team"
+              opponentLabel={compareTypeA}
             />
           </div>
         </div>

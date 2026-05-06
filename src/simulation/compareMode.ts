@@ -3,10 +3,16 @@ import type { Member, Role, SimSettings, SimState } from '@/types/simulation'
 
 /**
  * The six roles used in Compare mode, in ring order.
- * Ring order means Team B members pair adjacent roles:
- * index 0+1, 1+2, 2+3, 3+4, 4+5, 5+0.
+ * Ring order means adjacent-role teams pair consecutive entries:
+ * index 0+1, 1+2, 2+3, 3+4, 4+5, 5+0 (wrapping).
  */
 export const COMPARE_ROLES: Role[] = ['DSGN', 'FE', 'BE', 'DATA', 'QA', 'OPS']
+
+/**
+ * The three pre-defined team configurations available in Compare mode.
+ * 'single' = 1 role per member, 'double' = 2 adjacent roles, 'multi' = 3 adjacent roles.
+ */
+export type TeamType = 'single' | 'double' | 'multi'
 
 /**
  * Fixed numeric seed used to generate identical backlogs for both teams in
@@ -31,53 +37,66 @@ export const COMPARE_SETTINGS: SimSettings = {
   maxTasks: 8,
 }
 
+/** Number of adjacent roles assigned to each member for each team type. */
+const ROLES_PER_TYPE: Record<TeamType, number> = { single: 1, double: 2, multi: 3 }
+
+/**
+ * Builds 6 team members for a given team type using a ring (wrap-around) pattern.
+ * Member at index i gets roles at positions i, i+1, i+2, … (mod COMPARE_ROLES.length).
+ * IDs start at idOffset so two calls with different offsets never collide.
+ *
+ * @param type     - Team configuration: 'single' (1 role), 'double' (2), 'multi' (3).
+ * @param idOffset - First member ID; subsequent members get idOffset+1, idOffset+2, …
+ * @returns Array of 6 Member objects ready for use in a SimState.
+ */
+export function makeTeamByType(type: TeamType, idOffset: number): Member[] {
+  const count = ROLES_PER_TYPE[type]
+  return COMPARE_ROLES.map((_, i) => ({
+    id: idOffset + i,
+    name: MEMBER_NAMES[i] ?? `Unit ${i + 1}`,
+    // Slice `count` consecutive roles starting at position i, wrapping around.
+    roles: Array.from({ length: count }, (_, k) => COMPARE_ROLES[(i + k) % COMPARE_ROLES.length]),
+    currentTask: null,
+    idleSec: 0,
+  }))
+}
+
 /**
  * Builds the pre-configured team members for Compare mode.
  *
- * Team A — Specialists: each of the 6 members has exactly one role.
- * Team B — Cross-functional: each member has two adjacent roles (ring pattern),
- * e.g. DSGN+FE, FE+BE, BE+DATA, DATA+QA, QA+OPS, OPS+DSGN.
+ * Defaults to Single-skill (Team A, IDs 1–6) vs Double-skill (Team B, IDs 7–12).
+ * Any combination of TeamType values is supported.
  *
- * IDs are non-overlapping (Team A: 1–6, Team B: 7–12) so both teams can be
- * rendered in the same React tree without key collisions.
- *
+ * @param typeA - Team type for the left column (default 'single').
+ * @param typeB - Team type for the right column (default 'double').
  * @returns Object with teamA and teamB arrays, each containing 6 Members.
  */
-export function makeCompareTeams(): { teamA: Member[]; teamB: Member[] } {
-  const teamA: Member[] = COMPARE_ROLES.map((role, i) => ({
-    id: i + 1,
-    name: MEMBER_NAMES[i] ?? `Unit ${i + 1}`,
-    roles: [role],
-    currentTask: null,
-    idleSec: 0,
-  }))
-
-  // Each Team B member gets two adjacent roles — wraps around at the end.
-  const teamB: Member[] = COMPARE_ROLES.map((role, i) => ({
-    id: i + 7,
-    name: MEMBER_NAMES[i] ?? `Unit ${i + 1}`,
-    roles: [role, COMPARE_ROLES[(i + 1) % COMPARE_ROLES.length]],
-    currentTask: null,
-    idleSec: 0,
-  }))
-
-  return { teamA, teamB }
+export function makeCompareTeams(typeA: TeamType = 'single', typeB: TeamType = 'double'): { teamA: Member[]; teamB: Member[] } {
+  return {
+    teamA: makeTeamByType(typeA, 1),
+    teamB: makeTeamByType(typeB, 7),
+  }
 }
 
 /**
  * Creates two independent SimState instances with identical backlog content.
  * Both RNGs start from COMPARE_SEED so makeInitialState generates the same
- * feature list for each team. Teams are then replaced with the pre-configured
- * specialist (A) and cross-functional (B) compositions.
+ * feature list for each team. Teams are then replaced with the chosen configurations.
  *
+ * @param typeA    - Team type for state A (default 'single').
+ * @param typeB    - Team type for state B (default 'double').
  * @param settings - Backlog generation settings (shared between both teams).
  * @returns Two SimStates and their corresponding RNGs ready for ticking.
  */
-export function makeCompareStates(settings: SimSettings = COMPARE_SETTINGS): {
+export function makeCompareStates(
+  typeA: TeamType = 'single',
+  typeB: TeamType = 'double',
+  settings: SimSettings = COMPARE_SETTINGS,
+): {
   stateA: SimState; rngA: () => number
   stateB: SimState; rngB: () => number
 } {
-  const { teamA, teamB } = makeCompareTeams()
+  const { teamA, teamB } = makeCompareTeams(typeA, typeB)
 
   const rngA = mulberry32(COMPARE_SEED)
   const stateA = makeInitialState(rngA, settings, ROLE_META)
