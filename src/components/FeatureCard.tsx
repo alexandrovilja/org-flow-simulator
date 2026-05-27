@@ -1,6 +1,6 @@
 import { ROLE_META } from '@/simulation/engine'
 import { featureTotalWork } from '@/lib/featureSize'
-import type { Feature, Member } from '@/types/simulation'
+import type { Feature, Member, Role, RoleMeta } from '@/types/simulation'
 
 interface FeatureCardProps {
   feature: Feature
@@ -13,9 +13,14 @@ interface FeatureCardProps {
    * ostatní proporcionálně méně. Výchozí hodnota 0 = bar vždy 100 % (zpětná kompatibilita).
    */
   maxWork?: number
+  /**
+   * Konfigurace specializací — pro správné barvy tasků custom rolí.
+   * Pokud není zadáno, použije se statický ROLE_META (zpětná kompatibilita).
+   */
+  roleConfig?: Record<Role, RoleMeta>
 }
 
-export function FeatureCard({ feature, team = [], compact = false, neutral = false, maxWork = 0 }: FeatureCardProps) {
+export function FeatureCard({ feature, team = [], compact = false, neutral = false, maxWork = 0, roleConfig }: FeatureCardProps) {
   const totalWork = featureTotalWork(feature.tasks)
 
   // Šířka celého baru vůči šířce karty — největší feature dostane 100 %.
@@ -68,7 +73,8 @@ export function FeatureCard({ feature, team = [], compact = false, neutral = fal
         {/* Bar — proporcionální šířka vůči největší feature */}
         <div style={{ width: `${barWidthPct}%`, height: '100%', display: 'flex', gap: 2, borderRadius: 3, overflow: 'hidden' }}>
           {feature.tasks.map((t) => {
-            const meta = ROLE_META[t.role]
+            // roleConfig má přednost před statickým ROLE_META — funguje i pro custom specializace
+            const meta = (roleConfig ?? ROLE_META)[t.role] ?? { color: 'var(--ink-3)' }
             const filled = t.status === 'done' ? 1 : (t.status === 'doing' ? t.progress / t.work : 0)
             const initial = !compact && t.status === 'doing' ? initialFor(t.assignee) : null
 

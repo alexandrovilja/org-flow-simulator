@@ -1,7 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import { ROLES, ROLE_META } from '@/simulation/engine'
 import { RoleChip } from './RoleChip'
 import type { Feature, Member, Task, Role, RoleMeta } from '@/types/simulation'
 
@@ -27,8 +26,9 @@ interface MemberCardProps {
  */
 export function MemberCard({ member, currentFeature, currentTask, roleConfig, onAddRole, onRemoveRole, onRename, onRemove }: MemberCardProps) {
   const [adding, setAdding] = useState(false)
-  const availableRoles = ROLES.filter(r => !member.roles.includes(r))
-  const taskMeta = currentTask ? ROLE_META[currentTask.role] : null
+  // Object.keys(roleConfig) místo statického ROLES — zahrnuje i uživatelsky přidané specializace
+  const availableRoles = Object.keys(roleConfig).filter(r => !member.roles.includes(r))
+  const taskMeta = currentTask ? roleConfig[currentTask.role] ?? null : null
   const fillPct = currentTask ? (currentTask.progress / currentTask.work) * 100 : 0
 
   return (
@@ -89,7 +89,8 @@ export function MemberCard({ member, currentFeature, currentTask, roleConfig, on
           <RoleChip
             key={r}
             role={r}
-            label={roleConfig[r].label}
+            color={roleConfig[r]?.color ?? 'var(--ink-3)'}
+            label={roleConfig[r]?.label}
             removable
             onRemove={() => onRemoveRole(member.id, r)}
           />
@@ -116,13 +117,13 @@ export function MemberCard({ member, currentFeature, currentTask, roleConfig, on
         }}>
           {availableRoles.map(r => (
             <button key={r} onClick={() => { onAddRole(member.id, r); setAdding(false) }} style={{
-              background: ROLE_META[r].color,
+              background: roleConfig[r]?.color ?? 'var(--ink-3)',
               border: 'none', color: 'white',
               fontSize: 10, fontWeight: 600,
               padding: '2px 8px', borderRadius: 3,
               letterSpacing: 0.3, cursor: 'pointer',
             }}>
-              {roleConfig[r].label}
+              {roleConfig[r]?.label ?? r}
             </button>
           ))}
           {/* Tlačítko zavření — vždy viditelné, protože je ve flow */}

@@ -613,7 +613,7 @@ export function Simulator() {
             {s.backlog.length === 0 && (
               <div style={{ fontSize: 11, color: 'var(--ink-3)', fontStyle: 'italic', padding: '8px 4px' }}>No items waiting.</div>
             )}
-            {s.backlog.map(f => <FeatureCard key={f.id} feature={f} compact neutral maxWork={maxWork} />)}
+            {s.backlog.map(f => <FeatureCard key={f.id} feature={f} compact neutral maxWork={maxWork} roleConfig={roleConfig} />)}
           </div>
         </div>
 
@@ -730,7 +730,7 @@ export function Simulator() {
             {s.inProgress.length === 0 && (
               <div style={{ fontSize: 11, color: 'var(--ink-3)', fontStyle: 'italic', gridColumn: '1 / -1' }}>Nothing in flight.</div>
             )}
-            {s.inProgress.map(f => <FeatureCard key={f.id} feature={f} team={s.team} maxWork={maxWork} />)}
+            {s.inProgress.map(f => <FeatureCard key={f.id} feature={f} team={s.team} maxWork={maxWork} roleConfig={roleConfig} />)}
           </div>
         </div>
 

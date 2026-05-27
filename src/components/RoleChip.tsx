@@ -1,8 +1,9 @@
-import { ROLE_META } from '@/simulation/engine'
 import type { Role } from '@/types/simulation'
 
 interface RoleChipProps {
   role: Role
+  /** Barva chipu — předává ji volající z roleConfig, aby fungovaly i custom specializace. */
+  color: string
   /** Zobrazovaný text — plný název specializace z roleConfig.
    *  Pokud není zadán, zobrazí se ID role (FE, BE, …). */
   label?: string
@@ -13,14 +14,14 @@ interface RoleChipProps {
 /**
  * Barevný chip reprezentující jednu specializaci.
  * Používá se v MemberCard pro zobrazení přiřazených rolí.
- * Barva je vždy z ROLE_META (fixní), label je konfigurovatelný.
+ * Barva i label přicházejí od volajícího (z roleConfig) — chip sám nic nevyhledává,
+ * takže funguje i pro uživatelsky přidané specializace.
  */
-export function RoleChip({ role, label, removable, onRemove }: RoleChipProps) {
-  const meta = ROLE_META[role]
+export function RoleChip({ role, color, label, removable, onRemove }: RoleChipProps) {
   return (
     <span style={{
       display: 'inline-flex', alignItems: 'center', gap: 4,
-      background: meta.color,
+      background: color,
       color: 'white',
       fontSize: 10, fontWeight: 600,
       padding: '2px 6px', borderRadius: 3,
