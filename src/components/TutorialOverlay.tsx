@@ -196,7 +196,7 @@ export function TutorialOverlay({ mode, onComplete }: TutorialOverlayProps) {
         ...(cardPos
           ? { top: cardPos.top, left: cardPos.left, transform: 'none', bottom: 'auto' }
           : { bottom: 40, left: '50%', transform: 'translateX(-50%)' }),
-        pointerEvents: 'all',
+        pointerEvents: 'auto',
       }}
     >
       <div className={styles.topRow}>
@@ -235,35 +235,35 @@ export function TutorialOverlay({ mode, onComplete }: TutorialOverlayProps) {
   return (
     <div
       data-testid="tutorial-overlay"
-      style={{ position: 'fixed', inset: 0, zIndex: 900, pointerEvents: 'none' }}
+      style={{ position: 'fixed', inset: 0, zIndex: 900, pointerEvents: 'auto' }}
     >
       {/* ── Outer backdrop (DARK) — covers everything outside the outer spotlight ── */}
 
       {ot > 0 && (
         <div style={{
           position: 'fixed', top: 0, left: 0, right: 0, height: ot,
-          background: DARK, pointerEvents: 'all',
+          background: DARK, pointerEvents: 'none',
         }} />
       )}
 
       {ot + oh < vh && (
         <div style={{
           position: 'fixed', top: ot + oh, left: 0, right: 0, bottom: 0,
-          background: DARK, pointerEvents: 'all',
+          background: DARK, pointerEvents: 'none',
         }} />
       )}
 
       {ol > 0 && (
         <div style={{
           position: 'fixed', top: ot, left: 0, width: ol, height: oh,
-          background: DARK, pointerEvents: 'all',
+          background: DARK, pointerEvents: 'none',
         }} />
       )}
 
       {ol + ow < vw && (
         <div style={{
           position: 'fixed', top: ot, left: ol + ow, right: 0, height: oh,
-          background: DARK, pointerEvents: 'all',
+          background: DARK, pointerEvents: 'none',
         }} />
       )}
 
@@ -283,28 +283,28 @@ export function TutorialOverlay({ mode, onComplete }: TutorialOverlayProps) {
             {topH > 0 && (
               <div style={{
                 position: 'fixed', top: ot, left: ol, width: ow, height: topH,
-                background: INNER_DIM, pointerEvents: 'all',
+                background: INNER_DIM, pointerEvents: 'none',
               }} />
             )}
             {/* Below child within parent */}
             {bottomH > 0 && (
               <div style={{
                 position: 'fixed', top: ct + ch, left: ol, width: ow, height: bottomH,
-                background: INNER_DIM, pointerEvents: 'all',
+                background: INNER_DIM, pointerEvents: 'none',
               }} />
             )}
             {/* Left of child within parent (same vertical band as child) */}
             {leftW > 0 && (
               <div style={{
                 position: 'fixed', top: ct, left: ol, width: leftW, height: ch,
-                background: INNER_DIM, pointerEvents: 'all',
+                background: INNER_DIM, pointerEvents: 'none',
               }} />
             )}
             {/* Right of child within parent (same vertical band as child) */}
             {rightW > 0 && (
               <div style={{
                 position: 'fixed', top: ct, left: cl + cw, width: rightW, height: ch,
-                background: INNER_DIM, pointerEvents: 'all',
+                background: INNER_DIM, pointerEvents: 'none',
               }} />
             )}
           </>

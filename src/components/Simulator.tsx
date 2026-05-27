@@ -127,6 +127,7 @@ export function Simulator() {
   const [roleConfig, setRoleConfig] = useState<Record<Role, RoleMeta>>(() => ({ ...ROLE_META }))
   const [showRoleSettings, setShowRoleSettings] = useState(false)
   const [showBacklogControls, setShowBacklogControls] = useState(false)
+  const [showTeamSettings, setShowTeamSettings] = useState(false)
   // Import status message — null = no message, object = show message
   const [importMsg, setImportMsg] = useState<{ ok: boolean; text: string } | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -713,7 +714,7 @@ export function Simulator() {
 
         {/* data-tutorial-target lets the spotlight cover backlog generation + specialization controls */}
         <div data-tutorial-target="experiment-settings" style={{ flex: '0 0 auto', padding: '12px 14px 14px', display: 'flex', flexDirection: 'column', gap: 12, background: 'var(--panel)' }}>
-          <h3 style={{ margin: 0, fontSize: 12, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5, color: 'var(--ink-2)' }}>Controls</h3>
+          <h3 style={{ margin: 0, fontSize: 12, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5, color: 'var(--ink-2)' }}>Settings</h3>
 
           {/* Hidden file input — triggered by the Import button below */}
           <input
@@ -742,7 +743,7 @@ export function Simulator() {
                 fontWeight: showBacklogControls ? 600 : 400,
               }}
             >
-              ♻ Backlog generation
+              ♻ Backlog
             </button>
             {showBacklogControls && (
               <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -830,6 +831,36 @@ export function Simulator() {
               </div>
             )}
           </div>
+          <div style={{ paddingTop: 8, borderTop: '1px solid var(--line)', marginTop: 4 }}>
+            <button
+              onClick={() => setShowTeamSettings(v => !v)}
+              style={{
+                width: '100%', textAlign: 'left',
+                fontSize: 11, fontFamily: 'inherit', cursor: 'pointer',
+                border: '1px solid var(--line)', borderRadius: 4,
+                padding: '4px 8px',
+                background: showTeamSettings ? 'var(--line)' : 'var(--bg)',
+                color: showTeamSettings ? 'var(--ink)' : 'var(--ink-2)',
+                fontWeight: showTeamSettings ? 600 : 400,
+              }}
+            >
+              👥 Team
+            </button>
+            {showTeamSettings && (
+              <div style={{ marginTop: 8 }}>
+                <SegmentedControl
+                  options={[
+                    { value: 'priority' as WipMode, label: 'Priority' },
+                    { value: 'reduce-wip' as WipMode, label: 'Reduce WIP' },
+                  ]}
+                  value={wipMode} onChange={setWipMode}
+                  hint={wipMode === 'priority'
+                    ? 'WIP: units can start new features freely based on priority.'
+                    : 'WIP: units finish in-progress features before pulling new ones.'}
+                />
+              </div>
+            )}
+          </div>
         </div>
       </section>
 
@@ -857,26 +888,6 @@ export function Simulator() {
             <h3 style={{ margin: 0, fontSize: 12, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5, color: 'var(--ink-2)', flexShrink: 0 }}>
               Units <span className="mono" style={{ color: 'var(--ink-3)', fontWeight: 500 }}>{s.team.length}</span>
             </h3>
-            <SegmentedControl
-              options={[
-                { value: 'priority' as FocusMode, label: 'Priority' },
-                { value: 'continuity' as FocusMode, label: 'Continuity' },
-              ]}
-              value={focusMode} onChange={setFocusMode}
-              hint={focusMode === 'priority'
-                ? 'Focus: units always pick the highest-priority feature available.'
-                : 'Focus: units prefer to finish what they started — reduces handoffs.'}
-            />
-            <SegmentedControl
-              options={[
-                { value: 'priority' as WipMode, label: 'Priority' },
-                { value: 'reduce-wip' as WipMode, label: 'Reduce WIP' },
-              ]}
-              value={wipMode} onChange={setWipMode}
-              hint={wipMode === 'priority'
-                ? 'WIP: units can start new features freely based on priority.'
-                : 'WIP: units finish in-progress features before pulling new ones.'}
-            />
             <span style={{ marginLeft: 'auto', fontSize: 11, color: 'var(--ink-3)', flexShrink: 0 }}>
               Click <span className="mono" style={{ color: 'var(--ink-2)' }}>+</span> to add a specialty
             </span>
@@ -913,7 +924,7 @@ export function Simulator() {
         {/* data-tutorial-target lets the spotlight cover the stats/metrics tiles only */}
         <div data-tutorial-target="experiment-results" style={{ padding: '12px 14px 14px', borderBottom: '1px solid var(--line)', display: 'flex', flexDirection: 'column', gap: 10 }}>
           <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 8 }}>
-            <h3 style={{ margin: 0, fontSize: 12, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5, color: 'var(--ink-2)' }}>Cycle Time</h3>
+            <h3 style={{ margin: 0, fontSize: 12, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5, color: 'var(--ink-2)' }}>Metrics</h3>
             <span style={{ fontSize: 10, color: 'var(--ink-3)' }}>{stats.count} feature{stats.count !== 1 ? 's' : ''} sampled</span>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 6 }}>

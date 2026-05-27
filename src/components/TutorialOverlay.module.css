@@ -15,7 +15,7 @@
   inset: 0;
   background: rgba(10, 10, 16, 0.76);
   z-index: 900;
-  pointer-events: all;
+  pointer-events: auto;
 }
 
 /* ── Tutorial card ────────────────────────────────────────────────────────────
