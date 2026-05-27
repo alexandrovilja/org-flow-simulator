@@ -631,27 +631,6 @@ export function Simulator() {
       <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', background: 'var(--bg)' }}>
         {header}
 
-        {/* Identical backlog badge — reassures the user both teams process the same work */}
-        <div
-          data-tutorial-target="compare-backlog-badge"
-          style={{
-            margin: '4px 16px 0',
-            display: 'flex', justifyContent: 'center',
-          }}
-        >
-          <span style={{
-            display: 'inline-flex', alignItems: 'center', gap: 5,
-            fontSize: 11, color: 'var(--ink-3)',
-            background: 'var(--panel)',
-            border: '1px solid var(--line)',
-            borderRadius: 20, padding: '2px 10px',
-          }}>
-            {/* = symbol signals equality of the two backlogs */}
-            <span style={{ fontWeight: 700 }}>⇌</span>
-            Identical backlog · {sA.backlog.length + sA.inProgress.length + sA.done.length} items
-          </span>
-        </div>
-
         {/* Two-column comparison — each team in its own bordered card */}
         <div
           style={{
