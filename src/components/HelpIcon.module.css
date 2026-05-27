@@ -1,0 +1,66 @@
+/* Wrapper keeps the tooltip positioned relative to the ? button. */
+.root {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+/* The small circular ? button — unobtrusive but reachable. */
+.button {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 1px solid var(--line-2);
+  background: var(--bg);
+  color: var(--ink-3);
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
+}
+
+.button:hover,
+.button:focus-visible {
+  border-color: var(--ink-3);
+  color: var(--ink-2);
+  background: var(--panel);
+  outline: none;
+}
+
+/* Tooltip card — appears above the button, centered horizontally. */
+.tooltip {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--ink);
+  color: white;
+  font-size: 11px;
+  line-height: 1.5;
+  padding: 7px 10px;
+  border-radius: 6px;
+  width: 220px;
+  white-space: normal;
+  pointer-events: none;
+  z-index: 1000;
+
+  /* Subtle entrance shadow */
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+}
+
+/* Small arrow pointing down from the tooltip to the button. */
+.tooltip::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 5px solid transparent;
+  border-top-color: var(--ink);
+}

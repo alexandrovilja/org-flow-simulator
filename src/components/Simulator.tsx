@@ -24,6 +24,9 @@ import {
   makeCompareStates, COMPARE_SETTINGS,
 } from '@/simulation/compareMode'
 import type { TeamType } from '@/simulation/compareMode'
+import { isTutorialCompleted, markTutorialCompleted, hasSeenMode, markModeSeen } from '@/lib/storage'
+import { TutorialOverlay } from '@/components/TutorialOverlay'
+import type { TutorialMode } from '@/types/tutorial'
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -44,6 +47,41 @@ const DEFAULT_SETTINGS: SimSettings = {
 // ── Simulator component ───────────────────────────────────────────────────────
 
 export function Simulator() {
+  // ── Tutorial state ────────────────────────────────────────────────────────
+  // showTutorial: whether the overlay is currently visible.
+  // tutorialMode: which mode's steps to display in the overlay.
+  const [showTutorial, setShowTutorial] = useState<boolean>(false)
+  const [tutorialMode, setTutorialMode] = useState<TutorialMode>('compare')
+
+  // On mount: auto-launch tutorial for first-time visitors.
+  // We check both the global completed flag and the per-mode seen flag.
+  useEffect(() => {
+    if (!isTutorialCompleted() && !hasSeenMode('compare')) {
+      setTutorialMode('compare')
+      setShowTutorial(true)
+    }
+  }, [])
+
+  /**
+   * Called when the user finishes or skips the tutorial.
+   * Saves both the global completed flag and the per-mode seen flag,
+   * then hides the overlay.
+   */
+  const handleTutorialComplete = useCallback(() => {
+    markTutorialCompleted()
+    markModeSeen(tutorialMode)
+    setShowTutorial(false)
+  }, [tutorialMode])
+
+  /**
+   * Manually re-launches the tutorial for the given mode.
+   * Triggered by the ? button in the header.
+   */
+  const handleTutorialRelaunch = useCallback((m: TutorialMode) => {
+    setTutorialMode(m)
+    setShowTutorial(true)
+  }, [])
+
   // ── App mode ──────────────────────────────────────────────────────────────
   const [mode, setMode] = useState<AppMode>('compare')
   const modeRef = useRef<AppMode>('compare')
@@ -204,6 +242,11 @@ export function Simulator() {
     // Pause experiment mode if it was running (it keeps its own state).
     setPaused(true)
     setMode('experiment')
+    // If the user hasn't seen the experiment tutorial yet, offer it now.
+    if (!hasSeenMode('experiment')) {
+      setTutorialMode('experiment')
+      setShowTutorial(true)
+    }
   }, [])
 
   // ── Compare mode handlers ──────────────────────────────────────────────────
@@ -483,7 +526,21 @@ export function Simulator() {
 
       {/* Controls — differ per mode */}
       {mode === 'compare' ? (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        // data-tutorial-target lets the spotlight overlay focus on the compare simulation controls
+        <div data-tutorial-target="compare-controls" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          {/* ? Tutorial relaunch — always visible, opens the tutorial for this mode */}
+          <button
+            onClick={() => handleTutorialRelaunch('compare')}
+            title="Restart tutorial"
+            aria-label="Restart tutorial"
+            style={{
+              width: 28, height: 28, borderRadius: '50%',
+              border: '1px solid var(--line-2)', background: 'transparent',
+              color: 'var(--ink-3)', fontSize: 13, fontWeight: 700, cursor: 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              flexShrink: 0,
+            }}
+          >?</button>
           <button
             onClick={handleCompareReset}
             style={{
@@ -509,6 +566,7 @@ export function Simulator() {
             ))}
           </div>
           <button
+            data-tutorial-target="compare-run-button"
             onClick={() => {
               setComparePaused(p => !p)
               setCompareHasStarted(true)
@@ -535,18 +593,35 @@ export function Simulator() {
         </div>
       ) : (
         <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+          {/* ? Tutorial relaunch — opens the experiment mode tutorial */}
+          <button
+            onClick={() => handleTutorialRelaunch('experiment')}
+            title="Restart tutorial"
+            aria-label="Restart tutorial"
+            style={{
+              width: 28, height: 28, borderRadius: '50%',
+              border: '1px solid var(--line-2)', background: 'transparent',
+              color: 'var(--ink-3)', fontSize: 13, fontWeight: 700, cursor: 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              flexShrink: 0,
+            }}
+          >?</button>
           <span className="mono" style={{ fontSize: 11, color: 'var(--ink-3)' }}>
             sim t = {s.simTime.toFixed(1)}s
           </span>
-          <SpeedControl
-            speed={speed}
-            paused={paused}
-            hasStarted={hasStarted}
-            finished={s.finished}
-            onSpeedChange={setSpeed}
-            onTogglePause={() => { setPaused(p => !p); setHasStarted(true) }}
-            onReset={() => { handleReset(); setPaused(true); setHasStarted(false) }}
-          />
+          {/* data-tutorial-target lets the spotlight overlay focus on speed/reset controls */}
+          <div data-tutorial-target="experiment-controls">
+            <SpeedControl
+              speed={speed}
+              paused={paused}
+              hasStarted={hasStarted}
+              finished={s.finished}
+              onSpeedChange={setSpeed}
+              onTogglePause={() => { setPaused(p => !p); setHasStarted(true) }}
+              onReset={() => { handleReset(); setPaused(true); setHasStarted(false) }}
+              runButtonTarget="experiment-run-button"
+            />
+          </div>
         </div>
       )}
     </header>
@@ -559,14 +634,41 @@ export function Simulator() {
       <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', background: 'var(--bg)' }}>
         {header}
 
+        {/* Identical backlog badge — reassures the user both teams process the same work */}
+        <div
+          data-tutorial-target="compare-backlog-badge"
+          style={{
+            margin: '4px 16px 0',
+            display: 'flex', justifyContent: 'center',
+          }}
+        >
+          <span style={{
+            display: 'inline-flex', alignItems: 'center', gap: 5,
+            fontSize: 11, color: 'var(--ink-3)',
+            background: 'var(--panel)',
+            border: '1px solid var(--line)',
+            borderRadius: 20, padding: '2px 10px',
+          }}>
+            {/* = symbol signals equality of the two backlogs */}
+            <span style={{ fontWeight: 700 }}>⇌</span>
+            Identical backlog · {sA.backlog.length + sA.inProgress.length + sA.done.length} items
+          </span>
+        </div>
+
         {/* Two-column comparison — each team in its own bordered card */}
-        <div style={{
-          flex: 1, display: 'grid', gridTemplateColumns: '1fr 1fr',
-          gap: 12,
-          margin: '8px 16px 16px',
-          minHeight: 0,
-        }}>
-          <div style={{ borderRadius: 12, overflow: 'hidden', border: '1px solid var(--line)', background: 'var(--panel)' }}>
+        <div
+          style={{
+            flex: 1, display: 'grid', gridTemplateColumns: '1fr 1fr',
+            gap: 12,
+            margin: '8px 16px 16px',
+            minHeight: 0,
+          }}
+        >
+          {/* data-tutorial-target lets the spotlight overlay frame the entire Team A column */}
+          <div
+            data-tutorial-target="compare-team-a-panel"
+            style={{ borderRadius: 12, overflow: 'hidden', border: '1px solid var(--line)', background: 'var(--panel)' }}
+          >
             <ComparePanel
               teamType={compareTypeA}
               onChangeType={t => handleCompareTypeChange('A', t)}
@@ -575,9 +677,14 @@ export function Simulator() {
               opponentStats={statsB}
               opponentState={sB}
               opponentLabel={compareTypeB}
+              tutorialTargetPrefix="compare-team-a"
             />
           </div>
-          <div style={{ borderRadius: 12, overflow: 'hidden', border: '1px solid var(--line)', background: 'var(--panel)' }}>
+          {/* data-tutorial-target lets the spotlight overlay frame the entire Team B column */}
+          <div
+            data-tutorial-target="compare-team-b-panel"
+            style={{ borderRadius: 12, overflow: 'hidden', border: '1px solid var(--line)', background: 'var(--panel)' }}
+          >
             <ComparePanel
               teamType={compareTypeB}
               onChangeType={t => handleCompareTypeChange('B', t)}
@@ -586,9 +693,15 @@ export function Simulator() {
               opponentStats={statsA}
               opponentState={sA}
               opponentLabel={compareTypeA}
+              tutorialTargetPrefix="compare-team-b"
             />
           </div>
         </div>
+
+        {/* Tutorial overlay — shown on first visit or when ? is clicked */}
+        {showTutorial && (
+          <TutorialOverlay mode={tutorialMode} onComplete={handleTutorialComplete} />
+        )}
       </div>
     )
   }
@@ -607,7 +720,8 @@ export function Simulator() {
       {header}
 
       {/* LEFT: BACKLOG + CONTROLS */}
-      <section style={{ borderRight: '1px solid var(--line)', background: 'var(--panel)', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+      {/* data-tutorial-target lets the tutorial overlay spotlight the backlog panel */}
+      <section data-tutorial-target="experiment-backlog" style={{ borderRight: '1px solid var(--line)', background: 'var(--panel)', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
         <div style={{ flex: '1 1 50%', minHeight: 0, display: 'flex', flexDirection: 'column', borderBottom: '1px solid var(--line)' }}>
           <PanelHeader title="Backlog" count={s.backlog.length} />
           <div style={{ flex: 1, overflow: 'auto', padding: '8px 12px 12px 12px', display: 'flex', flexDirection: 'column', gap: 6 }}>
@@ -618,7 +732,8 @@ export function Simulator() {
           </div>
         </div>
 
-        <div style={{ flex: '0 0 auto', padding: '12px 14px 14px', display: 'flex', flexDirection: 'column', gap: 12, background: 'var(--panel)' }}>
+        {/* data-tutorial-target lets the spotlight cover backlog generation + specialization controls */}
+        <div data-tutorial-target="experiment-settings" style={{ flex: '0 0 auto', padding: '12px 14px 14px', display: 'flex', flexDirection: 'column', gap: 12, background: 'var(--panel)' }}>
           <h3 style={{ margin: 0, fontSize: 12, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5, color: 'var(--ink-2)' }}>Controls</h3>
 
           {/* Hidden file input — triggered by the Import button below */}
@@ -740,8 +855,10 @@ export function Simulator() {
       </section>
 
       {/* CENTER: IN-PROGRESS + TEAM */}
-      <section style={{ display: 'flex', flexDirection: 'column', minHeight: 0, minWidth: 0, background: 'var(--bg)' }}>
-        <div style={{ borderBottom: '1px solid var(--line)', background: 'var(--panel)', flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
+      {/* data-tutorial-target lets the tutorial spotlight the team configuration area */}
+      <section data-tutorial-target="experiment-team" style={{ display: 'flex', flexDirection: 'column', minHeight: 0, minWidth: 0, background: 'var(--bg)' }}>
+        {/* data-tutorial-target lets the spotlight cover only the in-progress kanban panel */}
+        <div data-tutorial-target="experiment-in-progress" style={{ borderBottom: '1px solid var(--line)', background: 'var(--panel)', flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
           <PanelHeader title="In Progress" count={s.inProgress.length} hint="auto-scaled" />
           <div style={{
             padding: '8px 16px 14px 16px',
@@ -755,7 +872,8 @@ export function Simulator() {
           </div>
         </div>
 
-        <div style={{ flex: '0 0 auto', padding: '10px 16px 12px', background: 'var(--panel)', display: 'flex', flexDirection: 'column', gap: 6 }}>
+        {/* data-tutorial-target lets the spotlight cover team member cards + add/remove controls */}
+        <div data-tutorial-target="experiment-team-composition" style={{ flex: '0 0 auto', padding: '10px 16px 12px', background: 'var(--panel)', display: 'flex', flexDirection: 'column', gap: 6 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0, flexWrap: 'nowrap', overflow: 'hidden' }}>
             <h3 style={{ margin: 0, fontSize: 12, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5, color: 'var(--ink-2)', flexShrink: 0 }}>
               Units <span className="mono" style={{ color: 'var(--ink-3)', fontWeight: 500 }}>{s.team.length}</span>
@@ -811,8 +929,10 @@ export function Simulator() {
       </section>
 
       {/* RIGHT: LEAD TIME + DONE */}
-      <aside style={{ borderLeft: '1px solid var(--line)', background: 'var(--panel)', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
-        <div style={{ padding: '12px 14px 14px', borderBottom: '1px solid var(--line)', display: 'flex', flexDirection: 'column', gap: 10 }}>
+      {/* data-tutorial-target lets the tutorial spotlight the metrics and chart area */}
+      <aside data-tutorial-target="experiment-chart" style={{ borderLeft: '1px solid var(--line)', background: 'var(--panel)', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+        {/* data-tutorial-target lets the spotlight cover the stats/metrics tiles only */}
+        <div data-tutorial-target="experiment-results" style={{ padding: '12px 14px 14px', borderBottom: '1px solid var(--line)', display: 'flex', flexDirection: 'column', gap: 10 }}>
           <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 8 }}>
             <h3 style={{ margin: 0, fontSize: 12, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5, color: 'var(--ink-2)' }}>Cycle Time</h3>
             <span style={{ fontSize: 10, color: 'var(--ink-3)' }}>{stats.count} feature{stats.count !== 1 ? 's' : ''} sampled</span>
@@ -826,7 +946,8 @@ export function Simulator() {
           </div>
         </div>
 
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+        {/* data-tutorial-target lets the spotlight cover the done list only */}
+        <div data-tutorial-target="experiment-done" style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
           <PanelHeader title="Done" count={s.done.length} />
           <div style={{ flex: 1, overflow: 'auto', padding: '6px 14px 14px', display: 'flex', flexDirection: 'column', gap: 6 }}>
             {s.done.length === 0 && (
@@ -853,6 +974,11 @@ export function Simulator() {
           </div>
         </div>
       </aside>
+
+      {/* Tutorial overlay — shown on first visit to experiment mode or when ? is clicked */}
+      {showTutorial && (
+        <TutorialOverlay mode={tutorialMode} onComplete={handleTutorialComplete} />
+      )}
     </div>
   )
 }

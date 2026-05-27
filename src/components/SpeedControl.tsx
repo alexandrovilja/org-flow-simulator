@@ -8,14 +8,17 @@ interface SpeedControlProps {
   onSpeedChange: (speed: number) => void
   onTogglePause: () => void
   onReset: () => void
+  /** Optional data-tutorial-target value for the run/pause button (used by tutorial overlay). */
+  runButtonTarget?: string
 }
 
-export function SpeedControl({ speed, paused, hasStarted, finished, onSpeedChange, onTogglePause, onReset }: SpeedControlProps) {
+export function SpeedControl({ speed, paused, hasStarted, finished, onSpeedChange, onTogglePause, onReset, runButtonTarget }: SpeedControlProps) {
   const label = finished ? '✓ Done' : (!hasStarted ? '▶ Start' : (paused ? '▶ Resume' : '❙❙ Pause'))
 
   return (
     <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
       <button
+        data-tutorial-target={runButtonTarget}
         onClick={onTogglePause}
         disabled={finished}
         style={{

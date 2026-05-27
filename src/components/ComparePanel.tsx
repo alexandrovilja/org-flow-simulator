@@ -33,6 +33,14 @@ interface ComparePanelProps {
   opponentState: SimState
   /** Team type of the opposing column — used to build the "vs …" label in metric tiles. */
   opponentLabel: TeamType
+  /**
+   * Optional prefix for `data-tutorial-target` attributes on this panel's sub-sections.
+   * When provided, the team header gets `{prefix}-settings` and the composition section
+   * gets `{prefix}-composition` — e.g. passing `"compare-team-a"` produces
+   * `data-tutorial-target="compare-team-a-settings"` and `"compare-team-a-composition"`.
+   * This allows the spotlight tutorial to target individual sub-panels within each column.
+   */
+  tutorialTargetPrefix?: string
 }
 
 /**
@@ -45,6 +53,7 @@ interface ComparePanelProps {
 export function ComparePanel({
   teamType, onChangeType,
   state, stats, opponentStats, opponentState, opponentLabel,
+  tutorialTargetPrefix,
 }: ComparePanelProps) {
   const avgWip         = state.simTime > 0.5 ? state.wipIntegral / state.simTime : null
   const opponentAvgWip = opponentState.simTime > 0.5 ? opponentState.wipIntegral / opponentState.simTime : null
@@ -72,13 +81,17 @@ export function ComparePanel({
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
 
       {/* ── Team header ── */}
-      <div style={{
-        padding: '10px 16px 10px',
-        borderBottom: '1px solid var(--line)',
-        flexShrink: 0,
-        textAlign: 'center',
-        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8,
-      }}>
+      {/* data-tutorial-target lets the spotlight overlay focus on this team's type picker */}
+      <div
+        data-tutorial-target={tutorialTargetPrefix ? `${tutorialTargetPrefix}-settings` : undefined}
+        style={{
+          padding: '10px 16px 10px',
+          borderBottom: '1px solid var(--line)',
+          flexShrink: 0,
+          textAlign: 'center',
+          display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8,
+        }}
+      >
         {/* Team-type picker — three compact buttons */}
         <div style={{ display: 'flex', border: '1px solid var(--line)', borderRadius: 7, overflow: 'hidden' }}>
           {TEAM_TYPE_OPTIONS.map(opt => (
@@ -106,7 +119,11 @@ export function ComparePanel({
       </div>
 
       {/* ── Kanban board — fills all available vertical space ── */}
-      <div style={{ flex: 1, display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', minHeight: 0 }}>
+      {/* data-tutorial-target lets the spotlight overlay focus on this team's kanban board */}
+      <div
+        data-tutorial-target={tutorialTargetPrefix ? `${tutorialTargetPrefix}-kanban` : undefined}
+        style={{ flex: 1, display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', minHeight: 0 }}
+      >
         {/* To Do — grey */}
         <KanbanColumn
           title="To Do"
@@ -155,7 +172,11 @@ export function ComparePanel({
       </div>
 
       {/* ── Metrics — pinned below kanban, single row ── */}
-      <div style={{ padding: '8px 12px', borderTop: '1px solid var(--line)', flexShrink: 0 }}>
+      {/* data-tutorial-target lets the spotlight overlay focus on this team's result metrics */}
+      <div
+        data-tutorial-target={tutorialTargetPrefix ? `${tutorialTargetPrefix}-results` : undefined}
+        style={{ padding: '8px 12px', borderTop: '1px solid var(--line)', flexShrink: 0 }}
+      >
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 6 }}>
           <MetricTile
             label="Total Time"
@@ -185,7 +206,11 @@ export function ComparePanel({
       </div>
 
       {/* ── Team composition — pinned at bottom ── */}
-      <div style={{ padding: '10px 14px', borderTop: '1px solid var(--line)', flexShrink: 0 }}>
+      {/* data-tutorial-target lets the spotlight overlay focus on this team's member roster */}
+      <div
+        data-tutorial-target={tutorialTargetPrefix ? `${tutorialTargetPrefix}-composition` : undefined}
+        style={{ padding: '10px 14px', borderTop: '1px solid var(--line)', flexShrink: 0 }}
+      >
         <SectionTitle>Team composition</SectionTitle>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 5 }}>
           {state.team.map(m => {

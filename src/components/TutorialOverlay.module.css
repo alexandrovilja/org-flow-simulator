@@ -1,0 +1,130 @@
+/**
+ * Tutorial spotlight overlay styles.
+ *
+ * Positioning of the card is handled entirely by inline styles in TutorialOverlay.tsx —
+ * the card is placed adjacent to the spotlighted element via JavaScript measurement.
+ * This file only controls the card's visual appearance (colours, spacing, typography).
+ *
+ * Visual design: dark card (high contrast against the spotlit panels) + animated pulse
+ * ring that frames the spotlighted element — making the "card ↔ panel" connection clear.
+ */
+
+/* Full-screen fallback backdrop — shown while the target element is being located. */
+.backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(10, 10, 16, 0.76);
+  z-index: 900;
+  pointer-events: all;
+}
+
+/* ── Tutorial card ────────────────────────────────────────────────────────────
+   Dark background so the card reads as a system element (not part of the app UI),
+   creating an immediate visual contrast against the light spotlighted panels. */
+.card {
+  /* z-index must be above the backdrop panels (z-index 900) and pulse ring (905). */
+  z-index: 910;
+  background: oklch(17% 0.02 240);
+  border: 1px solid oklch(30% 0.03 240);
+  border-radius: var(--radius-lg);
+  box-shadow:
+    0 16px 56px rgba(0, 0, 0, 0.55),
+    0 4px 16px rgba(0, 0, 0, 0.30);
+  width: 400px;
+  max-width: calc(100vw - 32px);
+  padding: 18px 20px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/* Top row: progress indicator + skip button */
+.topRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+/* "1 / 12" step counter — muted against dark card */
+.progress {
+  font-size: 11px;
+  font-weight: 600;
+  color: oklch(58% 0.04 240);
+  letter-spacing: 0.3px;
+}
+
+/* "Skip tutorial" — visually secondary on dark background */
+.skipButton {
+  background: transparent;
+  border: none;
+  color: oklch(55% 0.04 240);
+  font-size: 11px;
+  cursor: pointer;
+  padding: 2px 0;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.skipButton:hover {
+  color: oklch(78% 0.02 240);
+}
+
+/* Step description — near-white on dark card */
+.description {
+  font-size: 13px;
+  line-height: 1.6;
+  color: oklch(91% 0.01 240);
+  margin: 0;
+}
+
+/* Bottom row: primary CTA aligned right */
+.actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+/* "Next →" / "Finish" — inverted button: bright on dark */
+.nextButton {
+  padding: 8px 20px;
+  border-radius: 8px;
+  border: none;
+  background: oklch(91% 0.01 240);
+  color: oklch(17% 0.02 240);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+
+.nextButton:hover {
+  opacity: 0.85;
+}
+
+/* ── Pulse ring ───────────────────────────────────────────────────────────────
+   Animated border that frames the spotlighted element. Visually links the dark
+   card to the bright panel it is describing, without needing a connecting arrow. */
+.pulseRing {
+  position: fixed;
+  pointer-events: none;
+  /* Slightly more corner radius than the panel (12px) so the ring wraps smoothly. */
+  border-radius: 15px;
+  border: 2px solid rgba(255, 255, 255, 0.75);
+  animation: tutorialRingPulse 2.2s ease-in-out infinite;
+  /* Between backdrop (900) and card (910) — ring is visible but stays behind the card. */
+  z-index: 905;
+}
+
+@keyframes tutorialRingPulse {
+  0%, 100% {
+    border-color: rgba(255, 255, 255, 0.82);
+    box-shadow:
+      0 0 0 0   oklch(58% 0.13 240 / 0.55),
+      0 0 18px  oklch(58% 0.13 240 / 0.25);
+  }
+  50% {
+    border-color: rgba(255, 255, 255, 0.42);
+    box-shadow:
+      0 0 0 6px oklch(58% 0.13 240 / 0),
+      0 0 26px  oklch(58% 0.13 240 / 0.10);
+  }
+}

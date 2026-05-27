@@ -69,6 +69,11 @@ The selected type is highlighted. Clicking a type:
 - Per-member role customisation in Compare mode (that belongs to Experiment mode).
 - Persisting the selected types across page refreshes (future Pro feature).
 
+## Related Features
+- **feat-013-zprehledneni-aplikace** — the Compare mode tutorial Step 2 covers Team A / Team B
+  configuration. Once feat-011 is implemented, the Step 2 tutorial text should be updated to
+  also mention the team type picker (Single / Double / Multi) so new users know it exists.
+
 ## Acceptance criteria
 1. Each column in Compare mode shows a 3-button picker (Single / Double / Multi) below the team label.
 2. Selecting a type resets and rebuilds both simulations with the correct team compositions.
