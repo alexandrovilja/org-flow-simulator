@@ -606,9 +606,6 @@ export function Simulator() {
               flexShrink: 0,
             }}
           >?</button>
-          <span className="mono" style={{ fontSize: 11, color: 'var(--ink-3)' }}>
-            sim t = {s.simTime.toFixed(1)}s
-          </span>
           {/* data-tutorial-target lets the spotlight overlay focus on speed/reset controls */}
           <div data-tutorial-target="experiment-controls">
             <SpeedControl
