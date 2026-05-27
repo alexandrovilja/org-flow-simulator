@@ -143,56 +143,52 @@ export const TUTORIAL_STEPS: Record<TutorialMode, TutorialStep[]> = {
     },
     {
       id: 'experiment-team-composition',
-      // Step 2: Team first — the user's primary lever for the experiment.
+      // Step 2: Team first — spotlight only the units grid, nothing else visible.
       description:
         'Your team. Add or remove units, assign specializations, and watch how ' +
         'the mix of roles changes how quickly features move through the system.',
       targetId: 'experiment-team-composition',
-      parentTargetId: 'experiment-team',
     },
     {
       id: 'experiment-backlog',
-      // Step 3: Backlog — the input queue that feeds the simulation.
+      // Step 3: Backlog list only — uses experiment-backlog-list target so the
+      // settings section below is not inadvertently spotlighted.
       description:
         'The backlog — features waiting to be picked up. Each feature requires ' +
         'specific roles to complete; unmatched roles create waiting time.',
-      targetId: 'experiment-backlog',
+      targetId: 'experiment-backlog-list',
     },
     {
       id: 'experiment-in-progress',
-      // Step 4: In Progress — where active work is visible during the simulation.
+      // Step 4: In Progress — spotlight only this panel, team section stays dark.
       description:
         'In Progress shows features currently being worked on. ' +
         'Each card highlights which unit is handling it and which tasks remain.',
       targetId: 'experiment-in-progress',
-      parentTargetId: 'experiment-team',
     },
     {
       id: 'experiment-done',
-      // Step 5: Done list — completed features with their individual cycle times.
+      // Step 5: Done list — spotlight only the done section, results stay dark.
       description:
         'Done — features delivered. The time shown is each feature\'s cycle time: ' +
         'from when work started to when it was finished.',
       targetId: 'experiment-done',
-      parentTargetId: 'experiment-chart',
     },
     {
       id: 'experiment-results',
-      // Step 6: Results/metrics panel — aggregate outcome of the simulation.
+      // Step 6: Results — spotlight only the metrics tiles, done list stays dark.
       description:
         'Results: Avg Cycle Time, Avg WIP, Total Wait, and Avg Handoffs. ' +
         'These update live — change the team and re-run to compare outcomes.',
       targetId: 'experiment-results',
-      parentTargetId: 'experiment-chart',
     },
     {
       id: 'experiment-settings',
-      // Step 7: Settings — backlog generation and specialization configuration.
+      // Step 7: Settings — spotlight only the controls section, backlog list stays dark.
       description:
         'Settings: regenerate the backlog, change its size and complexity, ' +
         'or adjust the available specializations your team can carry.',
       targetId: 'experiment-settings',
-      parentTargetId: 'experiment-backlog',
     },
     {
       id: 'experiment-controls',

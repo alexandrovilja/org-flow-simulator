@@ -722,7 +722,8 @@ export function Simulator() {
       {/* LEFT: BACKLOG + CONTROLS */}
       {/* data-tutorial-target lets the tutorial overlay spotlight the backlog panel */}
       <section data-tutorial-target="experiment-backlog" style={{ borderRight: '1px solid var(--line)', background: 'var(--panel)', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
-        <div style={{ flex: '1 1 50%', minHeight: 0, display: 'flex', flexDirection: 'column', borderBottom: '1px solid var(--line)' }}>
+        {/* data-tutorial-target lets the spotlight cover only the backlog list, not the controls below */}
+        <div data-tutorial-target="experiment-backlog-list" style={{ flex: '1 1 50%', minHeight: 0, display: 'flex', flexDirection: 'column', borderBottom: '1px solid var(--line)' }}>
           <PanelHeader title="Backlog" count={s.backlog.length} />
           <div style={{ flex: 1, overflow: 'auto', padding: '8px 12px 12px 12px', display: 'flex', flexDirection: 'column', gap: 6 }}>
             {s.backlog.length === 0 && (
