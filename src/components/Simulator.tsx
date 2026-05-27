@@ -497,6 +497,7 @@ export function Simulator() {
       {/* Mode tabs */}
       <div style={{ display: 'flex', alignItems: 'stretch', height: '100%' }}>
         <button
+          data-tutorial-target="mode-tab-compare"
           onClick={handleSwitchToCompare}
           style={{
             padding: '0 20px', background: 'transparent', border: 'none',
@@ -510,6 +511,7 @@ export function Simulator() {
           ⚖️ Compare
         </button>
         <button
+          data-tutorial-target="mode-tab-advanced"
           onClick={handleSwitchToExperiment}
           style={{
             padding: '0 20px', background: 'transparent', border: 'none',

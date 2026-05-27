@@ -116,10 +116,8 @@ describe('feat-013: TUTORIAL_STEPS — compare mode', () => {
     }
   })
 
-  it('all compare steps except the intro have a non-empty targetId (used to locate the DOM element)', () => {
-    // Step 0 intentionally has targetId '' (full-backdrop intro — no element to spotlight).
-    // Every other step must target a specific DOM element.
-    for (const step of TUTORIAL_STEPS.compare.slice(1)) {
+  it('every compare step has a non-empty targetId (used to locate the DOM element)', () => {
+    for (const step of TUTORIAL_STEPS.compare) {
       expect(step.targetId).toBeTruthy()
     }
   })
@@ -129,9 +127,8 @@ describe('feat-013: TUTORIAL_STEPS — compare mode', () => {
     expect(new Set(ids).size).toBe(ids.length)
   })
 
-  it('starts with an intro step that has no spotlight (empty targetId)', () => {
-    // Empty targetId = full-backdrop intro card, no element highlighted.
-    expect(TUTORIAL_STEPS.compare[0].targetId).toBe('')
+  it('starts with the Compare tab spotlighted on the first step', () => {
+    expect(TUTORIAL_STEPS.compare[0].targetId).toBe('mode-tab-compare')
   })
 
   it('Team A panel is the second step (index 1) — after the intro', () => {
@@ -231,9 +228,8 @@ describe('feat-013: TUTORIAL_STEPS — experiment mode', () => {
     }
   })
 
-  it('all experiment steps except the intro have a non-empty targetId', () => {
-    // Step 0 is the full-backdrop intro — empty targetId is intentional.
-    for (const step of TUTORIAL_STEPS.experiment.slice(1)) {
+  it('every experiment step has a non-empty targetId', () => {
+    for (const step of TUTORIAL_STEPS.experiment) {
       expect(step.targetId).toBeTruthy()
     }
   })
@@ -243,8 +239,8 @@ describe('feat-013: TUTORIAL_STEPS — experiment mode', () => {
     expect(new Set(ids).size).toBe(ids.length)
   })
 
-  it('starts with a full-backdrop intro (empty targetId)', () => {
-    expect(TUTORIAL_STEPS.experiment[0].targetId).toBe('')
+  it('starts with the Advanced tab spotlighted on the first step', () => {
+    expect(TUTORIAL_STEPS.experiment[0].targetId).toBe('mode-tab-advanced')
   })
 
   it('team composition is the second step — primary lever introduced first', () => {

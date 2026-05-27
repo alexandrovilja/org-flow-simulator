@@ -22,12 +22,12 @@ export const TUTORIAL_STEPS: Record<TutorialMode, TutorialStep[]> = {
   compare: [
     {
       id: 'compare-overview',
-      // Step 1: Full-backdrop intro — no spotlight. Empty targetId keeps the overlay in
-      // full dark mode so the user reads the context before any element is highlighted.
+      // Step 1: Spotlight the Compare tab — orients the user to which mode they are in
+      // before drilling into individual panels.
       description:
         'Compare mode runs two teams on the exact same backlog simultaneously. ' +
         'Only team structure differs — that is the variable you are testing.',
-      targetId: '',
+      targetId: 'mode-tab-compare',
     },
     {
       id: 'compare-team-a-panel',
@@ -134,12 +134,11 @@ export const TUTORIAL_STEPS: Record<TutorialMode, TutorialStep[]> = {
   experiment: [
     {
       id: 'experiment-overview',
-      // Step 1: Full-backdrop intro — same pattern as compare mode.
-      // Empty targetId keeps the overlay in full dark mode for the context-setting card.
+      // Step 1: Spotlight the Advanced tab — mirrors the compare intro pattern.
       description:
         'Advanced mode lets you freely configure a team and run the simulation ' +
         'to see how structure affects cycle time. Here is how the screen is laid out.',
-      targetId: '',
+      targetId: 'mode-tab-advanced',
     },
     {
       id: 'experiment-team-composition',
