@@ -88,6 +88,7 @@ export function Simulator() {
 
   const [roleConfig, setRoleConfig] = useState<Record<Role, RoleMeta>>(() => ({ ...ROLE_META }))
   const [showRoleSettings, setShowRoleSettings] = useState(false)
+  const [showBacklogControls, setShowBacklogControls] = useState(false)
   // Import status message — null = no message, object = show message
   const [importMsg, setImportMsg] = useState<{ ok: boolean; text: string } | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -634,66 +635,86 @@ export function Simulator() {
             }}
           />
 
-          <div style={{ display: 'flex', gap: 6 }}>
+          <div style={{ paddingTop: 4, borderTop: '1px solid var(--line)', marginTop: 4 }}>
             <button
-              onClick={() => fileInputRef.current?.click()}
+              onClick={() => setShowBacklogControls(v => !v)}
               style={{
-                flex: 1, border: '1px solid var(--ink-2)', borderRadius: 4,
-                padding: '6px 0', fontSize: 11, fontWeight: 600,
-                background: 'var(--bg)', color: 'var(--ink)',
-                cursor: 'pointer', letterSpacing: 0.2,
+                width: '100%', textAlign: 'left',
+                fontSize: 11, fontFamily: 'inherit', cursor: 'pointer',
+                border: '1px solid var(--line)', borderRadius: 4,
+                padding: '4px 8px',
+                background: showBacklogControls ? 'var(--line)' : 'var(--bg)',
+                color: showBacklogControls ? 'var(--ink)' : 'var(--ink-2)',
+                fontWeight: showBacklogControls ? 600 : 400,
               }}
             >
-              ↑ Import XLS
+              ♻ Backlog generation
             </button>
-            <button
-              onClick={downloadTemplate}
-              style={{
-                flex: 1, border: '1px solid var(--line)', borderRadius: 4,
-                padding: '6px 0', fontSize: 11, fontWeight: 400,
-                background: 'var(--bg)', color: 'var(--ink-2)',
-                cursor: 'pointer', letterSpacing: 0.2,
-              }}
-            >
-              ↓ Šablona
-            </button>
+            {showBacklogControls && (
+              <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 12 }}>
+                <div style={{ display: 'flex', gap: 6 }}>
+                  <button
+                    onClick={() => fileInputRef.current?.click()}
+                    style={{
+                      flex: 1, border: '1px solid var(--ink-2)', borderRadius: 4,
+                      padding: '6px 0', fontSize: 11, fontWeight: 600,
+                      background: 'var(--bg)', color: 'var(--ink)',
+                      cursor: 'pointer', letterSpacing: 0.2,
+                    }}
+                  >
+                    ↑ Import XLS
+                  </button>
+                  <button
+                    onClick={downloadTemplate}
+                    style={{
+                      flex: 1, border: '1px solid var(--line)', borderRadius: 4,
+                      padding: '6px 0', fontSize: 11, fontWeight: 400,
+                      background: 'var(--bg)', color: 'var(--ink-2)',
+                      cursor: 'pointer', letterSpacing: 0.2,
+                    }}
+                  >
+                    ↓ Šablona
+                  </button>
+                </div>
+
+                {importMsg && (
+                  <div style={{
+                    fontSize: 11, padding: '5px 8px', borderRadius: 4,
+                    background: importMsg.ok ? 'oklch(95% 0.05 145)' : 'oklch(95% 0.05 25)',
+                    color: importMsg.ok ? 'oklch(35% 0.13 145)' : 'oklch(35% 0.13 25)',
+                    border: `1px solid ${importMsg.ok ? 'oklch(75% 0.1 145)' : 'oklch(75% 0.1 25)'}`,
+                    lineHeight: 1.4,
+                  }}>
+                    {importMsg.ok ? '✓' : '✗'} {importMsg.text}
+                  </div>
+                )}
+
+                <button onClick={handleRegenerate} style={{
+                  background: 'var(--ink)', border: 'none', borderRadius: 4,
+                  padding: '7px 0', fontSize: 11, fontWeight: 600, color: 'white',
+                  cursor: 'pointer', width: '100%', letterSpacing: 0.2,
+                }}>
+                  ♻ Generate new backlog
+                </button>
+                <Slider label="Backlog size" value={settings.initialBacklog} min={10} max={1000} step={10}
+                  onChange={v => setSettings(s => ({ ...s, initialBacklog: v }))}
+                  format={v => `${v} items`}
+                  tooltip="Number of features generated when clicking 'Generate new backlog'." />
+                <Slider label="Min. specializations per item" value={settings.minSpecializations} min={1} max={6} step={1}
+                  onChange={v => setSettings(s => ({ ...s, minSpecializations: v }))}
+                  format={v => v === 1 ? 'no minimum' : `≥ ${v} roles`}
+                  tooltip="Minimum number of different specializations each backlog item must require." />
+                <Slider label="Item size variability" value={settings.sizeVar} min={0} max={1} step={0.05}
+                  onChange={v => setSettings(s => ({ ...s, sizeVar: v }))}
+                  format={v => v < 0.1 ? 'uniform' : v < 0.5 ? 'low' : v < 0.85 ? 'high' : 'extreme'}
+                  tooltip="How much effort varies between items." />
+                <Slider label="Role-mix variability" value={settings.roleVar} min={0} max={1} step={0.05}
+                  onChange={v => setSettings(s => ({ ...s, roleVar: v }))}
+                  format={v => v < 0.1 ? '2 roles' : v < 0.5 ? 'low' : v < 0.85 ? 'high' : '1–6 roles'}
+                  tooltip="How many different roles each item requires." />
+              </div>
+            )}
           </div>
-
-          {importMsg && (
-            <div style={{
-              fontSize: 11, padding: '5px 8px', borderRadius: 4,
-              background: importMsg.ok ? 'oklch(95% 0.05 145)' : 'oklch(95% 0.05 25)',
-              color: importMsg.ok ? 'oklch(35% 0.13 145)' : 'oklch(35% 0.13 25)',
-              border: `1px solid ${importMsg.ok ? 'oklch(75% 0.1 145)' : 'oklch(75% 0.1 25)'}`,
-              lineHeight: 1.4,
-            }}>
-              {importMsg.ok ? '✓' : '✗'} {importMsg.text}
-            </div>
-          )}
-
-          <button onClick={handleRegenerate} style={{
-            background: 'var(--ink)', border: 'none', borderRadius: 4,
-            padding: '7px 0', fontSize: 11, fontWeight: 600, color: 'white',
-            cursor: 'pointer', width: '100%', letterSpacing: 0.2,
-          }}>
-            ♻ Generate new backlog
-          </button>
-          <Slider label="Backlog size" value={settings.initialBacklog} min={10} max={1000} step={10}
-            onChange={v => setSettings(s => ({ ...s, initialBacklog: v }))}
-            format={v => `${v} items`}
-            tooltip="Number of features generated when clicking 'Generate new backlog'." />
-          <Slider label="Min. specializations per item" value={settings.minSpecializations} min={1} max={6} step={1}
-            onChange={v => setSettings(s => ({ ...s, minSpecializations: v }))}
-            format={v => v === 1 ? 'no minimum' : `≥ ${v} roles`}
-            tooltip="Minimum number of different specializations each backlog item must require." />
-          <Slider label="Item size variability" value={settings.sizeVar} min={0} max={1} step={0.05}
-            onChange={v => setSettings(s => ({ ...s, sizeVar: v }))}
-            format={v => v < 0.1 ? 'uniform' : v < 0.5 ? 'low' : v < 0.85 ? 'high' : 'extreme'}
-            tooltip="How much effort varies between items." />
-          <Slider label="Role-mix variability" value={settings.roleVar} min={0} max={1} step={0.05}
-            onChange={v => setSettings(s => ({ ...s, roleVar: v }))}
-            format={v => v < 0.1 ? '2 roles' : v < 0.5 ? 'low' : v < 0.85 ? 'high' : '1–6 roles'}
-            tooltip="How many different roles each item requires." />
           <div style={{ paddingTop: 8, borderTop: '1px solid var(--line)', marginTop: 4 }}>
             <button
               onClick={() => setShowRoleSettings(v => !v)}
