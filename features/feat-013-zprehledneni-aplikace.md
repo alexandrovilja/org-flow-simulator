@@ -1,7 +1,7 @@
 # Feature: Zpřehlednění aplikace
 
 ## Status
-in-progress
+done
 
 ## Problem
 Noví uživatelé nemohou pochopit, co vše se zobrazuje a jak by měli s aplikací pracovat. Bez kontextu
