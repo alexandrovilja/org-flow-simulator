@@ -161,5 +161,13 @@ All UI text is in **English** only.
 - **No jargon without context:** every metric label has a short tooltip explaining what it means
 - Switching to Comparison mode always resets both simulations (clean state, no leftover numbers)
 
+## Related Features
+- **feat-013-zprehledneni-aplikace** — implements the `?` icon + tooltip system referenced in the
+  design principle "No jargon without context". The tooltip component (`HelpIcon`) is owned by
+  feat-013; feat-009 depends on it for metric label tooltips.
+- **feat-013-zprehledneni-aplikace** — the spotlight tutorial is mode-aware: switching between
+  Compare and Experiment modes may trigger a per-mode tutorial prompt. The mode switcher in
+  `Simulator.tsx` must call the tutorial context when a mode is entered for the first time.
+
 ## Open Questions
 ~~All resolved.~~
