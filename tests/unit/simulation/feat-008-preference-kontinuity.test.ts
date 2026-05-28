@@ -83,10 +83,39 @@ describe('feat-008: focusMode=priority (výchozí)', () => {
 // ---------------------------------------------------------------------------
 
 describe('feat-008: focusMode=continuity', () => {
-  it('člen preferuje feature kde již pracoval, i když má nižší prioritu', () => {
+  it('člen preferuje feature kde již pracoval, i když má nižší prioritu (reduce-wip)', () => {
     // Ben (FE+BE) dokončil FE na F-001 (priority 3).
-    // Volné: BE na F-001 (priority 3) a FE na F-002 (priority 1).
-    // Kontinuitní režim → Ben musí vybrat BE z F-001 (kontinuita > priorita).
+    // Volné: BE na F-001 inProgress (priority 3) a FE na F-002 backlog (priority 1).
+    // wipMode=reduce-wip preferuje inProgress → spolu s kontinuitou Ben musí vzít BE z F-001.
+    const cfg = roleConfig({ FE: { level: 1 }, BE: { level: 1 } })
+    const rng = mulberry32(1)
+    const settings: SimSettings = { ...SETTINGS, initialBacklog: 0 }
+    const state = makeInitialState(rng, settings, cfg)
+
+    const ben = makeMember(1, ['FE', 'BE'])
+    state.team = [ben]
+
+    const f001 = makeFeature(1, 3, [
+      makeTask(1, 'FE', 'done', ben.id),
+      makeTask(2, 'BE', 'todo'),
+    ], true)
+    const f002 = makeFeature(2, 1, [makeTask(3, 'FE', 'todo')])
+
+    state.inProgress = [f001]
+    state.backlog    = [f002]
+
+    tick(state, 0.01, settings, rng, cfg, 'continuity', 'reduce-wip')
+
+    // WIP=reduce-wip preferuje inProgress; kontinuita potvrdí F-001 (Benova)
+    expect(ben.currentTask?.featureId).toBe(1)
+    expect(ben.currentTask?.taskId).toBe(2)
+  })
+
+  it('wipMode=priority (backlog) přebije kontinuitu — člen stáhne novou feature místo dokončení vlastní', () => {
+    // Ben (FE+BE) dokončil FE na F-001 (priority 3, inProgress).
+    // Volné: BE na F-001 inProgress (priority 3), FE na F-002 backlog (priority 1).
+    // wipMode=priority preferuje backlog → Ben stáhne F-002, i když je F-001 jeho vlastní.
+    // Toto je záměrné HIGH-WIP chování: WIP preference dominuje kontinuitě.
     const cfg = roleConfig({ FE: { level: 1 }, BE: { level: 1 } })
     const rng = mulberry32(1)
     const settings: SimSettings = { ...SETTINGS, initialBacklog: 0 }
@@ -106,9 +135,8 @@ describe('feat-008: focusMode=continuity', () => {
 
     tick(state, 0.01, settings, rng, cfg, 'continuity', 'priority')
 
-    // Kontinuitní režim: Ben musí vzít BE z F-001
-    expect(ben.currentTask?.featureId).toBe(1)
-    expect(ben.currentTask?.taskId).toBe(2)
+    // backlog (F-002) vyhraje — WIP preference je silnější než kontinuita
+    expect(ben.currentTask?.featureId).toBe(2)
   })
 
   it('fallback na prioritu pokud na vlastní feature není dostupný úkol', () => {
@@ -194,9 +222,9 @@ describe('feat-008: focusMode=continuity', () => {
 // ---------------------------------------------------------------------------
 
 describe('feat-008: wipMode=priority (výchozí)', () => {
-  it('člen vybírá dle priority bez ohledu na to, zda je feature v backlogu nebo inProgress', () => {
+  it('člen preferuje backlog před inProgress (vysoké WIP chování)', () => {
     // Volné: BE na F-003 inProgress (priority 5), FE na F-002 backlog (priority 1).
-    // Prioritní WIP režim → Ada (FE+BE) musí vzít FE z F-002 (nižší priorita číslo).
+    // Priority WIP → Ada (FE+BE) musí vzít FE z F-002 (backlog preferován před inProgress).
     const cfg = roleConfig({ FE: { level: 1 }, BE: { level: 1 } })
     const rng = mulberry32(1)
     const settings: SimSettings = { ...SETTINGS, initialBacklog: 0 }
@@ -213,7 +241,34 @@ describe('feat-008: wipMode=priority (výchozí)', () => {
 
     tick(state, 0.01, settings, rng, cfg, 'priority', 'priority')
 
-    expect(ada.currentTask?.featureId).toBe(2) // F-002 má prioritu 1
+    expect(ada.currentTask?.featureId).toBe(2) // F-002 je v backlogu → preferováno
+  })
+
+  it('backlog je preferován i když má vyšší prioritní číslo než inProgress — realistický scénář', () => {
+    // Toto je klíčový test kontrastující s reduce-wip.
+    // V reálné simulaci mají inProgress features vždy nižší prioritní číslo než backlogové
+    // (features se startují v pořadí). Proto by prosté třídění dle čísla vždy dávalo stejný
+    // výsledek jako reduce-wip. Explicitní preference backlogu zajistí viditelný rozdíl.
+    //
+    // Volné: BE na F-003 inProgress (priority 1), FE na F-002 backlog (priority 10).
+    // Priority WIP → Ada musí vzít F-002 (backlog > inProgress), i když F-003 má prioritu 1.
+    const cfg = roleConfig({ FE: { level: 1 }, BE: { level: 1 } })
+    const rng = mulberry32(1)
+    const settings: SimSettings = { ...SETTINGS, initialBacklog: 0 }
+    const state = makeInitialState(rng, settings, cfg)
+
+    const ada = makeMember(1, ['FE', 'BE'])
+    state.team = [ada]
+
+    const f002 = makeFeature(2, 10, [makeTask(3, 'FE', 'todo')])       // backlog, horší priorita
+    const f003 = makeFeature(3, 1,  [makeTask(4, 'BE', 'todo')], true) // inProgress, lepší priorita
+
+    state.inProgress = [f003]
+    state.backlog    = [f002]
+
+    tick(state, 0.01, settings, rng, cfg, 'priority', 'priority')
+
+    expect(ada.currentTask?.featureId).toBe(2) // backlog vyhraje i přes horší prioritu
   })
 })
 
@@ -222,6 +277,29 @@ describe('feat-008: wipMode=priority (výchozí)', () => {
 // ---------------------------------------------------------------------------
 
 describe('feat-008: wipMode=reduce-wip', () => {
+  it('inProgress je preferována před backlogem — realistický scénář (kontrast s priority modem)', () => {
+    // Realistický scénář: inProgress F-003 má prioritu 1 (lepší), backlog F-002 má prioritu 10 (horší).
+    // Reduce WIP → Ada (FE+BE) musí vzít BE z F-003 (inProgress > backlog, i přes horší prioritu číslo).
+    // Toto je zrcadlový test k "backlog je preferován i při horším čísle" v priority mode.
+    const cfg = roleConfig({ FE: { level: 1 }, BE: { level: 1 } })
+    const rng = mulberry32(1)
+    const settings: SimSettings = { ...SETTINGS, initialBacklog: 0 }
+    const state = makeInitialState(rng, settings, cfg)
+
+    const ada = makeMember(1, ['FE', 'BE'])
+    state.team = [ada]
+
+    const f002 = makeFeature(2, 10, [makeTask(3, 'FE', 'todo')])       // backlog, horší priorita
+    const f003 = makeFeature(3, 1,  [makeTask(4, 'BE', 'todo')], true) // inProgress, lepší priorita
+
+    state.inProgress = [f003]
+    state.backlog    = [f002]
+
+    tick(state, 0.01, settings, rng, cfg, 'priority', 'reduce-wip')
+
+    expect(ada.currentTask?.featureId).toBe(3) // F-003 inProgress vyhraje i přes lepší prioritu backlogu
+  })
+
   it('člen preferuje in-progress feature před backlogovou, i když má nižší prioritu', () => {
     // Volné: FE na F-002 backlog (priority 1), BE na F-003 inProgress (priority 5).
     // Reduce WIP → Ada (FE+BE) musí vzít BE z F-003 (inProgress > backlog).

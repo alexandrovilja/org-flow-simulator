@@ -1,7 +1,7 @@
 # Feature: Zpřehlednění aplikace
 
 ## Status
-done
+in-progress (contextual ? icons not yet implemented)
 
 ## Problem
 Noví uživatelé nemohou pochopit, co vše se zobrazuje a jak by měli s aplikací pracovat. Bez kontextu
@@ -101,15 +101,29 @@ settings B → composition B → kanban B → results B → controls → Run.
 
 ### Contextual `?` icons
 
-A small `?` icon appears next to each key UI element. On hover or click, a tooltip appears
-with a short explanation: what the element is + how it affects the simulation.
+A small `?` icon (`HelpIcon` component) appears next to each key UI element and panel header.
+Clicking opens a tooltip card with a short explanation: what the element is + how it affects the simulation.
+Pressing Escape or clicking `?` again closes it.
 
-**Elements with `?` icons:**
-- Specialization sliders (Team panel, both modes)
-- Cycle Time / Lead Time chart title
-- Backlog size and variability settings
-- Number of team members
-- WIP, Handoffs, and Waiting metrics
+**Panel headers (Experiment mode) — `?` next to the `<h3>` title:**
+
+| Panel | Help text |
+|---|---|
+| Backlog | "Features waiting to be picked up. Each feature requires specific roles — unmatched roles create waiting time." |
+| In Progress | "Features currently being worked on. Each card shows which unit is handling it and which tasks remain." |
+| Done | "Completed features. The time shown is each feature's cycle time — from when work started to when it was finished." |
+| Metrics | "Live statistics. Reset and re-run with a different team to compare outcomes." |
+| Units | "Your team. Add or remove units and assign specializations to change how features flow through the system." |
+| Settings | "Simulation parameters — backlog content, size, complexity, and available specializations." |
+
+**Individual controls (both modes) — `?` next to the label:**
+
+| Element | Help text |
+|---|---|
+| Avg Cycle Time (StatTile) | "Mean time from when work started to when a feature was delivered. Lower is better." |
+| Avg WIP (StatTile) | "Average Work In Progress — the number of features being worked on simultaneously. Lower WIP → lower cycle time (Little's Law)." |
+| Total Wait (StatTile) | "Total idle time across all units with roles — time spent waiting for the right work to become available." |
+| Avg Handoffs (StatTile) | "Average number of role handoffs per feature. More handoffs → more waiting, higher cycle time." |
 
 ---
 

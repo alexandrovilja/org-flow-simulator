@@ -372,7 +372,7 @@ export function computeHandoffs(feature: Feature, roleConfig: Record<Role, RoleM
  * @param rng        - Seeded RNG pro případné doplnění backlogu
  * @param roleConfig - Konfigurace specializací (level, required); výchozí = ROLE_META
  * @param focusMode  - Zda členové preferují vlastní feature ('continuity') nebo nejvyšší prioritu ('priority')
- * @param wipMode    - Zda členové preferují in-progress features ('reduce-wip') nebo vybírají dle priority ('priority')
+ * @param wipMode    - 'priority' = tahem z backlogu (vysoké WIP); 'reduce-wip' = dokončení rozběhnutých (nízké WIP)
  * @returns Stejný objekt state po aktualizaci
  */
 export function tick(
@@ -382,7 +382,7 @@ export function tick(
   rng: () => number,
   roleConfig: Record<Role, RoleMeta> = ROLE_META,
   focusMode: FocusMode = 'priority',
-  wipMode: WipMode = 'priority',
+  wipMode: WipMode = 'reduce-wip',
 ): SimState {
   state.simTime += dtSim
 
@@ -449,9 +449,17 @@ export function tick(
     if (candidates.length === 0) continue
 
     // Třístupňové řazení — každý stupeň se uplatní jen pokud je příslušný režim aktivní:
-    // 1. Reduce WIP: in-progress features před backlogovými
+    // 1. WIP preference: priority = backlog před inProgress (vysoké WIP),
+    //                    reduce-wip = inProgress před backlogem (nízké WIP)
     // 2. Continuity: features kde člen již pracoval (má done task) před ostatními
     // 3. Priorita: vždy jako finální tiebreaker
+    //
+    // Proč priority mode preferuje backlog:
+    //   Features dostávají sekvenční priority čísla (1, 2, 3 …) a startují v pořadí.
+    //   InProgress features proto VŽDY mají nižší číslo (vyšší prioritu) než backlogové.
+    //   Prosté třídění dle čísla by tedy inProgress vždy upřednostnilo — stejný výsledek
+    //   jako reduce-wip, bez viditelného kontrastu. Explicitní preference backlogu
+    //   zajistí, že člen tahem z backlogu zvyšuje WIP, což je pedagogicky klíčový rozdíl.
     //
     // workedFeatureIds se předpočítá jednou před sort() — predikát závisí jen na f.id
     // a m.id, ne na argumentech comparatoru, takže je zbytečné ho počítat O(N log N)×.
@@ -459,8 +467,13 @@ export function tick(
       ? new Set(candidates.filter(c => c.f.tasks.some(t => t.assignee === m.id && t.status === 'done')).map(c => c.f.id))
       : null
     candidates.sort((a, b) => {
-      if (wipMode === 'reduce-wip') {
-        // backlogIdx === -1 znamená feature je již v inProgress
+      // backlogIdx === -1 = feature je v inProgress; ≥ 0 = feature je v backlogu
+      if (wipMode === 'priority') {
+        // Preference nové práce z backlogu — zvyšuje WIP
+        const wipDiff = (a.backlogIdx === -1 ? 1 : 0) - (b.backlogIdx === -1 ? 1 : 0)
+        if (wipDiff !== 0) return wipDiff
+      } else if (wipMode === 'reduce-wip') {
+        // Preference rozběhnuté práce — snižuje WIP
         const wipDiff = (a.backlogIdx === -1 ? 0 : 1) - (b.backlogIdx === -1 ? 0 : 1)
         if (wipDiff !== 0) return wipDiff
       }

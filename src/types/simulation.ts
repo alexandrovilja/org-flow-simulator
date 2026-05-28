@@ -203,7 +203,7 @@ export interface SimStats {
  *  'continuity' = preferuje feature, na které již pracoval; snižuje počet předání */
 export type FocusMode = 'priority' | 'continuity'
 
-/** Režim přiřazování úkolů z hlediska WIP — zda člen preferuje rozběhnuté features.
- *  'priority'    = žádné rozlišení mezi backlogem a in-progress (výchozí)
- *  'reduce-wip'  = in-progress features jsou preferovány před backlogovými */
+/** Režim přiřazování úkolů z hlediska WIP — zda člen preferuje novou nebo rozběhnutou práci.
+ *  'priority'    = backlogové features jsou preferovány před in-progress (vysoké WIP; výchozí)
+ *  'reduce-wip'  = in-progress features jsou preferovány před backlogovými (nízké WIP) */
 export type WipMode = 'priority' | 'reduce-wip'

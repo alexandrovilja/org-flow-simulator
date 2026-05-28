@@ -132,10 +132,10 @@ export function Simulator() {
   const [importMsg, setImportMsg] = useState<{ ok: boolean; text: string } | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [focusMode, setFocusMode] = useState<FocusMode>('priority')
-  const [wipMode, setWipMode]     = useState<WipMode>('priority')
+  const [wipMode, setWipMode]     = useState<WipMode>('reduce-wip')
 
   const focusModeRef = useRef<FocusMode>('priority')
-  const wipModeRef   = useRef<WipMode>('priority')
+  const wipModeRef   = useRef<WipMode>('reduce-wip')
   useEffect(() => { focusModeRef.current = focusMode }, [focusMode])
   useEffect(() => { wipModeRef.current   = wipMode   }, [wipMode])
 

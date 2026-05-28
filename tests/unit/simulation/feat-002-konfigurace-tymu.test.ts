@@ -59,7 +59,8 @@ describe('feat-002: konfigurace týmu', () => {
       state.backlog[0].tasks = [{ id: 9002, role: 'FE', work: 3, progress: 0, status: 'todo', assignee: null }]
       const featureBId = state.backlog[0].id
 
-      tick(state, 0.01, SETTINGS, rng)
+      // wipMode='priority' = backlog preferován → člen vybere F-B z backlogu (i přes to, že F-A je v inProgress)
+      tick(state, 0.01, SETTINGS, rng, undefined, 'priority', 'priority')
 
       // Člen musí pracovat na feature B (priorita 1), i když je stále v backlogu.
       // Přistupujeme přes state.team[0] — TypeScript by jinak narrowoval currentTask
@@ -69,7 +70,9 @@ describe('feat-002: konfigurace týmu', () => {
       expect(featureA.tasks[0].assignee).toBeNull()
     })
 
-    it('člen preferuje rozběhnutou feature, pokud má vyšší prioritu než první backlogová', () => {
+    it('wipMode=reduce-wip: člen preferuje rozběhnutou feature i když má horší prioritní číslo', () => {
+      // Verifikuje, že reduce-wip mode explicitně preferuje in-progress před backlogem.
+      // Pozn.: defaultní wipMode='priority' by naopak zvolil backlog (viz test níže).
       const rng = mulberry32(42)
       const state = makeInitialState(rng, SETTINGS)
 
@@ -89,9 +92,9 @@ describe('feat-002: konfigurace týmu', () => {
       state.backlog[0].tasks = [{ id: 9002, role: 'FE', work: 3, progress: 0, status: 'todo', assignee: null }]
 
       const backlogSizeBefore = state.backlog.length
-      tick(state, 0.01, SETTINGS, rng)
+      tick(state, 0.01, SETTINGS, rng, undefined, 'priority', 'reduce-wip')
 
-      // Člen musí pracovat na feature A (priorita 1) — která je v inProgress
+      // Reduce WIP: inProgress (F-A) vyhraje nad backlogem (F-B)
       expect(state.team[0].currentTask?.featureId).toBe(featureA.id)
       // Backlog se nezmenšil — feature B nebyla vytažena
       expect(state.backlog.length).toBe(backlogSizeBefore)
