@@ -1057,10 +1057,19 @@ export function Simulator() {
                 cf = s.inProgress.find(f => f.id === m.currentTask!.featureId) ?? null
                 ct = cf?.tasks.find(t => t.id === m.currentTask!.taskId) ?? null
               }
+              // Člen čeká (waiting time narůstá) pokud:
+              //  - simulace již běžela (startedAt !== null) — před spuštěním zobrazujeme idle
+              //  - má roli, nemá aktuální úkol
+              //  - pro jeho roli existuje 'todo' task v backlogu nebo inProgress
+              // Stejná podmínka jako v engine.ts (hasMatchingWork), plus guard na startedAt.
+              const isWaiting = s.startedAt !== null && m.roles.length > 0 && m.currentTask === null && (
+                s.backlog.some(f => f.tasks.some(t => t.status === 'todo' && m.roles.includes(t.role))) ||
+                s.inProgress.some(f => f.tasks.some(t => t.status === 'todo' && m.roles.includes(t.role)))
+              )
               return (
                 <MemberCard key={m.id} member={m} currentFeature={cf ?? null} currentTask={ct ?? null}
                   roleConfig={roleConfig} onAddRole={handleAssignRole} onRemoveRole={handleRemoveRole}
-                  onRename={handleRenameMember} onRemove={handleRemoveMember} />
+                  onRename={handleRenameMember} onRemove={handleRemoveMember} isWaiting={isWaiting} />
               )
             })}
           </div>

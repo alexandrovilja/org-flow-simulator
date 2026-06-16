@@ -16,6 +16,12 @@ interface MemberCardProps {
   onRename: (memberId: number, name: string) => void
   /** Callback pro odebrání jednotky. Volající zajistí uvolnění aktivního úkolu. */
   onRemove: (memberId: number) => void
+  /**
+   * True pokud člen čeká na práci: má roli pro dostupný 'todo' úkol,
+   * ale ten úkol je zablokován fázovými závislostmi (level constraints).
+   * Odpovídá přesně podmínce, kdy engine akumuluje member.idleSec.
+   */
+  isWaiting?: boolean
 }
 
 /**
@@ -24,7 +30,7 @@ interface MemberCardProps {
  * - přiřazené specializace (chipy s plným názvem)
  * - progress bar aktivního úkolu, nebo idle stav
  */
-export function MemberCard({ member, currentFeature, currentTask, roleConfig, onAddRole, onRemoveRole, onRename, onRemove }: MemberCardProps) {
+export function MemberCard({ member, currentFeature, currentTask, roleConfig, onAddRole, onRemoveRole, onRename, onRemove, isWaiting = false }: MemberCardProps) {
   const [adding, setAdding] = useState(false)
   // Object.keys(roleConfig) místo statického ROLES — zahrnuje i uživatelsky přidané specializace
   const availableRoles = Object.keys(roleConfig).filter(r => !member.roles.includes(r))
@@ -33,8 +39,8 @@ export function MemberCard({ member, currentFeature, currentTask, roleConfig, on
 
   return (
     <div style={{
-      background: 'var(--panel)',
-      border: '1px solid var(--line)',
+      background: isWaiting ? 'oklch(98.5% 0.015 60)' : 'var(--panel)',
+      border: isWaiting ? '1px solid var(--warn)' : '1px solid var(--line)',
       borderRadius: 6,
       padding: '6px 8px',
       display: 'flex', flexDirection: 'column', gap: 4,
@@ -166,9 +172,20 @@ export function MemberCard({ member, currentFeature, currentTask, roleConfig, on
             </div>
           </>
         ) : (
-          <div style={{ fontSize: 10, color: 'var(--ink-3)', fontStyle: 'italic', display: 'flex', alignItems: 'center', gap: 4 }}>
-            <span style={{ width: 5, height: 5, borderRadius: '50%', background: 'var(--line-2)' }} />
-            {member.roles.length === 0 ? 'no roles' : 'idle'}
+          <div style={{
+            fontSize: 10,
+            color: member.roles.length === 0 ? 'var(--ink-3)' : isWaiting ? 'var(--warn)' : 'var(--ink-3)',
+            fontStyle: isWaiting ? 'normal' : 'italic',
+            fontWeight: isWaiting ? 600 : 400,
+            display: 'flex', alignItems: 'center', gap: 4,
+          }}>
+            {/* Dot: amber + pulsing border when waiting, static gray when idle */}
+            <span style={{
+              width: 5, height: 5, borderRadius: '50%',
+              background: isWaiting && member.roles.length > 0 ? 'var(--warn)' : 'var(--line-2)',
+              boxShadow: isWaiting && member.roles.length > 0 ? '0 0 0 2px oklch(85% 0.10 60)' : 'none',
+            }} />
+            {member.roles.length === 0 ? 'no roles' : isWaiting ? 'waiting…' : 'idle'}
           </div>
         )}
       </div>
