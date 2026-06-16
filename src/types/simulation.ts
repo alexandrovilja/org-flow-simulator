@@ -207,3 +207,34 @@ export type FocusMode = 'priority' | 'continuity'
  *  'priority'    = backlogové features jsou preferovány před in-progress (vysoké WIP; výchozí)
  *  'reduce-wip'  = in-progress features jsou preferovány před backlogovými (nízké WIP) */
 export type WipMode = 'priority' | 'reduce-wip'
+
+/**
+ * Identifikátor aktivního presetu.
+ * 'teams' a 'people' jsou předdefinované presetové konfigurace.
+ * 'custom' nastane, když uživatel ručně upraví tým nebo specializace mimo preset.
+ */
+export type ActivePresetId = 'teams' | 'people' | 'custom'
+
+/**
+ * Jeden předdefinovaný preset definující výchozí sestavu týmu a specializací.
+ * Kliknutím na tlačítko presetu se přepíše aktuální konfigurace — tým, role i backlog.
+ * Každý preset odpovídá jinému kontextu workshopu (org-level vs. team-level simulace).
+ */
+export interface UnitPreset {
+  /** Unikátní identifikátor presetu — používá se jako klíč v localStorage i v UI. */
+  id: 'teams' | 'people'
+  /** Zobrazovaný název na tlačítku presetu v Settings panelu. */
+  label: string
+  /** Text tlačítka pro přidání nové jednotky v Team panelu, odpovídá kontextu presetu. */
+  addLabel: string
+  /** Seřazený seznam klíčů rolí platných pro tento preset. */
+  roles: Role[]
+  /** Konfigurace specializací pro tento preset — barvy, labely, pořadí fází. */
+  roleMeta: Record<Role, RoleMeta>
+  /**
+   * Výchozí sestavení týmu — každý prvek definuje jméno jednotky a její počáteční specializace.
+   * Výchozí stav je záměrně silosový (1 specializace na jednotku), aby coach mohl
+   * přidáváním specializací demonstrovat efekt cross-funkčnosti.
+   */
+  members: Array<{ name: string; roles: Role[] }>
+}

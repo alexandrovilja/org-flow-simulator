@@ -1,23 +1,74 @@
 import type {
   Role, RoleMeta, Feature, Task, Member,
   SimState, SimSettings, SimStats, LeadTimeEntry,
-  FocusMode, WipMode,
+  FocusMode, WipMode, UnitPreset,
 } from '@/types/simulation'
 
 /** Všechny dostupné specializace v systému — pořadí odpovídá výchozímu týmu. */
 export const ROLES: Role[] = ['FE', 'BE', 'DSGN', 'QA', 'OPS', 'DATA']
 
-/** Výchozí konfigurace všech specializací — slouží jako výchozí hodnota pro uživatelský stav.
- *  Všechny role mají level 1 (paralelní zpracování) a required false — zachovává stávající chování.
- *  Uživatel může konfiguraci změnit v panelu Specializations. */
+/** Výchozí konfigurace specializací pro People preset a Compare mód.
+ *  Generické labely (Frontend, Backend…) místo tech-specifických (React, Java…)
+ *  jsou srozumitelnější pro agile coaches v kontextu workshopu. */
 export const ROLE_META: Record<Role, RoleMeta> = {
-  FE:   { label: 'React',    color: 'oklch(70% 0.14 250)', level: 1, required: false },
-  BE:   { label: 'Java',     color: 'oklch(66% 0.14 285)', level: 1, required: false },
+  FE:   { label: 'Frontend', color: 'oklch(70% 0.14 250)', level: 1, required: false },
+  BE:   { label: 'Backend',  color: 'oklch(66% 0.14 285)', level: 1, required: false },
   DSGN: { label: 'Design',   color: 'oklch(72% 0.13 25)',  level: 1, required: false },
-  QA:   { label: 'QA',       color: 'oklch(68% 0.13 145)', level: 1, required: false },
-  OPS:  { label: 'Ops',      color: 'oklch(68% 0.13 75)',  level: 1, required: false },
-  DATA: { label: 'Database', color: 'oklch(64% 0.14 320)', level: 1, required: false },
+  QA:   { label: 'Testing',  color: 'oklch(68% 0.13 145)', level: 1, required: false },
+  OPS:  { label: 'DevOps',   color: 'oklch(68% 0.13 75)',  level: 1, required: false },
+  DATA: { label: 'Data',     color: 'oklch(64% 0.14 320)', level: 1, required: false },
 }
+
+/** Jména týmů přiřazovaná v pořadí při přidání nové jednotky v Teams presetu.
+ *  Exportováno, aby Simulator mohl přiřadit jméno nové jednotce přidané za běhu. */
+export const TEAM_NAMES = ['Team A', 'Team B', 'Team C', 'Team D', 'Team E', 'Team F', 'Team G', 'Team H']
+
+/**
+ * Předdefinované presetové konfigurace — Teams a People.
+ * Každý preset definuje specializace, jména jednotek a výchozí přiřazení.
+ * Teams je výchozí preset (index 0) — zobrazí se při prvním načtení.
+ */
+export const PRESETS: UnitPreset[] = [
+  {
+    id: 'teams',
+    label: 'Teams',
+    addLabel: 'Add team',
+    roles: ['DSGN', 'ACQ', 'PAY', 'PLAT', 'CRM', 'ITST'],
+    roleMeta: {
+      DSGN: { label: 'Design',               color: 'oklch(72% 0.13 25)',  level: 1, required: false },
+      ACQ:  { label: 'Client Acquisition',   color: 'oklch(70% 0.14 160)', level: 1, required: false },
+      PAY:  { label: 'Payments',             color: 'oklch(70% 0.14 250)', level: 1, required: false },
+      PLAT: { label: 'Platform',             color: 'oklch(66% 0.14 285)', level: 1, required: false },
+      CRM:  { label: 'CRM',                  color: 'oklch(68% 0.13 75)',  level: 1, required: false },
+      ITST: { label: 'Integration Testing',  color: 'oklch(68% 0.13 145)', level: 1, required: false },
+    },
+    // Výchozí stav: každý tým má jednu specializaci — demonstrace silosové struktury
+    members: [
+      { name: 'Team A', roles: ['DSGN'] },
+      { name: 'Team B', roles: ['ACQ'] },
+      { name: 'Team C', roles: ['PAY'] },
+      { name: 'Team D', roles: ['PLAT'] },
+      { name: 'Team E', roles: ['CRM'] },
+      { name: 'Team F', roles: ['ITST'] },
+    ],
+  },
+  {
+    id: 'people',
+    label: 'People',
+    addLabel: 'Add member',
+    roles: ['FE', 'BE', 'DSGN', 'QA', 'OPS', 'DATA'],
+    // Shodné s ROLE_META — People preset používá standardní tech specializace
+    roleMeta: { ...ROLE_META },
+    members: [
+      { name: 'Ada',  roles: ['FE'] },
+      { name: 'Ben',  roles: ['BE'] },
+      { name: 'Chen', roles: ['DSGN'] },
+      { name: 'Dani', roles: ['QA'] },
+      { name: 'Eli',  roles: ['OPS'] },
+      { name: 'Fae',  roles: ['DATA'] },
+    ],
+  },
+]
 
 /** Paleta 9 barevných odstínů pro vizuální rozlišení features v UI.
  *  Features cyklují přes tyto odstíny podle svého ID. */
@@ -39,6 +90,31 @@ const FEATURE_NAMES = [
  *  Kratší jména záměrně — lépe se vejdou do karet v UI.
  *  Exportováno, aby Simulator mohl přiřadit jméno nové jednotce přidané za běhu. */
 export const MEMBER_NAMES = ['Ada', 'Ben', 'Chen', 'Dani', 'Eli', 'Fae', 'Gus', 'Hari']
+
+/**
+ * Aplikuje preset — vrátí nový tým a roleConfig odvozené z presetových dat.
+ * Používá se při kliknutí na tlačítko presetu v Settings panelu.
+ * Každé volání vrátí čerstvé objekty (žádné sdílené reference), takže
+ * mutace výsledku neovlivní preset ani výsledky předchozích volání.
+ *
+ * @param preset - Preset, jehož konfiguraci chceme aplikovat
+ * @returns Objekt s `team` (nové Member[]) a `roleConfig` (kopie roleMeta presetu)
+ */
+export function applyPreset(preset: UnitPreset): { team: Member[]; roleConfig: Record<Role, RoleMeta> } {
+  const team: Member[] = preset.members.map((m, i) => ({
+    // ID začíná od 1, stejně jako v makeInitialState — zachovává konvenci projektu
+    id: i + 1,
+    name: m.name,
+    // Hluboká kopie rolí — mutace vrácených dat nesmí ovlivnit preset
+    roles: [...m.roles],
+    currentTask: null,
+    idleSec: 0,
+  }))
+  return {
+    team,
+    roleConfig: { ...preset.roleMeta },
+  }
+}
 
 /**
  * Vytvoří deterministický generátor náhodných čísel (PRNG) s daným seedem.

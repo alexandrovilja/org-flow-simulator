@@ -3,10 +3,10 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import { flushSync } from 'react-dom'
 import {
-  ROLE_META, MEMBER_NAMES, mulberry32,
-  makeInitialState, resetFromSnapshot, regenerate, tick, computeStats,
+  ROLE_META, MEMBER_NAMES, TEAM_NAMES, PRESETS, mulberry32,
+  makeInitialState, resetFromSnapshot, regenerate, tick, computeStats, applyPreset,
 } from '@/simulation/engine'
-import type { SimSettings, SimState, Role, RoleMeta, FocusMode, WipMode } from '@/types/simulation'
+import type { SimSettings, SimState, Role, RoleMeta, FocusMode, WipMode, UnitPreset, ActivePresetId } from '@/types/simulation'
 import { FeatureCard } from '@/components/FeatureCard'
 import { MemberCard } from '@/components/MemberCard'
 import { RoleSettings } from '@/components/RoleSettings'
@@ -24,7 +24,7 @@ import {
   makeCompareStates, COMPARE_SETTINGS,
 } from '@/simulation/compareMode'
 import type { TeamType } from '@/simulation/compareMode'
-import { isTutorialCompleted, markTutorialCompleted, hasSeenMode, markModeSeen } from '@/lib/storage'
+import { isTutorialCompleted, markTutorialCompleted, hasSeenMode, markModeSeen, getActivePresetId, setActivePresetId } from '@/lib/storage'
 import { TutorialOverlay } from '@/components/TutorialOverlay'
 import type { TutorialMode } from '@/types/tutorial'
 
@@ -124,7 +124,20 @@ export function Simulator() {
   const [prevStats, setPrevStats] = useState<RunSnapshot | null>(null)
   const lastFinishedRef = useRef<RunSnapshot | null>(null)
 
-  const [roleConfig, setRoleConfig] = useState<Record<Role, RoleMeta>>(() => ({ ...ROLE_META }))
+  // Active preset — persisted in localStorage; 'teams' is the default on first load
+  const [activePresetId, setActivePresetIdState] = useState<ActivePresetId>(() => getActivePresetId())
+  const activePresetIdRef = useRef<ActivePresetId>(getActivePresetId())
+  useEffect(() => { activePresetIdRef.current = activePresetId }, [activePresetId])
+
+  // Preset to confirm — non-null when the dialog should be shown (custom state only)
+  const [confirmingPreset, setConfirmingPreset] = useState<UnitPreset | null>(null)
+
+  // Initialize roleConfig from the active preset (or default Teams preset on first load)
+  const [roleConfig, setRoleConfig] = useState<Record<Role, RoleMeta>>(() => {
+    const id = getActivePresetId()
+    const preset = PRESETS.find(p => p.id === id) ?? PRESETS[0]
+    return { ...preset.roleMeta }
+  })
   const [showRoleSettings, setShowRoleSettings] = useState(false)
   const [showBacklogControls, setShowBacklogControls] = useState(false)
   const [showTeamSettings, setShowTeamSettings] = useState(false)
@@ -145,7 +158,11 @@ export function Simulator() {
   const rngRef      = useRef(mulberry32(42))
   const stateRef    = useRef<SimState | null>(null)
   if (stateRef.current === null) {
-    stateRef.current = makeInitialState(rngRef.current, DEFAULT_SETTINGS)
+    const initPreset = PRESETS.find(p => p.id === getActivePresetId()) ?? PRESETS[0]
+    const { team: initTeam } = applyPreset(initPreset)
+    stateRef.current = makeInitialState(rngRef.current, DEFAULT_SETTINGS, initPreset.roleMeta)
+    // Override the defaultTeam created by makeInitialState with the preset's team
+    stateRef.current.team = initTeam
   }
   const settingsRef  = useRef(settings)
   const speedRef     = useRef(speed)
@@ -367,11 +384,56 @@ export function Simulator() {
     forceUpdate(n => n + 1)
   }, [])
 
+  /** Marks the current config as 'custom' — called after any manual team or role edit. */
+  const markCustom = useCallback(() => {
+    setActivePresetIdState('custom')
+    setActivePresetId('custom')
+  }, [])
+
+  /**
+   * Applies a preset: replaces team + roleConfig, regenerates backlog, resets simulation.
+   * Always regenerates the backlog because roles differ between presets — keeping the old
+   * backlog would leave tasks for roles that no longer exist in the new preset.
+   *
+   * @param preset - The preset to apply
+   */
+  const doApplyPreset = useCallback((preset: UnitPreset) => {
+    const { team, roleConfig: newRoleConfig } = applyPreset(preset)
+    // Fresh RNG seed so the new backlog is reproducible from t=0 after reset
+    rngRef.current = mulberry32(42)
+    stateRef.current = makeInitialState(rngRef.current, settingsRef.current, newRoleConfig)
+    stateRef.current.team = team
+    setRoleConfig(newRoleConfig)
+    setActivePresetIdState(preset.id)
+    setActivePresetId(preset.id)
+    setPaused(true)
+    setHasStarted(false)
+    forceUpdate(n => n + 1)
+  }, [])
+
+  /** Called when user clicks a preset button in Settings. */
+  const handlePresetClick = useCallback((preset: UnitPreset) => {
+    if (activePresetIdRef.current === 'custom') {
+      // Custom state: show confirmation dialog before overwriting
+      setConfirmingPreset(preset)
+    } else {
+      doApplyPreset(preset)
+    }
+  }, [doApplyPreset])
+
+  /** Called when user confirms the dialog ("Apply preset"). */
+  const handleConfirmPreset = useCallback(() => {
+    if (!confirmingPreset) return
+    doApplyPreset(confirmingPreset)
+    setConfirmingPreset(null)
+  }, [confirmingPreset, doApplyPreset])
+
   const handleRenameMember = useCallback((memberId: number, name: string) => {
     const m = stateRef.current?.team.find(m => m.id === memberId)
     if (m) m.name = name
+    markCustom()
     forceUpdate(n => n + 1)
-  }, [])
+  }, [markCustom])
 
   const handleRemoveMember = useCallback((memberId: number) => {
     const s = stateRef.current
@@ -383,29 +445,35 @@ export function Simulator() {
       if (t) { t.status = 'todo'; t.assignee = null; t.progress = 0 }
     }
     s.team = s.team.filter(m => m.id !== memberId)
+    markCustom()
     forceUpdate(n => n + 1)
-  }, [])
+  }, [markCustom])
 
   const handleAddMember = useCallback(() => {
     const s = stateRef.current
     if (!s) return
     const usedNames = new Set(s.team.map(m => m.name))
-    const name = MEMBER_NAMES.find(n => !usedNames.has(n)) ?? `Unit ${s.team.length + 1}`
+    // Pick name from the pool matching the active preset; fall back to generic label
+    const namePool = activePresetIdRef.current === 'teams' ? TEAM_NAMES : MEMBER_NAMES
+    const name = namePool.find(n => !usedNames.has(n)) ?? `Unit ${s.team.length + 1}`
     const maxId = s.team.reduce((max, m) => Math.max(max, m.id), 0)
     s.team.push({ id: maxId + 1, name, roles: [], currentTask: null, idleSec: 0 })
+    markCustom()
     forceUpdate(n => n + 1)
-  }, [])
+  }, [markCustom])
 
   const handleRoleChange = useCallback((roleId: string, updates: Partial<RoleMeta>) => {
     setRoleConfig(prev => ({ ...prev, [roleId]: { ...prev[roleId], ...updates } }))
-  }, [])
+    markCustom()
+  }, [markCustom])
 
   const handleAddRole = useCallback((label: string, color: string) => {
     setRoleConfig(prev => {
       const { roleConfig: next } = addRole(prev, label, color)
       return next
     })
-  }, [])
+    markCustom()
+  }, [markCustom])
 
   const handleDeleteRole = useCallback((roleId: string) => {
     const s = stateRef.current
@@ -414,8 +482,9 @@ export function Simulator() {
       const { roleConfig: next } = deleteRole(s, prev, roleId)
       return next
     })
+    markCustom()
     forceUpdate(n => n + 1)
-  }, [])
+  }, [markCustom])
 
   const handleRegenerate = useCallback(() => {
     if (lastFinishedRef.current) setPrevStats(lastFinishedRef.current)
@@ -713,8 +782,96 @@ export function Simulator() {
         </div>
 
         {/* data-tutorial-target lets the spotlight cover backlog generation + specialization controls */}
-        <div data-tutorial-target="experiment-settings" style={{ flex: '0 0 auto', padding: '12px 14px 14px', display: 'flex', flexDirection: 'column', gap: 12, background: 'var(--panel)' }}>
+        <div data-tutorial-target="experiment-settings" style={{ flex: '0 0 auto', padding: '12px 14px 14px', display: 'flex', flexDirection: 'column', gap: 12, background: 'var(--panel)', position: 'relative' }}>
           <h3 style={{ margin: 0, fontSize: 12, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5, color: 'var(--ink-2)' }}>Settings</h3>
+
+          {/* Unit preset buttons — always visible at the top of Settings */}
+          <div style={{ paddingBottom: 10, borderBottom: '1px solid var(--line)', marginBottom: -4 }}>
+            <div style={{ fontSize: 10, fontWeight: 500, color: 'var(--ink-3)', marginBottom: 6, letterSpacing: 0.2 }}>
+              Unit preset
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+              {PRESETS.map(preset => (
+                <button
+                  key={preset.id}
+                  onClick={() => handlePresetClick(preset)}
+                  style={{
+                    fontFamily: 'inherit',
+                    fontSize: 11, fontWeight: 500,
+                    padding: '4px 12px', borderRadius: 5,
+                    cursor: 'pointer',
+                    background: activePresetId === preset.id ? 'var(--ink)' : 'transparent',
+                    color: activePresetId === preset.id ? 'white' : 'var(--ink-3)',
+                    border: activePresetId === preset.id ? '1px solid var(--ink)' : '1px solid var(--line-2)',
+                    transition: 'background 0.13s ease, color 0.13s ease, border-color 0.13s ease',
+                  }}
+                >
+                  {preset.label}
+                </button>
+              ))}
+              {activePresetId === 'custom' && (
+                <span style={{
+                  marginLeft: 'auto',
+                  fontSize: 9, fontWeight: 500, letterSpacing: 0.3,
+                  color: 'var(--ink-3)', background: 'var(--bg)',
+                  border: '1px solid var(--line-2)',
+                  padding: '1px 6px', borderRadius: 3,
+                }}>
+                  custom
+                </span>
+              )}
+            </div>
+          </div>
+
+          {/* Confirmation dialog — overlays Settings panel when switching from custom state */}
+          {confirmingPreset && (
+            <div style={{
+              position: 'absolute', inset: 0,
+              background: 'rgba(246, 245, 242, 0.84)',
+              backdropFilter: 'blur(2px)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              borderRadius: 'var(--radius)',
+              zIndex: 10,
+            }}>
+              <div style={{
+                background: 'var(--panel)',
+                border: '1px solid var(--line)',
+                borderRadius: 10, padding: 16, width: 200,
+                boxShadow: '0 4px 24px rgba(20,20,30,0.14), 0 1px 3px rgba(20,20,30,0.08)',
+              }}>
+                <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink)', marginBottom: 5 }}>
+                  Apply &ldquo;{confirmingPreset.label}&rdquo; preset?
+                </div>
+                <div style={{ fontSize: 11, color: 'var(--ink-2)', lineHeight: 1.5, marginBottom: 13 }}>
+                  Your current team and specializations will be replaced. This cannot be undone.
+                </div>
+                <div style={{ display: 'flex', gap: 6 }}>
+                  <button
+                    onClick={() => setConfirmingPreset(null)}
+                    style={{
+                      flex: 1, fontFamily: 'inherit', fontSize: 11, fontWeight: 500,
+                      padding: '5px 0', borderRadius: 5,
+                      border: '1px solid var(--line-2)', background: 'transparent',
+                      color: 'var(--ink-2)', cursor: 'pointer',
+                    }}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleConfirmPreset}
+                    style={{
+                      flex: 1, fontFamily: 'inherit', fontSize: 11, fontWeight: 600,
+                      padding: '5px 0', borderRadius: 5,
+                      border: 'none', background: 'var(--ink)',
+                      color: 'white', cursor: 'pointer',
+                    }}
+                  >
+                    Apply preset
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Hidden file input — triggered by the Import button below */}
           <input
@@ -913,7 +1070,7 @@ export function Simulator() {
             border: '1px dashed var(--line-2)', borderRadius: 4,
             background: 'transparent', color: 'var(--ink-3)', fontWeight: 500, letterSpacing: 0.3,
           }}>
-            + Add unit
+            {activePresetId === 'teams' ? '+ Add team' : activePresetId === 'people' ? '+ Add member' : '+ Add unit'}
           </button>
         </div>
       </section>

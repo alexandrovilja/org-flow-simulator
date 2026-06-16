@@ -6,9 +6,13 @@
  * Tutorial flags:
  *   'tutorial-completed'   — set permanently when user finishes or skips any tutorial
  *   'tutorial-seen-modes'  — JSON array of TutorialMode strings the user has already seen
+ *
+ * Preset:
+ *   'unit-preset'          — active preset id: 'teams' | 'people' | 'custom'
  */
 
 import type { TutorialMode } from '@/types/tutorial'
+import type { ActivePresetId } from '@/types/simulation'
 
 // ── Key constants ─────────────────────────────────────────────────────────────
 
@@ -20,6 +24,9 @@ const TUTORIAL_COMPLETED_KEY = 'tutorial-completed'
  * shown a tutorial for — e.g. ["compare", "experiment"].
  */
 const TUTORIAL_SEEN_MODES_KEY = 'tutorial-seen-modes'
+
+/** localStorage key that records the active unit preset ('teams' | 'people' | 'custom'). */
+const ACTIVE_PRESET_KEY = 'unit-preset'
 
 // ── Tutorial: completed flag ───────────────────────────────────────────────────
 
@@ -90,4 +97,37 @@ export function markModeSeen(mode: TutorialMode): void {
 export function resetTutorial(): void {
   localStorage.removeItem(TUTORIAL_COMPLETED_KEY)
   localStorage.removeItem(TUTORIAL_SEEN_MODES_KEY)
+}
+
+// ── Active preset ─────────────────────────────────────────────────────────────
+
+/**
+ * Returns the currently stored active preset id.
+ * Defaults to 'teams' when nothing is stored — Teams is the default preset
+ * shown on first load.
+ */
+export function getActivePresetId(): ActivePresetId {
+  const stored = localStorage.getItem(ACTIVE_PRESET_KEY)
+  if (stored === 'teams' || stored === 'people' || stored === 'custom') return stored
+  // No stored value means first visit — return the default preset.
+  return 'teams'
+}
+
+/**
+ * Persists the active preset id to localStorage.
+ * Called whenever the user clicks a preset button or makes a manual edit.
+ *
+ * @param id - The preset id to store ('teams', 'people', or 'custom')
+ */
+export function setActivePresetId(id: ActivePresetId): void {
+  localStorage.setItem(ACTIVE_PRESET_KEY, id)
+}
+
+/**
+ * Removes the stored preset id from localStorage.
+ * Intended for use in tests (beforeEach cleanup) so tests start with the
+ * default 'teams' value without bleeding state between test cases.
+ */
+export function resetActivePresetId(): void {
+  localStorage.removeItem(ACTIVE_PRESET_KEY)
 }
