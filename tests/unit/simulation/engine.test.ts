@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { mulberry32, makeInitialState, resetFromSnapshot, tick, computeStats } from '@/simulation/engine'
+import { mulberry32, makeInitialState, resetFromSnapshot, tick, computeStats, regenerate, applyPreset, PRESETS } from '@/simulation/engine'
 import type { SimSettings } from '@/types/simulation'
 
 const DEFAULT_SETTINGS: SimSettings = {
@@ -196,6 +196,79 @@ describe('determinismus simulace', () => {
     }
 
     expect(runWithSpeed(1)).toBe(runWithSpeed(10))
+  })
+})
+
+describe('regenerate', () => {
+  // Bug: regenerate() vždy vytváří tým přes defaultTeam() s jmény z MEMBER_NAMES
+  // (Ada, Ben…), čímž přepsal jména nastavená presetem (Team A, Team B…).
+  // Oprava: volající (handleRegenerate) po regenerate() překopíruje existující tým
+  // a resetuje pouze per-simulační stav (currentTask, idleSec).
+
+  it('vrátí stav s backlogem požadované délky', () => {
+    const { state } = regenerate(DEFAULT_SETTINGS)
+    expect(state.backlog).toHaveLength(DEFAULT_SETTINGS.initialBacklog)
+  })
+
+  it('vrátí nový RNG nezávislý na předchozích voláních', () => {
+    const { rng: rng1 } = regenerate(DEFAULT_SETTINGS)
+    const { rng: rng2 } = regenerate(DEFAULT_SETTINGS)
+    // Dvě volání mají různý seed → různé první hodnoty
+    expect(rng1()).not.toBe(rng2())
+  })
+
+  it('bez zachování týmu přepíše jména presetových jednotek výchozími (Ada, Ben…)', () => {
+    // Dokumentuje chování samotného regenerate() — intentional, ne bug.
+    // Bug nastane teprve pokud volající nezachová existující tým.
+    const teamsPreset = PRESETS.find(p => p.id === 'teams')!
+    const { state } = regenerate(DEFAULT_SETTINGS, teamsPreset.roleMeta)
+    const names = state.team.map(m => m.name)
+    expect(names).not.toContain('Team A')
+  })
+
+  it('po zachování existujícího týmu zůstanou jména Teams presetu', () => {
+    // Toto je pattern použitý v handleRegenerate (Simulator.tsx) — fix bugu.
+    const teamsPreset = PRESETS.find(p => p.id === 'teams')!
+    const { team: existingTeam } = applyPreset(teamsPreset)
+    const { state } = regenerate(DEFAULT_SETTINGS, teamsPreset.roleMeta)
+    // Zachováme existující tým, jen vynulujeme simulační stav
+    state.team = existingTeam.map(m => ({ ...m, currentTask: null, idleSec: 0 }))
+    expect(state.team.map(m => m.name)).toEqual(
+      ['Team A', 'Team B', 'Team C', 'Team D', 'Team E', 'Team F'],
+    )
+  })
+
+  it('po zachování týmu People presetu zůstanou jména Ada–Fae', () => {
+    const peoplePreset = PRESETS.find(p => p.id === 'people')!
+    const { team: existingTeam } = applyPreset(peoplePreset)
+    const { state } = regenerate(DEFAULT_SETTINGS, peoplePreset.roleMeta)
+    state.team = existingTeam.map(m => ({ ...m, currentTask: null, idleSec: 0 }))
+    expect(state.team.map(m => m.name)).toEqual(
+      ['Ada', 'Ben', 'Chen', 'Dani', 'Eli', 'Fae'],
+    )
+  })
+
+  it('po zachování týmu je simulační stav všech členů vynulován', () => {
+    const teamsPreset = PRESETS.find(p => p.id === 'teams')!
+    const { team: existingTeam } = applyPreset(teamsPreset)
+    // Simulujeme "dirty" stav z předchozího běhu
+    existingTeam[0].idleSec = 42
+    const { state } = regenerate(DEFAULT_SETTINGS, teamsPreset.roleMeta)
+    state.team = existingTeam.map(m => ({ ...m, currentTask: null, idleSec: 0 }))
+    for (const m of state.team) {
+      expect(m.currentTask).toBeNull()
+      expect(m.idleSec).toBe(0)
+    }
+  })
+
+  it('po zachování týmu jsou zachovány i role členů', () => {
+    const teamsPreset = PRESETS.find(p => p.id === 'teams')!
+    const { team: existingTeam } = applyPreset(teamsPreset)
+    const { state } = regenerate(DEFAULT_SETTINGS, teamsPreset.roleMeta)
+    state.team = existingTeam.map(m => ({ ...m, currentTask: null, idleSec: 0 }))
+    expect(state.team[0].roles).toEqual(['DSGN'])
+    expect(state.team[1].roles).toEqual(['ACQ'])
+    expect(state.team[2].roles).toEqual(['PAY'])
   })
 })
 

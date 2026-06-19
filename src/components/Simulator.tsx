@@ -489,6 +489,8 @@ export function Simulator() {
   const handleRegenerate = useCallback(() => {
     if (lastFinishedRef.current) setPrevStats(lastFinishedRef.current)
     const { state, rng } = regenerate(settingsRef.current, roleConfigRef.current)
+    // Preserve current team names and roles — only reset per-simulation state
+    state.team = stateRef.current!.team.map(m => ({ ...m, currentTask: null, idleSec: 0 }))
     stateRef.current = state
     rngRef.current   = rng
     setPaused(true)
