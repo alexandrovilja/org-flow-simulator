@@ -9,21 +9,27 @@ interface StatTileProps {
   wide?: boolean
   /**
    * Procentuální změna oproti předchozímu běhu simulace.
-   * Záporná hodnota = pokles (zelená šipka dolů = zlepšení).
-   * Kladná hodnota = nárůst (červená šipka nahoru = zhoršení).
+   * Výchozí sémantika (higherIsBetter=false, platí pro Cycle Time/WIP/Wait/Handoffs):
+   * záporná hodnota = pokles = zlepšení = zelená šipka dolů; kladná = nárůst = zhoršení = červená šipka nahoru.
    * Undefined = první běh, žádné srovnání není k dispozici.
    */
   delta?: number
+  /**
+   * Obrátí barevnou sémantiku delta indikátoru — pro metriky, kde vyšší hodnota je lepší
+   * (např. Total Revenue). Šipka (↓/↑) vždy odpovídá skutečnému směru změny, mění se jen barva:
+   * kladná delta = zelená (zlepšení), záporná = červená (zhoršení). Výchozí: false.
+   */
+  higherIsBetter?: boolean
 }
 
-export function StatTile({ label, value, unit, hint, tooltip, variant, finished, wide, delta }: StatTileProps) {
+export function StatTile({ label, value, unit, hint, tooltip, variant, finished, wide, delta, higherIsBetter = false }: StatTileProps) {
   const isTimer = variant === 'timer'
 
   const borderColor = isTimer && finished ? 'var(--done)' : 'var(--line)'
   const bg = isTimer && finished ? 'oklch(97% 0.02 155)' : 'var(--panel)'
 
   return (
-    <div title={tooltip} style={{
+    <div title={tooltip} data-testid={`stat-tile-${label}`} style={{
       background: bg,
       border: `1px solid ${borderColor}`,
       borderRadius: 6,
@@ -78,13 +84,13 @@ export function StatTile({ label, value, unit, hint, tooltip, variant, finished,
       </span>
       {hint && <span style={{ fontSize: 10, color: 'var(--ink-3)' }}>{hint}</span>}
       {/* Delta indikátor porovnávající aktuální hodnotu s předchozím během.
-          Záporné delta = pokles = zlepšení = zelená šipka dolů.
-          Kladné delta = nárůst = zhoršení = červená šipka nahoru. */}
+          Šipka vždy odpovídá skutečnému směru změny; barva závisí na higherIsBetter
+          (výchozí: záporné delta = pokles = zlepšení = zelená; obráceně pro higherIsBetter). */}
       {delta !== undefined && (
         <span style={{
           fontSize: 10,
           fontWeight: 600,
-          color: delta < 0 ? 'var(--done)' : 'oklch(58% 0.2 25)',
+          color: (higherIsBetter ? delta > 0 : delta < 0) ? 'var(--done)' : 'oklch(58% 0.2 25)',
           letterSpacing: 0.2,
         }}>
           {delta < 0 ? `↓ ${Math.abs(delta).toFixed(0)}%` : `↑ ${delta.toFixed(0)}%`}

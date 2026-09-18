@@ -4,21 +4,21 @@ import { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import { flushSync } from 'react-dom'
 import {
   ROLE_META, MEMBER_NAMES, TEAM_NAMES, PRESETS, mulberry32,
-  makeInitialState, resetFromSnapshot, regenerate, tick, computeStats, applyPreset,
+  makeInitialState, resetFromSnapshot, regenerate, tick, computeStats, computeRevenueAsOf, applyPreset,
 } from '@/simulation/engine'
-import type { SimSettings, SimState, Role, RoleMeta, FocusMode, WipMode, UnitPreset, ActivePresetId } from '@/types/simulation'
-import { FeatureCard } from '@/components/FeatureCard'
-import { MemberCard } from '@/components/MemberCard'
-import { RoleSettings } from '@/components/RoleSettings'
+import type { SimSettings, SimState, Feature, Role, RoleMeta, FocusMode, WipMode, UnitPreset, ActivePresetId } from '@/types/simulation'
 import { StatTile } from '@/components/StatTile'
-import { Slider } from '@/components/Slider'
 import { SpeedControl } from '@/components/SpeedControl'
 import { PanelHeader } from '@/components/PanelHeader'
-import { SegmentedControl } from '@/components/SegmentedControl'
 import { ComparePanel } from '@/components/ComparePanel'
+import { CashFlowPanel } from '@/components/CashFlowPanel'
+import { BacklogSettingsPanel } from '@/components/BacklogSettingsPanel'
+import { InProgressTeamPanel } from '@/components/InProgressTeamPanel'
+import { useCashFlowSimSetup } from '@/hooks/useCashFlowSimSetup'
 import { formatTime } from '@/lib/formatTime'
+import { formatEuro } from '@/lib/formatCurrency'
 import { featureMaxWork } from '@/lib/featureSize'
-import { parseXlsFile, downloadTemplate, type ImportResult } from '@/lib/xlsImport'
+import { parseXlsFile, type ImportResult } from '@/lib/xlsImport'
 import { addRole, deleteRole } from '@/simulation/roleManagement'
 import {
   makeCompareStates, COMPARE_SETTINGS,
@@ -30,8 +30,9 @@ import type { TutorialMode } from '@/types/tutorial'
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
-/** Application-level mode: Compare shows two teams side-by-side, Experiment is the full sandbox. */
-type AppMode = 'compare' | 'experiment'
+/** Application-level mode: Compare shows two teams side-by-side, Experiment is the full sandbox,
+ *  Cash Flow is a standalone preview mode showing the financial impact of cycle time and WIP. */
+type AppMode = 'compare' | 'experiment' | 'cashflow'
 
 // ── Experiment mode defaults ─────────────────────────────────────────────────
 
@@ -43,6 +44,13 @@ const DEFAULT_SETTINGS: SimSettings = {
   initialBacklog: 100,
   minSpecializations: 1,
 }
+
+// ── Cash Flow mode settings (feat-015) ──────────────────────────────────────
+// Odvozeno z DEFAULT_SETTINGS, aby se obě konfigurace neodchýlily při budoucí úpravě
+// (wipLimit, sizeVar, roleVar, minSpecializations) — liší se jen initialBacklog: 20
+// odpovídá Příkladu 2 v features/feat-015-cash-flow-mod.md, dost velký na to, aby bylo
+// Gaussovo rozdělení revenuePerTick vizuálně patrné.
+const CASHFLOW_SETTINGS: SimSettings = { ...DEFAULT_SETTINGS, initialBacklog: 20 }
 
 // ── Simulator component ───────────────────────────────────────────────────────
 
@@ -114,6 +122,43 @@ export function Simulator() {
     compareRngBRef.current   = rngB
   }
 
+  // ── Cash Flow mode state (feat-015) ─────────────────────────────────────────
+  // Vlastní, nezávislý SimState/rng/settings/roleConfig/tým — plná parita s Advanced módem
+  // (backlog, specializace, presety, XLS import), jen bez Total Wait/Avg Handoffs a s revenue
+  // navíc. `useCashFlowSimSetup` zrcadlí Advanced módu stejnou logiku jako samostatná instance.
+  const [cashFlowPaused, setCashFlowPaused]         = useState(true)
+  const [cashFlowHasStarted, setCashFlowHasStarted] = useState(false)
+  // Volá se z hooku pokaždé, když handler uvnitř něj zcela nahradí stateRef.current (XLS
+  // import, preset apply) — mirror Advanced módu, který na stejných místech dělá totéž
+  // inline (setPaused(true); setHasStarted(false)). handleRegenerate tímto NEprochází —
+  // jeho pause-reset řeší handleCashFlowRegenerate níže, propletený s promocí prevStats.
+  const handleCashFlowStateReplaced = useCallback(() => {
+    setCashFlowPaused(true)
+    setCashFlowHasStarted(false)
+  }, [])
+  const cf = useCashFlowSimSetup(CASHFLOW_SETTINGS, handleCashFlowStateReplaced)
+  const [cashFlowSpeed, setCashFlowSpeed]           = useState<number>(1)
+  const cashFlowPausedRef = useRef(true)
+  const cashFlowSpeedRef  = useRef(1)
+  useEffect(() => { cashFlowPausedRef.current = cashFlowPaused }, [cashFlowPaused])
+  useEffect(() => { cashFlowSpeedRef.current   = cashFlowSpeed }, [cashFlowSpeed])
+
+  // Run comparison (feat-015) — stejný vzor jako Advanced mód (lastFinishedRef/prevStats):
+  // zachytí se jen když běh přirozeně doběhne (state.finished, auto-pauza je vždy okamžitá),
+  // a promotuje se do prevStats při Reset/Regenerate. Total Revenue nejde porovnávat přímo
+  // (běhy různé délky = nefér srovnání kumulativního čísla) — proto doneFeatures ukládá
+  // minimální per-feature data pro zpětný dopočet revenue k libovolnému dřívějšímu času
+  // (computeRevenueAsOf), viz cfRevenueDelta níže.
+  type CashFlowRunSnapshot = {
+    avgLt: number
+    avgWip: number
+    totalTime: number
+    totalRevenue: number
+    doneFeatures: Pick<Feature, 'finishedAt' | 'revenuePerTick'>[]
+  }
+  const [cashFlowPrevStats, setCashFlowPrevStats] = useState<CashFlowRunSnapshot | null>(null)
+  const cashFlowLastFinishedRef = useRef<CashFlowRunSnapshot | null>(null)
+
   // ── Experiment mode state ─────────────────────────────────────────────────
   const [settings, setSettings] = useState<SimSettings>(DEFAULT_SETTINGS)
   const [speed, setSpeed]       = useState(1)
@@ -176,6 +221,9 @@ export function Simulator() {
     let raf: number
     let lastT      = performance.now()
     let accumulated = 0
+    // Vlastní accumulator pro Cash Flow — oddělený od `accumulated` výše, aby zbytková
+    // hodnota z Compare/Advanced při přepnutí tabu neovlivnila Cash Flow ticking.
+    let cashFlowAccumulated = 0
     const TARGET_DT_MS = 1000 / 60
 
     const step = (t: number) => {
@@ -206,7 +254,7 @@ export function Simulator() {
         } else {
           accumulated = 0
         }
-      } else {
+      } else if (modeRef.current === 'experiment') {
         // Experiment mode — original logic unchanged.
         if (!pausedRef.current && stateRef.current) {
           const state = stateRef.current
@@ -231,6 +279,41 @@ export function Simulator() {
         } else {
           accumulated = 0
         }
+      } else if (modeRef.current === 'cashflow') {
+        if (!cashFlowPausedRef.current && cf.stateRef.current && cf.rngRef.current) {
+          const state = cf.stateRef.current
+          if (!state.finished) {
+            cashFlowAccumulated += elapsed * cashFlowSpeedRef.current
+            while (cashFlowAccumulated >= TARGET_DT_MS && !state.finished) {
+              const dtSim = TARGET_DT_MS / 1000
+              tick(state, dtSim, cf.settingsRef.current, cf.rngRef.current, cf.roleConfigRef.current, cf.focusModeRef.current, cf.wipModeRef.current)
+              cashFlowAccumulated -= TARGET_DT_MS
+            }
+            // Auto-pause once the whole backlog is processed — matches Advanced mode's
+            // behavior. Revenue already accrued on Done features is kept; it just stops
+            // growing further once ticking stops (no more work left to demonstrate).
+            if (state.finished) {
+              setCashFlowPaused(true)
+              const finishedStats = computeStats(state.leadTimes)
+              const finishedAvgWip = state.simTime > 0.5 ? state.wipIntegral / state.simTime : 0
+              if (finishedStats.count > 0) {
+                cashFlowLastFinishedRef.current = {
+                  avgLt: finishedStats.avg, avgWip: finishedAvgWip,
+                  totalTime: state.simTime, totalRevenue: state.totalRevenueAllTime,
+                  // doneOverflow zahrnuto, aby zpětný dopočet (computeRevenueAsOf) nepodhodnocoval
+                  // běhy s > 40 dokončenými featurami — stejný fix jako pro živé totalRevenueAllTime.
+                  doneFeatures: [
+                    ...state.done.map(f => ({ finishedAt: f.finishedAt, revenuePerTick: f.revenuePerTick })),
+                    ...state.doneOverflow.map(o => ({ finishedAt: o.finishedAt, revenuePerTick: o.revenuePerTick })),
+                  ],
+                }
+              }
+            }
+          }
+          flushSync(() => { forceUpdate(n => (n + 1) & 0xFFFF) })
+        } else {
+          cashFlowAccumulated = 0
+        }
       }
 
       raf = requestAnimationFrame(step)
@@ -238,6 +321,11 @@ export function Simulator() {
 
     raf = requestAnimationFrame(step)
     return () => cancelAnimationFrame(raf)
+    // cf.stateRef/cf.rngRef/etc. are useRef() objects created inside useCashFlowSimSetup and
+    // are stable across renders — only the `cf` wrapper object is recreated each render, which
+    // is why ESLint can't statically prove their stability here. Same reasoning as the other
+    // refs already read in this effect (stateRef, rngRef, settingsRef, ...).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   // ── Mode switching ─────────────────────────────────────────────────────────
@@ -350,6 +438,7 @@ export function Simulator() {
         })),
         inProgress: [],
         done: [],
+        doneOverflow: [],
         team: result.team,
         leadTimes: [],
         simTime: 0,
@@ -357,6 +446,7 @@ export function Simulator() {
         lastGenAt: 0,
         startedAt: null,
         finished: false,
+        totalRevenueAllTime: 0,
       }
 
       stateRef.current = newState
@@ -521,6 +611,54 @@ export function Simulator() {
   const handoffsDelta = prevStats && stats.count > 0 ? calcDelta(stats.avgHandoffs, prevStats.avgHandoffs) : undefined
   const maxWork = featureMaxWork(s.backlog, s.inProgress)
 
+  // ── Derived values (Cash Flow mode) — same pattern as Advanced above, feat-015 ─────
+  const cfState = cf.stateRef.current!
+  const cfStats = useMemo(
+    () => computeStats(cfState.leadTimes),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [cfState.leadTimes.length, cfState.leadTimes[cfState.leadTimes.length - 1]?.id],
+  )
+  const cfTotalTimeDisplay = cfState.simTime > 0 || cfState.finished ? formatTime(cfState.simTime) : '00:00.0'
+  const cfAvgWip = cfState.simTime > 0.5 ? cfState.wipIntegral / cfState.simTime : null
+  const cfLtDelta = cashFlowPrevStats && cfStats.count > 0 ? calcDelta(cfStats.avg, cashFlowPrevStats.avgLt) : undefined
+  const cfWipDelta = cashFlowPrevStats && cfAvgWip !== null ? calcDelta(cfAvgWip, cashFlowPrevStats.avgWip) : undefined
+  const cfTimeDelta = cashFlowPrevStats && cfState.finished ? calcDelta(cfState.simTime, cashFlowPrevStats.totalTime) : undefined
+  // Time-matched porovnání revenue (feat-015 refinement) — finální totaly nejsou fér
+  // porovnatelné mezi běhy různé délky (delší běh měl víc času na akumulaci revenue).
+  // Obě strany se vyhodnotí ve STEJNÉM referenčním čase = dřívějším ze dvou celkových
+  // časů; strana s delším vlastním časem se dopočítá zpětně z uložených per-feature dat.
+  // Velké číslo na dlaždici (formatEuro(cfState.totalRevenueAllTime), níže) zůstává
+  // skutečný finální total — jen tato delta je time-matched.
+  let cfRevenueDelta: number | undefined
+  let cfRevenueDeltaHint: string | undefined
+  if (cashFlowPrevStats && cfState.finished) {
+    const compareTime = Math.min(cfState.simTime, cashFlowPrevStats.totalTime)
+    // doneOverflow zahrnuto stejně jako v cashFlowLastFinishedRef výše — jinak by delta
+    // podhodnocovala běhy s > 40 dokončenými featurami.
+    cfRevenueDelta = calcDelta(
+      computeRevenueAsOf([...cfState.done, ...cfState.doneOverflow], compareTime),
+      computeRevenueAsOf(cashFlowPrevStats.doneFeatures, compareTime),
+    )
+    // Anchor time se zobrazuje jen když má k čemu patřit — degenerovaný okrajový
+    // případ (compareTime tak brzy, že ani jedna strana ještě nic nevydělala) by jinak
+    // ukázal osamocený hint bez delty pod ním.
+    if (cfRevenueDelta !== undefined) {
+      cfRevenueDeltaHint = `@ ${formatTime(compareTime)}`
+    }
+  }
+  const cfMaxWork = featureMaxWork(cfState.backlog, cfState.inProgress)
+
+  /** Wraps cf.handleRegenerate to also promote the last finished run into prevStats first —
+   *  mirrors Advanced mode's handleRegenerate, which lives in Simulator.tsx (not the hook)
+   *  because run-comparison bookkeeping is coordinated alongside the RAF loop above. */
+  const handleCashFlowRegenerate = useCallback(() => {
+    if (cashFlowLastFinishedRef.current) setCashFlowPrevStats(cashFlowLastFinishedRef.current)
+    cf.handleRegenerate()
+    setCashFlowPaused(true)
+    setCashFlowHasStarted(false)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cf.handleRegenerate])
+
   // ── Derived values (compare mode) ─────────────────────────────────────────
 
   const sA = compareStateARef.current!
@@ -596,10 +734,45 @@ export function Simulator() {
         >
           🔬 Advanced
         </button>
+        <button
+          data-tutorial-target="mode-tab-cashflow"
+          onClick={() => setMode('cashflow')}
+          style={{
+            padding: '0 20px', background: 'transparent', border: 'none',
+            borderBottom: mode === 'cashflow' ? '2px solid var(--ink)' : '2px solid transparent',
+            cursor: 'pointer', fontSize: 13,
+            fontWeight: mode === 'cashflow' ? 600 : 400,
+            color: mode === 'cashflow' ? 'var(--ink)' : 'var(--ink-3)',
+            display: 'flex', alignItems: 'center', gap: 7,
+          }}
+        >
+          💰 Cash Flow
+        </button>
       </div>
 
       {/* Controls — differ per mode */}
-      {mode === 'compare' ? (
+      {mode === 'cashflow' ? (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+          <SpeedControl
+            speed={cashFlowSpeed}
+            paused={cashFlowPaused}
+            hasStarted={cashFlowHasStarted}
+            finished={cf.stateRef.current?.finished ?? false}
+            onSpeedChange={setCashFlowSpeed}
+            onTogglePause={() => { setCashFlowPaused(p => !p); setCashFlowHasStarted(true) }}
+            onReset={() => {
+              // Promote the last naturally-finished run into prevStats for comparison —
+              // same pattern as Advanced mode's handleReset.
+              if (cashFlowLastFinishedRef.current) setCashFlowPrevStats(cashFlowLastFinishedRef.current)
+              if (cf.stateRef.current) resetFromSnapshot(cf.stateRef.current)
+              setCashFlowPaused(true)
+              setCashFlowHasStarted(false)
+              cf.forceUpdate()
+            }}
+            runButtonTarget="cashflow-run-button"
+          />
+        </div>
+      ) : mode === 'compare' ? (
         // data-tutorial-target lets the spotlight overlay focus on the compare simulation controls
         <div data-tutorial-target="compare-controls" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           {/* ? Tutorial relaunch — always visible, opens the tutorial for this mode */}
@@ -756,6 +929,79 @@ export function Simulator() {
     )
   }
 
+  // ── Cash Flow layout — full parity with Advanced (own backlog/team/specializations),
+  // plus revenue tracking, minus Total Wait/Avg Handoffs (feat-015) ────────────────────
+
+  if (mode === 'cashflow') {
+    return (
+      <div style={{
+        height: '100vh',
+        display: 'grid',
+        gridTemplateColumns: '320px 1fr 280px',
+        gridTemplateRows: 'auto 1fr',
+        gap: 0,
+        background: 'var(--bg)',
+      }}>
+        {header}
+
+        <BacklogSettingsPanel
+          state={cfState}
+          settings={cf.settings}
+          setSettings={cf.setSettings}
+          roleConfig={cf.roleConfig}
+          activePresetId={cf.activePresetId}
+          confirmingPreset={cf.confirmingPreset}
+          setConfirmingPreset={cf.setConfirmingPreset}
+          showBacklogControls={cf.showBacklogControls}
+          setShowBacklogControls={cf.setShowBacklogControls}
+          showRoleSettings={cf.showRoleSettings}
+          setShowRoleSettings={cf.setShowRoleSettings}
+          showTeamSettings={cf.showTeamSettings}
+          setShowTeamSettings={cf.setShowTeamSettings}
+          importMsg={cf.importMsg}
+          fileInputRef={cf.fileInputRef}
+          wipMode={cf.wipMode}
+          setWipMode={cf.setWipMode}
+          maxWork={cfMaxWork}
+          handleXlsImport={cf.handleXlsImport}
+          handleRegenerate={handleCashFlowRegenerate}
+          handlePresetClick={cf.handlePresetClick}
+          handleConfirmPreset={cf.handleConfirmPreset}
+          handleRoleChange={cf.handleRoleChange}
+          handleAddRole={cf.handleAddRole}
+          handleDeleteRole={cf.handleDeleteRole}
+          tutorialTargetPrefix="cashflow"
+          getRevenueBadge={f => `${formatEuro(f.revenuePerTick)}/tick`}
+        />
+
+        <InProgressTeamPanel
+          state={cfState}
+          roleConfig={cf.roleConfig}
+          maxWork={cfMaxWork}
+          activePresetId={cf.activePresetId}
+          handleAssignRole={cf.handleAssignRole}
+          handleRemoveRole={cf.handleRemoveRole}
+          handleRenameMember={cf.handleRenameMember}
+          handleRemoveMember={cf.handleRemoveMember}
+          handleAddMember={cf.handleAddMember}
+          tutorialTargetPrefix="cashflow"
+        />
+
+        <CashFlowPanel
+          state={cfState}
+          stats={cfStats}
+          totalTimeDisplay={cfTotalTimeDisplay}
+          avgWip={cfAvgWip}
+          timeDelta={cfTimeDelta}
+          ltDelta={cfLtDelta}
+          wipDelta={cfWipDelta}
+          revenueDelta={cfRevenueDelta}
+          revenueDeltaHint={cfRevenueDeltaHint}
+        />
+      </div>
+    )
+  }
+
   // ── Experiment layout (original 3-column layout, unchanged) ───────────────
 
   return (
@@ -770,321 +1016,48 @@ export function Simulator() {
       {header}
 
       {/* LEFT: BACKLOG + CONTROLS */}
-      {/* data-tutorial-target lets the tutorial overlay spotlight the backlog panel */}
-      <section data-tutorial-target="experiment-backlog" style={{ borderRight: '1px solid var(--line)', background: 'var(--panel)', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
-        {/* data-tutorial-target lets the spotlight cover only the backlog list, not the controls below */}
-        <div data-tutorial-target="experiment-backlog-list" style={{ flex: '1 1 50%', minHeight: 0, display: 'flex', flexDirection: 'column', borderBottom: '1px solid var(--line)' }}>
-          <PanelHeader title="Backlog" count={s.backlog.length} />
-          <div style={{ flex: 1, overflow: 'auto', padding: '8px 12px 12px 12px', display: 'flex', flexDirection: 'column', gap: 6 }}>
-            {s.backlog.length === 0 && (
-              <div style={{ fontSize: 11, color: 'var(--ink-3)', fontStyle: 'italic', padding: '8px 4px' }}>No items waiting.</div>
-            )}
-            {s.backlog.map(f => <FeatureCard key={f.id} feature={f} compact neutral maxWork={maxWork} roleConfig={roleConfig} />)}
-          </div>
-        </div>
-
-        {/* data-tutorial-target lets the spotlight cover backlog generation + specialization controls */}
-        <div data-tutorial-target="experiment-settings" style={{ flex: '0 0 auto', padding: '12px 14px 14px', display: 'flex', flexDirection: 'column', gap: 12, background: 'var(--panel)', position: 'relative' }}>
-          <h3 style={{ margin: 0, fontSize: 12, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5, color: 'var(--ink-2)' }}>Settings</h3>
-
-          {/* Unit preset buttons — always visible at the top of Settings */}
-          <div style={{ paddingBottom: 10, borderBottom: '1px solid var(--line)', marginBottom: -4 }}>
-            <div style={{ fontSize: 10, fontWeight: 500, color: 'var(--ink-3)', marginBottom: 6, letterSpacing: 0.2 }}>
-              Unit preset
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-              {PRESETS.map(preset => (
-                <button
-                  key={preset.id}
-                  onClick={() => handlePresetClick(preset)}
-                  style={{
-                    fontFamily: 'inherit',
-                    fontSize: 11, fontWeight: 500,
-                    padding: '4px 12px', borderRadius: 5,
-                    cursor: 'pointer',
-                    background: activePresetId === preset.id ? 'var(--ink)' : 'transparent',
-                    color: activePresetId === preset.id ? 'white' : 'var(--ink-3)',
-                    border: activePresetId === preset.id ? '1px solid var(--ink)' : '1px solid var(--line-2)',
-                    transition: 'background 0.13s ease, color 0.13s ease, border-color 0.13s ease',
-                  }}
-                >
-                  {preset.label}
-                </button>
-              ))}
-              {activePresetId === 'custom' && (
-                <span style={{
-                  marginLeft: 'auto',
-                  fontSize: 9, fontWeight: 500, letterSpacing: 0.3,
-                  color: 'var(--ink-3)', background: 'var(--bg)',
-                  border: '1px solid var(--line-2)',
-                  padding: '1px 6px', borderRadius: 3,
-                }}>
-                  custom
-                </span>
-              )}
-            </div>
-          </div>
-
-          {/* Confirmation dialog — overlays Settings panel when switching from custom state */}
-          {confirmingPreset && (
-            <div style={{
-              position: 'absolute', inset: 0,
-              background: 'rgba(246, 245, 242, 0.84)',
-              backdropFilter: 'blur(2px)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              borderRadius: 'var(--radius)',
-              zIndex: 10,
-            }}>
-              <div style={{
-                background: 'var(--panel)',
-                border: '1px solid var(--line)',
-                borderRadius: 10, padding: 16, width: 200,
-                boxShadow: '0 4px 24px rgba(20,20,30,0.14), 0 1px 3px rgba(20,20,30,0.08)',
-              }}>
-                <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink)', marginBottom: 5 }}>
-                  Apply &ldquo;{confirmingPreset.label}&rdquo; preset?
-                </div>
-                <div style={{ fontSize: 11, color: 'var(--ink-2)', lineHeight: 1.5, marginBottom: 13 }}>
-                  Your current team and specializations will be replaced. This cannot be undone.
-                </div>
-                <div style={{ display: 'flex', gap: 6 }}>
-                  <button
-                    onClick={() => setConfirmingPreset(null)}
-                    style={{
-                      flex: 1, fontFamily: 'inherit', fontSize: 11, fontWeight: 500,
-                      padding: '5px 0', borderRadius: 5,
-                      border: '1px solid var(--line-2)', background: 'transparent',
-                      color: 'var(--ink-2)', cursor: 'pointer',
-                    }}
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    onClick={handleConfirmPreset}
-                    style={{
-                      flex: 1, fontFamily: 'inherit', fontSize: 11, fontWeight: 600,
-                      padding: '5px 0', borderRadius: 5,
-                      border: 'none', background: 'var(--ink)',
-                      color: 'white', cursor: 'pointer',
-                    }}
-                  >
-                    Apply preset
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Hidden file input — triggered by the Import button below */}
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept=".xlsx,.xls"
-            style={{ display: 'none' }}
-            onChange={e => {
-              const file = e.target.files?.[0]
-              if (file) handleXlsImport(file)
-              // Reset input so the same file can be re-imported
-              e.target.value = ''
-            }}
-          />
-
-          <div style={{ paddingTop: 4, borderTop: '1px solid var(--line)', marginTop: 4 }}>
-            <button
-              onClick={() => setShowBacklogControls(v => !v)}
-              style={{
-                width: '100%', textAlign: 'left',
-                fontSize: 11, fontFamily: 'inherit', cursor: 'pointer',
-                border: '1px solid var(--line)', borderRadius: 4,
-                padding: '4px 8px',
-                background: showBacklogControls ? 'var(--line)' : 'var(--bg)',
-                color: showBacklogControls ? 'var(--ink)' : 'var(--ink-2)',
-                fontWeight: showBacklogControls ? 600 : 400,
-              }}
-            >
-              ♻ Backlog
-            </button>
-            {showBacklogControls && (
-              <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 12 }}>
-                <div style={{ display: 'flex', gap: 6 }}>
-                  <button
-                    onClick={() => fileInputRef.current?.click()}
-                    style={{
-                      flex: 1, border: '1px solid var(--ink-2)', borderRadius: 4,
-                      padding: '6px 0', fontSize: 11, fontWeight: 600,
-                      background: 'var(--bg)', color: 'var(--ink)',
-                      cursor: 'pointer', letterSpacing: 0.2,
-                    }}
-                  >
-                    ↑ Import XLS
-                  </button>
-                  <button
-                    onClick={downloadTemplate}
-                    style={{
-                      flex: 1, border: '1px solid var(--line)', borderRadius: 4,
-                      padding: '6px 0', fontSize: 11, fontWeight: 400,
-                      background: 'var(--bg)', color: 'var(--ink-2)',
-                      cursor: 'pointer', letterSpacing: 0.2,
-                    }}
-                  >
-                    ↓ Šablona
-                  </button>
-                </div>
-
-                {importMsg && (
-                  <div style={{
-                    fontSize: 11, padding: '5px 8px', borderRadius: 4,
-                    background: importMsg.ok ? 'oklch(95% 0.05 145)' : 'oklch(95% 0.05 25)',
-                    color: importMsg.ok ? 'oklch(35% 0.13 145)' : 'oklch(35% 0.13 25)',
-                    border: `1px solid ${importMsg.ok ? 'oklch(75% 0.1 145)' : 'oklch(75% 0.1 25)'}`,
-                    lineHeight: 1.4,
-                  }}>
-                    {importMsg.ok ? '✓' : '✗'} {importMsg.text}
-                  </div>
-                )}
-
-                <button onClick={handleRegenerate} style={{
-                  background: 'var(--ink)', border: 'none', borderRadius: 4,
-                  padding: '7px 0', fontSize: 11, fontWeight: 600, color: 'white',
-                  cursor: 'pointer', width: '100%', letterSpacing: 0.2,
-                }}>
-                  ♻ Generate new backlog
-                </button>
-                <Slider label="Backlog size" value={settings.initialBacklog} min={10} max={1000} step={10}
-                  onChange={v => setSettings(s => ({ ...s, initialBacklog: v }))}
-                  format={v => `${v} items`}
-                  tooltip="Number of features generated when clicking 'Generate new backlog'." />
-                <Slider label="Min. specializations per item" value={settings.minSpecializations} min={1} max={6} step={1}
-                  onChange={v => setSettings(s => ({ ...s, minSpecializations: v }))}
-                  format={v => v === 1 ? 'no minimum' : `≥ ${v} roles`}
-                  tooltip="Minimum number of different specializations each backlog item must require." />
-                <Slider label="Item size variability" value={settings.sizeVar} min={0} max={1} step={0.05}
-                  onChange={v => setSettings(s => ({ ...s, sizeVar: v }))}
-                  format={v => v < 0.1 ? 'uniform' : v < 0.5 ? 'low' : v < 0.85 ? 'high' : 'extreme'}
-                  tooltip="How much effort varies between items." />
-                <Slider label="Role-mix variability" value={settings.roleVar} min={0} max={1} step={0.05}
-                  onChange={v => setSettings(s => ({ ...s, roleVar: v }))}
-                  format={v => v < 0.1 ? '2 roles' : v < 0.5 ? 'low' : v < 0.85 ? 'high' : '1–6 roles'}
-                  tooltip="How many different roles each item requires." />
-              </div>
-            )}
-          </div>
-          <div style={{ paddingTop: 8, borderTop: '1px solid var(--line)', marginTop: 4 }}>
-            <button
-              onClick={() => setShowRoleSettings(v => !v)}
-              style={{
-                width: '100%', textAlign: 'left',
-                fontSize: 11, fontFamily: 'inherit', cursor: 'pointer',
-                border: '1px solid var(--line)', borderRadius: 4,
-                padding: '4px 8px',
-                background: showRoleSettings ? 'var(--line)' : 'var(--bg)',
-                color: showRoleSettings ? 'var(--ink)' : 'var(--ink-2)',
-                fontWeight: showRoleSettings ? 600 : 400,
-              }}
-            >
-              ⚙ Specializations
-            </button>
-            {showRoleSettings && (
-              <div style={{ marginTop: 8 }}>
-                <RoleSettings roleConfig={roleConfig} onChange={handleRoleChange} onAdd={handleAddRole} onDelete={handleDeleteRole} />
-              </div>
-            )}
-          </div>
-          <div style={{ paddingTop: 8, borderTop: '1px solid var(--line)', marginTop: 4 }}>
-            <button
-              onClick={() => setShowTeamSettings(v => !v)}
-              style={{
-                width: '100%', textAlign: 'left',
-                fontSize: 11, fontFamily: 'inherit', cursor: 'pointer',
-                border: '1px solid var(--line)', borderRadius: 4,
-                padding: '4px 8px',
-                background: showTeamSettings ? 'var(--line)' : 'var(--bg)',
-                color: showTeamSettings ? 'var(--ink)' : 'var(--ink-2)',
-                fontWeight: showTeamSettings ? 600 : 400,
-              }}
-            >
-              👥 Team
-            </button>
-            {showTeamSettings && (
-              <div style={{ marginTop: 8 }}>
-                <SegmentedControl
-                  options={[
-                    { value: 'priority' as WipMode, label: 'Priority' },
-                    { value: 'reduce-wip' as WipMode, label: 'Reduce WIP' },
-                  ]}
-                  value={wipMode} onChange={setWipMode}
-                  hint={wipMode === 'priority'
-                    ? 'WIP: units can start new features freely based on priority.'
-                    : 'WIP: units finish in-progress features before pulling new ones.'}
-                />
-              </div>
-            )}
-          </div>
-        </div>
-      </section>
+      <BacklogSettingsPanel
+        state={s}
+        settings={settings}
+        setSettings={setSettings}
+        roleConfig={roleConfig}
+        activePresetId={activePresetId}
+        confirmingPreset={confirmingPreset}
+        setConfirmingPreset={setConfirmingPreset}
+        showBacklogControls={showBacklogControls}
+        setShowBacklogControls={setShowBacklogControls}
+        showRoleSettings={showRoleSettings}
+        setShowRoleSettings={setShowRoleSettings}
+        showTeamSettings={showTeamSettings}
+        setShowTeamSettings={setShowTeamSettings}
+        importMsg={importMsg}
+        fileInputRef={fileInputRef}
+        wipMode={wipMode}
+        setWipMode={setWipMode}
+        maxWork={maxWork}
+        handleXlsImport={handleXlsImport}
+        handleRegenerate={handleRegenerate}
+        handlePresetClick={handlePresetClick}
+        handleConfirmPreset={handleConfirmPreset}
+        handleRoleChange={handleRoleChange}
+        handleAddRole={handleAddRole}
+        handleDeleteRole={handleDeleteRole}
+        tutorialTargetPrefix="experiment"
+      />
 
       {/* CENTER: IN-PROGRESS + TEAM */}
-      {/* data-tutorial-target lets the tutorial spotlight the team configuration area */}
-      <section data-tutorial-target="experiment-team" style={{ display: 'flex', flexDirection: 'column', minHeight: 0, minWidth: 0, background: 'var(--bg)' }}>
-        {/* data-tutorial-target lets the spotlight cover only the in-progress kanban panel */}
-        <div data-tutorial-target="experiment-in-progress" style={{ borderBottom: '1px solid var(--line)', background: 'var(--panel)', flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
-          <PanelHeader title="In Progress" count={s.inProgress.length} hint="auto-scaled" />
-          <div style={{
-            padding: '8px 16px 14px 16px',
-            display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))',
-            gap: 8, overflowY: 'auto', minHeight: 64, alignContent: 'start',
-          }}>
-            {s.inProgress.length === 0 && (
-              <div style={{ fontSize: 11, color: 'var(--ink-3)', fontStyle: 'italic', gridColumn: '1 / -1' }}>Nothing in flight.</div>
-            )}
-            {s.inProgress.map(f => <FeatureCard key={f.id} feature={f} team={s.team} maxWork={maxWork} roleConfig={roleConfig} />)}
-          </div>
-        </div>
-
-        {/* data-tutorial-target lets the spotlight cover team member cards + add/remove controls */}
-        <div data-tutorial-target="experiment-team-composition" style={{ flex: '0 0 auto', padding: '10px 16px 12px', background: 'var(--panel)', display: 'flex', flexDirection: 'column', gap: 6 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0, flexWrap: 'nowrap', overflow: 'hidden' }}>
-            <h3 style={{ margin: 0, fontSize: 12, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5, color: 'var(--ink-2)', flexShrink: 0 }}>
-              Units <span className="mono" style={{ color: 'var(--ink-3)', fontWeight: 500 }}>{s.team.length}</span>
-            </h3>
-            <span style={{ marginLeft: 'auto', fontSize: 11, color: 'var(--ink-3)', flexShrink: 0 }}>
-              Click <span className="mono" style={{ color: 'var(--ink-2)' }}>+</span> to add a specialty
-            </span>
-          </div>
-
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gridAutoRows: 'min-content', gap: 6, alignContent: 'start' }}>
-            {s.team.map(m => {
-              let cf = null, ct = null
-              if (m.currentTask) {
-                cf = s.inProgress.find(f => f.id === m.currentTask!.featureId) ?? null
-                ct = cf?.tasks.find(t => t.id === m.currentTask!.taskId) ?? null
-              }
-              // Člen čeká (waiting time narůstá) pokud:
-              //  - simulace již běžela (startedAt !== null) — před spuštěním zobrazujeme idle
-              //  - má roli, nemá aktuální úkol
-              //  - pro jeho roli existuje 'todo' task v backlogu nebo inProgress
-              // Stejná podmínka jako v engine.ts (hasMatchingWork), plus guard na startedAt.
-              const isWaiting = s.startedAt !== null && m.roles.length > 0 && m.currentTask === null && (
-                s.backlog.some(f => f.tasks.some(t => t.status === 'todo' && m.roles.includes(t.role))) ||
-                s.inProgress.some(f => f.tasks.some(t => t.status === 'todo' && m.roles.includes(t.role)))
-              )
-              return (
-                <MemberCard key={m.id} member={m} currentFeature={cf ?? null} currentTask={ct ?? null}
-                  roleConfig={roleConfig} onAddRole={handleAssignRole} onRemoveRole={handleRemoveRole}
-                  onRename={handleRenameMember} onRemove={handleRemoveMember} isWaiting={isWaiting} />
-              )
-            })}
-          </div>
-          <button onClick={handleAddMember} style={{
-            marginTop: 2, width: '100%', padding: '5px 0',
-            fontSize: 11, fontFamily: 'inherit', cursor: 'pointer',
-            border: '1px dashed var(--line-2)', borderRadius: 4,
-            background: 'transparent', color: 'var(--ink-3)', fontWeight: 500, letterSpacing: 0.3,
-          }}>
-            {activePresetId === 'teams' ? '+ Add team' : activePresetId === 'people' ? '+ Add member' : '+ Add unit'}
-          </button>
-        </div>
-      </section>
+      <InProgressTeamPanel
+        state={s}
+        roleConfig={roleConfig}
+        maxWork={maxWork}
+        activePresetId={activePresetId}
+        handleAssignRole={handleAssignRole}
+        handleRemoveRole={handleRemoveRole}
+        handleRenameMember={handleRenameMember}
+        handleRemoveMember={handleRemoveMember}
+        handleAddMember={handleAddMember}
+        tutorialTargetPrefix="experiment"
+      />
 
       {/* RIGHT: LEAD TIME + DONE */}
       {/* data-tutorial-target lets the tutorial spotlight the metrics and chart area */}

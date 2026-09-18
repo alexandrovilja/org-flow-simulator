@@ -29,6 +29,10 @@ function makeFeature(tasks: Task[]): Feature {
     startedAt: 0,
     finishedAt: 10,
     status: 'done',
+    revenuePerTick: 100,
+    totalRevenue: 0,
+    lastTickRevenue: null,
+    lastRevenueTickAt: 0,
   }
 }
 

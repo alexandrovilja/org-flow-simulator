@@ -42,6 +42,10 @@ function makeFeature(id: number, priority: number, tasks: Task[], inProgress = f
     startedAt: inProgress ? 0 : null,
     finishedAt: null,
     status: inProgress ? 'in-progress' : 'backlog',
+    revenuePerTick: 100,
+    totalRevenue: 0,
+    lastTickRevenue: null,
+    lastRevenueTickAt: 0,
   }
 }
 

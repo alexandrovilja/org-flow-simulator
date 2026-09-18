@@ -18,9 +18,14 @@ interface FeatureCardProps {
    * Pokud není zadáno, použije se statický ROLE_META (zpětná kompatibilita).
    */
   roleConfig?: Record<Role, RoleMeta>
+  /**
+   * Předformátovaný výnos za tick (např. "€400/tick") — zobrazí se jako badge
+   * v hlavičce karty. Používá se jen v Cash Flow módu; jinde se neposílá.
+   */
+  revenue?: string
 }
 
-export function FeatureCard({ feature, team = [], compact = false, neutral = false, maxWork = 0, roleConfig }: FeatureCardProps) {
+export function FeatureCard({ feature, team = [], compact = false, neutral = false, maxWork = 0, roleConfig, revenue }: FeatureCardProps) {
   const totalWork = featureTotalWork(feature.tasks)
 
   // Šířka celého baru vůči šířce karty — největší feature dostane 100 %.
@@ -55,11 +60,18 @@ export function FeatureCard({ feature, team = [], compact = false, neutral = fal
         }}>
           {feature.name}
         </span>
-        {!compact && (
-          <span className="mono" style={{ fontSize: 10, color: 'var(--ink-3)' }}>
-            {feature.tasks.length}t
-          </span>
-        )}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+          {revenue && (
+            <span className="mono" style={{ fontSize: 10, color: 'var(--done)', fontWeight: 700 }}>
+              {revenue}
+            </span>
+          )}
+          {!compact && (
+            <span className="mono" style={{ fontSize: 10, color: 'var(--ink-3)' }}>
+              {feature.tasks.length}t
+            </span>
+          )}
+        </div>
       </div>
 
       {/* Track — plná šířka karty, tvoří vizuální "stopu" ukazující maximum */}

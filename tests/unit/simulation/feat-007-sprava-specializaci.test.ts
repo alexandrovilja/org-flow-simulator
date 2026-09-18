@@ -22,6 +22,7 @@ function makeFeature(id: number, tasks: Task[]): Feature {
   return {
     id, name: `F-${id}`, hue: 0, priority: id,
     tasks, createdAt: 0, startedAt: null, finishedAt: null, status: 'backlog',
+    revenuePerTick: 100, totalRevenue: 0, lastTickRevenue: null, lastRevenueTickAt: 0,
   }
 }
 
@@ -31,9 +32,10 @@ function makeMember(id: number, roles: string[], currentTaskId?: { featureId: nu
 
 function makeState(overrides: Partial<SimState> = {}): SimState {
   return {
-    backlog: [], backlogSnapshot: [], inProgress: [], done: [],
+    backlog: [], backlogSnapshot: [], inProgress: [], done: [], doneOverflow: [],
     team: [], leadTimes: [], simTime: 0, wipIntegral: 0,
     lastGenAt: 0, startedAt: null, finished: false,
+    totalRevenueAllTime: 0,
     ...overrides,
   }
 }

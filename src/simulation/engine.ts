@@ -144,10 +144,85 @@ let nextTaskId = 1
  *  Priorita se nemění po celou dobu simulace, i když feature přejde do inProgress. */
 let nextPriority = 1
 
+/** Interval mezi revenue ticky v simulačních sekundách (Cash Flow mód, feat-015).
+ *  Použit v `tick()` pro periodické připočítávání výnosu k Done features. */
+export const REVENUE_TICK_INTERVAL_SEC = 3
+
+// Parametry Gaussova rozdělení pro generování revenuePerTick — viz feat-015 Příklad 2.
+const REVENUE_MEAN = 140
+const REVENUE_STD_DEV = 100
+const REVENUE_MIN = 15
+
+/**
+ * Spočítá kumulativní revenue, které by dané featury vydělaly do zadaného simulačního
+ * času `simTime`, bez nutnosti simulaci k tomuto času skutečně dotáhnout (feat-015:
+ * fér porovnání Cash Flow běhů různé délky). Matematicky ekvivalentní iterativní `while`
+ * smyčce v `tick()` spuštěné od `finishedAt` do `simTime`. Čistá funkce — na rozdíl
+ * od `tick()` nic nemutuje.
+ *
+ * @param features - Dokončené featury nebo jejich zjednodušená projekce (Pick), aby šlo
+ *   volat jak s živým `state.done`, tak s uloženým snapshotem předchozího běhu.
+ * @param simTime - Referenční simulační čas. Může být menší než skutečný finální simTime
+ *   běhu (retroaktivní dopočet "co by revenue bylo v tomto bodě").
+ * @returns Součet revenue všech features dokončených do `simTime`. Feature s
+ *   `finishedAt === null` nebo `finishedAt > simTime` přispívá 0.
+ */
+export function computeRevenueAsOf(
+  features: Pick<Feature, 'finishedAt' | 'revenuePerTick'>[],
+  simTime: number,
+): number {
+  let total = 0
+  for (const f of features) {
+    if (f.finishedAt === null || f.finishedAt > simTime) continue
+    const ticks = Math.floor((simTime - f.finishedAt) / REVENUE_TICK_INTERVAL_SEC)
+    total += ticks * f.revenuePerTick
+  }
+  return total
+}
+
+/**
+ * Vzorkuje hodnotu z normálního (Gaussova) rozdělení pomocí Box-Muller transformace.
+ *
+ * @param rng - Seeded RNG vracející čísla v [0, 1)
+ * @param mean - Střední hodnota rozdělení
+ * @param stdDev - Směrodatná odchylka
+ * @returns Náhodná hodnota z N(mean, stdDev²)
+ */
+function gaussianRandom(rng: () => number, mean: number, stdDev: number): number {
+  // Math.max(…, Number.EPSILON) brání log(0) = -Infinity, kdyby rng() vrátil přesně 0
+  const u1 = Math.max(rng(), Number.EPSILON)
+  const u2 = rng()
+  const z = Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2)
+  return mean + z * stdDev
+}
+
+/**
+ * Vygeneruje dávku hodnot revenuePerTick pro celý seedovaný backlog a seřadí je sestupně —
+ * feature s nejvyšší prioritou (index 0) dostane nejvyšší výnos. Batch se generuje najednou
+ * (ne per-feature), protože rozložení musí být Gaussovské napříč CELÝM backlogem, ne nezávisle
+ * pro každou featuru zvlášť. Viz feat-015 Příklad 2. Exportováno i pro `xlsImport.ts`, který
+ * potřebuje stejné rozložení pro importovaný backlog (s vlastním fixním seedem).
+ *
+ * @param rng - Seeded RNG
+ * @param count - Počet hodnot k vygenerování (velikost seedovaného backlogu)
+ * @returns Pole `count` hodnot, seřazené sestupně, každá alespoň REVENUE_MIN
+ */
+export function generateRevenueBatch(rng: () => number, count: number): number[] {
+  const values = Array.from({ length: count }, () =>
+    Math.max(REVENUE_MIN, gaussianRandom(rng, REVENUE_MEAN, REVENUE_STD_DEV)),
+  )
+  return values.sort((a, b) => b - a)
+}
+
 /**
  * Vytvoří novou feature s náhodným počtem úkolů a rolí.
  * Variabilita je řízena parametry sizeVar a roleVar ze settings.
  * Povinné role (roleConfig[r].required === true) jsou vždy zahrnuty.
+ *
+ * `revenuePerTick` se nastavuje na 0 a přiřazuje se až po vytvoření (viz volající kód) —
+ * batch Gaussova vzorkování musí proběhnout AŽ PO všech RNG voláních spotřebovaných
+ * generováním tasků/rolí, jinak by posunul RNG sekvenci a rozbil determinismus
+ * existujících testů, které na přesné pořadí rng() volání spoléhají.
  *
  * @param rng        - Seeded random number generator pro determinismus
  * @param now        - Aktuální simulační čas (stane se createdAt featury)
@@ -246,6 +321,12 @@ function makeFeature(
     startedAt: null,
     finishedAt: null,
     status: 'backlog',
+    // Přiřazeno voláním kódem po vytvoření — viz komentář u JSDoc funkce výše.
+    revenuePerTick: 0,
+    totalRevenue: 0,
+    lastTickRevenue: null,
+    // Reálná hodnota se nastaví až při dokončení featury (viz blok dokončování v tick()).
+    lastRevenueTickAt: 0,
   }
 }
 
@@ -291,6 +372,11 @@ function cloneFeatureFresh(f: Feature): Feature {
     status: 'backlog',
     startedAt: null,
     finishedAt: null,
+    // revenuePerTick zůstává (je to fixní vlastnost featury), ale nasbíraný výnos se vynuluje.
+    totalRevenue: 0,
+    lastTickRevenue: null,
+    // Irelevantní dokud feature znovu nedoběhne — reálná hodnota se nastaví při dokončení.
+    lastRevenueTickAt: 0,
     tasks: f.tasks.map(t => ({
       ...t,
       status: 'todo',
@@ -324,6 +410,7 @@ export function makeInitialState(
     backlogSnapshot: [],
     inProgress: [],
     done: [],
+    doneOverflow: [],
     team: defaultTeam(roleConfig),
     leadTimes: [],
     simTime: 0,
@@ -331,12 +418,19 @@ export function makeInitialState(
     lastGenAt: 0,
     startedAt: null,
     finished: false,
+    totalRevenueAllTime: 0,
   }
 
   const seedCount = settings.initialBacklog ?? 20
   for (let i = 0; i < seedCount; i++) {
     state.backlog.push(makeFeature(rng, 0, settings, roleConfig))
   }
+
+  // Revenue batch se generuje AŽ PO vytvoření všech features (ne uvnitř smyčky výše) —
+  // task/role RNG sekvence tak zůstává nedotčená a přiřazení revenue je čistě aditivní.
+  // Batch je seřazený sestupně, feature[0] má prioritu 1 → dostane nejvyšší výnos.
+  const revenueBatch = generateRevenueBatch(rng, seedCount)
+  state.backlog.forEach((f, i) => { f.revenuePerTick = revenueBatch[i] })
 
   // Uložíme kopii backlogu jako snapshot — slouží k resetu bez regenerace
   state.backlogSnapshot = state.backlog.map(cloneFeatureFresh)
@@ -357,12 +451,14 @@ export function resetFromSnapshot(state: SimState): SimState {
   state.backlog = state.backlogSnapshot.map(cloneFeatureFresh)
   state.inProgress = []
   state.done = []
+  state.doneOverflow = []
   state.leadTimes = []
   state.simTime = 0
   state.wipIntegral = 0
   state.lastGenAt = 0
   state.startedAt = null
   state.finished = false
+  state.totalRevenueAllTime = 0
 
   // Uvolníme všechna přiřazení a vynulujeme idle čas pro nový běh
   for (const m of state.team) {
@@ -473,7 +569,16 @@ export function tick(
   // a backlog se automaticky nedoplňuje — zpracujeme jen to, co bylo vygenerováno na začátku.
   const minBacklog = settings.minBacklog
   while (state.backlog.length < minBacklog) {
-    state.backlog.push(makeFeature(rng, state.simTime, settings, roleConfig))
+    const f = makeFeature(rng, state.simTime, settings, roleConfig)
+    // Mimo seedovací batch nemá smysl řadit vůči ostatním featurám — vzorkujeme jednotlivě.
+    // POZOR: tohle rng() volání spotřebovává navíc entropii z hlavní sekvence, na rozdíl
+    // od seed-batch cesty v makeInitialState() (viz komentář tam), která je záměrně
+    // oddělená, aby neposouvala RNG sekvenci task/role generování. Dokud je minBacklog
+    // vždy 0 (aktuální stav všech SimSettings v projektu), je tato smyčka mrtvý kód a
+    // riziko se neprojeví — pokud by se minBacklog někdy nastavil > 0, je potřeba tohle
+    // ošetřit stejným batch-after-generation přístupem jako v makeInitialState().
+    f.revenuePerTick = Math.max(REVENUE_MIN, gaussianRandom(rng, REVENUE_MEAN, REVENUE_STD_DEV))
+    state.backlog.push(f)
   }
 
   // --- Přiřazování úkolů ---
@@ -626,6 +731,9 @@ export function tick(
     if (f.tasks.every(t => t.status === 'done')) {
       f.status = 'done'
       f.finishedAt = state.simTime
+      // Vlastní revenue hodiny featury začínají běžet přesně v okamžiku dokončení —
+      // první tick přijde za REVENUE_TICK_INTERVAL_SEC, nezávisle na ostatních features.
+      f.lastRevenueTickAt = state.simTime
 
       // Uložíme Cycle Time záznam pro statistiky; handoffs se počítají z aktuálního roleConfig
       const lt: LeadTimeEntry = {
@@ -643,9 +751,44 @@ export function tick(
 
       // Přidáme na začátek Done listu (nejnovější nahoře) a omezíme na 40 zobrazených
       state.done.unshift(f)
-      if (state.done.length > 40) state.done.length = 40
+      // Nad 40 zobrazených Done karet vytěsníme nejstarší features z displaye, ale jejich
+      // revenue accrual nesmí zaniknout — přesuneme je do doneOverflow (lehký záznam,
+      // ne celý Feature objekt), kde stejná while-smyčka níže pokračuje v jejich tikání.
+      if (state.done.length > 40) {
+        const evicted = state.done.splice(40)
+        for (const ev of evicted) {
+          state.doneOverflow.push({
+            finishedAt: ev.finishedAt!,
+            revenuePerTick: ev.revenuePerTick,
+            lastRevenueTickAt: ev.lastRevenueTickAt,
+          })
+        }
+      }
 
       state.inProgress.splice(i, 1)
+    }
+  }
+
+  // --- Revenue accrual (Cash Flow mód, feat-015) ---
+  // Každá Done feature tiká nezávisle na ostatních — přesně REVENUE_TICK_INTERVAL_SEC
+  // po SVÉM lastRevenueTickAt (nastaveném při dokončení výše), ne podle společného cyklu.
+  // Nově dokončená feature v tomto ticku má lastRevenueTickAt == state.simTime, takže
+  // podmínka while níže pro ni ještě není splněná — první tick přijde až za 3s.
+  for (const f of state.done) {
+    while (state.simTime - f.lastRevenueTickAt >= REVENUE_TICK_INTERVAL_SEC) {
+      f.totalRevenue += f.revenuePerTick
+      f.lastTickRevenue = f.revenuePerTick
+      f.lastRevenueTickAt += REVENUE_TICK_INTERVAL_SEC
+      state.totalRevenueAllTime += f.revenuePerTick
+    }
+  }
+  // Stejný mechanismus pro features vytěsněné z displaye (doneOverflow) — bez lastTickRevenue/
+  // totalRevenue per-feature bookkeeping, protože se nikde nezobrazují a pulse/progress bar
+  // pro ně nemá smysl; do state.totalRevenueAllTime ale musí přispívat úplně stejně.
+  for (const overflow of state.doneOverflow) {
+    while (state.simTime - overflow.lastRevenueTickAt >= REVENUE_TICK_INTERVAL_SEC) {
+      overflow.lastRevenueTickAt += REVENUE_TICK_INTERVAL_SEC
+      state.totalRevenueAllTime += overflow.revenuePerTick
     }
   }
 

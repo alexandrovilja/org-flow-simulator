@@ -168,6 +168,12 @@ All UI text is in **English** only.
 - **feat-013-zprehledneni-aplikace** — the spotlight tutorial is mode-aware: switching between
   Compare and Experiment modes may trigger a per-mode tutorial prompt. The mode switcher in
   `Simulator.tsx` must call the tutorial context when a mode is entered for the first time.
+- **feat-015-cash-flow-mod** — extends the `AppMode` pattern established here with a third
+  tab (`'cashflow'`). The mode switcher header, per-mode independent `SimState`, and reset
+  semantics defined by feat-009 apply to the new tab. **Not yet extended:** the spotlight
+  tutorial (`TutorialMode` in `src/types/tutorial.ts` is still `'compare' | 'experiment'`) —
+  Cash Flow has no "?" restart button or first-visit tutorial. Tutorial integration for
+  Cash Flow is an open item for a future iteration, not part of feat-015's approved scope.
 
 ## Open Questions
 ~~All resolved.~~

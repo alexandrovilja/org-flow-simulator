@@ -1,4 +1,5 @@
 import * as XLSX from 'xlsx'
+import { mulberry32, generateRevenueBatch } from '@/simulation/engine'
 import type { Feature, Member, Role, RoleMeta, Task, TaskStatus, FeatureStatus } from '@/types/simulation'
 
 /** Výsledek parsování XLS souboru — připravená data pro přímé vložení do SimState. */
@@ -154,6 +155,13 @@ export function parseRows(rawRows: Record<string, unknown>[]): ImportResult {
     }
   }
 
+  // Stejné Gaussovo rozdělení jako u seedovaného backlogu (makeInitialState, feat-015
+  // Příklad 2) — feature na pozici 0 (nejvyšší priorita = pořadí v souboru) dostane
+  // nejvyšší výnos. Fixní seed udržuje parseRows() deterministickou (stejný soubor →
+  // stejný výsledek), zatímco Cash Flow backlog je pro import stejně relevantní jako
+  // pro Advanced, takže výnos nemůže být plochý.
+  const revenueBatch = generateRevenueBatch(mulberry32(42), featureTasksMap.size)
+
   let featureId = 1
   const features: Feature[] = []
   for (const [name, { tasks: rawTasks, hue }] of featureTasksMap.entries()) {
@@ -176,6 +184,10 @@ export function parseRows(rawRows: Record<string, unknown>[]): ImportResult {
       finishedAt: null,
       status: 'backlog' as FeatureStatus,
       priority: fId,
+      revenuePerTick: revenueBatch[fId - 1],
+      totalRevenue: 0,
+      lastTickRevenue: null,
+      lastRevenueTickAt: 0,
     })
   }
 

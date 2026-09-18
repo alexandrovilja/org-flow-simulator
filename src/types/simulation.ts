@@ -75,6 +75,20 @@ export interface Feature {
    *  Nižší číslo = vyšší priorita (1 = nejdůležitější).
    *  Členové týmu vždy pracují na nejvíce prioritní feature, na které mohou přispět. */
   priority: number
+  /** Výnos generovaný za jeden revenue tick (viz REVENUE_TICK_INTERVAL_SEC v engine.ts),
+   *  pokud je feature ve stavu Done. Přiřazen jednou při vytvoření Gaussovým vzorkováním —
+   *  vyšší priorita = vyšší revenue (Cash Flow mód, feat-015). */
+  revenuePerTick: number
+  /** Kumulativní výnos vydělaný touto featurou od okamžiku dokončení (roste každý revenue tick). */
+  totalRevenue: number
+  /** Výnos připsaný při posledním revenue ticku — null dokud žádný tick neproběhl.
+   *  Slouží k zobrazení krátkého "+€X" pulse efektu v UI. */
+  lastTickRevenue: number | null
+  /** Simulační čas posledního revenue ticku TÉTO featury — nastaví se na `finishedAt`
+   *  v okamžiku dokončení, pak se posouvá o REVENUE_TICK_INTERVAL_SEC při každém dalším
+   *  ticku. Každá feature má vlastní nezávislý 3s cyklus od svého dokončení (Cash Flow
+   *  mód, feat-015) — používá se i pro výpočet progress baru odpočtu v UI. */
+  lastRevenueTickAt: number
 }
 
 /** Jeden člen vývojového týmu.
@@ -122,8 +136,13 @@ export interface SimState {
   backlogSnapshot: Feature[]
   /** Features, na kterých tým právě pracuje. */
   inProgress: Feature[]
-  /** Posledních 40 dokončených features (starší se zahazují kvůli paměti). */
+  /** Posledních 40 dokončených features (starší se přesouvají do `doneOverflow`,
+   *  aby dál nezabíraly paměti plné Feature objekty, ale nepřestaly vydělávat). */
   done: Feature[]
+  /** Lehký záznam pro features vytěsněné z `done` (feat-015 fix): revenue accrual v `tick()`
+   *  pro ně pokračuje dál nezávisle na tom, že se už nezobrazují v Done listu — jen dvě
+   *  čísla místo celého Feature objektu, aby to zůstalo levné i při dlouhých simulacích. */
+  doneOverflow: { finishedAt: number; revenuePerTick: number; lastRevenueTickAt: number }[]
   team: Member[]
   /** Historie Cycle Time pro výpočet statistik. Ukládáme max. 200 záznamů. */
   leadTimes: LeadTimeEntry[]
@@ -140,6 +159,9 @@ export interface SimState {
    *  Po nastavení na true se simulace automaticky zastaví a tlačítko Start
    *  se deaktivuje — simulaci lze obnovit pouze resetem nebo novým backlogem. */
   finished: boolean
+  /** Kumulativní výnos ze všech Done features za celou dobu simulace (Cash Flow metrika,
+   *  feat-015). Každá feature tiká nezávisle podle vlastního `lastRevenueTickAt`. */
+  totalRevenueAllTime: number
 }
 
 /** Uživatelsky nastavitelné parametry simulace.

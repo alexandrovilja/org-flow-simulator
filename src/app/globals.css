@@ -62,3 +62,11 @@ button {
   0%, 100% { box-shadow: 0 2px 8px oklch(52% 0.22 150 / 0.35), 0 0 0 0 oklch(52% 0.22 150 / 0.45); }
   60%       { box-shadow: 0 2px 8px oklch(52% 0.22 150 / 0.35), 0 0 0 7px oklch(52% 0.22 150 / 0); }
 }
+
+/* Cash Flow mode — "+€X" pulse shown briefly after each revenue tick on a Done item. */
+@keyframes revenue-pulse {
+  0%   { opacity: 0; transform: translateY(3px) scale(0.9); }
+  15%  { opacity: 1; transform: translateY(0) scale(1); }
+  75%  { opacity: 1; transform: translateY(0) scale(1); }
+  100% { opacity: 0; transform: translateY(-3px) scale(0.95); }
+}

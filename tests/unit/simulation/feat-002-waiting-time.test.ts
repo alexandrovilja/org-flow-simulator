@@ -47,6 +47,7 @@ describe('feat-002: waiting time', () => {
       state.inProgress = [{
         id: 1, name: 'F-001', hue: 0, priority: 1,
         createdAt: 0, startedAt: 0, finishedAt: null, status: 'in-progress',
+        revenuePerTick: 100, totalRevenue: 0, lastTickRevenue: null, lastRevenueTickAt: 0,
         tasks: [{ id: 1, role: 'FE', work: 10, progress: 2, status: 'doing', assignee: 99 }],
       }]
 
@@ -64,6 +65,7 @@ describe('feat-002: waiting time', () => {
       state.inProgress = [{
         id: 1, name: 'F-001', hue: 0, priority: 1,
         createdAt: 0, startedAt: 0, finishedAt: null, status: 'in-progress',
+        revenuePerTick: 100, totalRevenue: 0, lastTickRevenue: null, lastRevenueTickAt: 0,
         tasks: [
           { id: 1, role: 'DSGN', work: 10, progress: 2, status: 'doing', assignee: 99 },
           { id: 2, role: 'FE',   work: 10, progress: 0, status: 'todo',  assignee: null },
@@ -86,6 +88,7 @@ describe('feat-002: waiting time', () => {
       state.backlog = [{
         id: 1, name: 'F-001', hue: 0, priority: 1,
         createdAt: 0, startedAt: null, finishedAt: null, status: 'backlog',
+        revenuePerTick: 100, totalRevenue: 0, lastTickRevenue: null, lastRevenueTickAt: 0,
         tasks: [{ id: 1, role: 'QA', work: 5, progress: 0, status: 'todo', assignee: null }],
       }]
       state.inProgress = []
@@ -139,6 +142,7 @@ describe('feat-002: waiting time', () => {
       state.backlog = [{
         id: 1, name: 'F-001 Test', hue: 0, priority: 1,
         createdAt: 0, startedAt: null, finishedAt: null, status: 'backlog',
+        revenuePerTick: 100, totalRevenue: 0, lastTickRevenue: null, lastRevenueTickAt: 0,
         tasks: [{ id: 1, role: 'FE', work: 10, progress: 0, status: 'todo', assignee: null }],
       }]
       state.inProgress = []
@@ -161,11 +165,13 @@ describe('feat-002: waiting time', () => {
         {
           id: 1, name: 'F-001 A', hue: 0, priority: 1,
           createdAt: 0, startedAt: null, finishedAt: null, status: 'backlog',
+          revenuePerTick: 100, totalRevenue: 0, lastTickRevenue: null, lastRevenueTickAt: 0,
           tasks: [{ id: 1, role: 'FE', work: 0.5, progress: 0, status: 'todo', assignee: null }],
         },
         {
           id: 2, name: 'F-002 B', hue: 45, priority: 2,
           createdAt: 0, startedAt: null, finishedAt: null, status: 'backlog',
+          revenuePerTick: 100, totalRevenue: 0, lastTickRevenue: null, lastRevenueTickAt: 0,
           tasks: [{ id: 2, role: 'FE', work: 10, progress: 0, status: 'todo', assignee: null }],
         },
       ]
@@ -200,6 +206,7 @@ describe('feat-002: waiting time', () => {
       state.backlog = [{
         id: 1, name: 'F-001', hue: 0, priority: 1,
         createdAt: 0, startedAt: null, finishedAt: null, status: 'backlog',
+        revenuePerTick: 100, totalRevenue: 0, lastTickRevenue: null, lastRevenueTickAt: 0,
         tasks: [{ id: 1, role: 'FE', work: 0.1, progress: 0, status: 'todo', assignee: null }],
       }]
       state.inProgress = []
@@ -228,6 +235,7 @@ describe('feat-002: waiting time', () => {
       state.inProgress = [{
         id: 1, name: 'F-001', hue: 0, priority: 1,
         createdAt: 0, startedAt: 0, finishedAt: null, status: 'in-progress',
+        revenuePerTick: 100, totalRevenue: 0, lastTickRevenue: null, lastRevenueTickAt: 0,
         tasks: [
           { id: 1, role: 'FE', work: 10, progress: 1, status: 'doing', assignee: 99 },
           { id: 2, role: 'BE', work: 10, progress: 1, status: 'doing', assignee: 98 },
@@ -250,6 +258,7 @@ describe('feat-002: waiting time', () => {
       state.backlog = [{
         id: 1, name: 'F-001', hue: 0, priority: 1,
         createdAt: 0, startedAt: null, finishedAt: null, status: 'backlog',
+        revenuePerTick: 100, totalRevenue: 0, lastTickRevenue: null, lastRevenueTickAt: 0,
         tasks: [{ id: 1, role: 'BE', work: 10, progress: 0, status: 'todo', assignee: null }],
       }]
       state.inProgress = []
