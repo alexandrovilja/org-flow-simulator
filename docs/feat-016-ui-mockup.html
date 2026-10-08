@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>feat-016 UI mockup</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  /* Tokens 1:1 z src/app/globals.css */
+  :root {
+    --bg: #f6f5f2; --panel: #ffffff; --ink: #16161a; --ink-2: #4a4a52; --ink-3: #8a8a92;
+    --line: #e6e4de; --line-2: #d8d6cf;
+    --accent: oklch(58% 0.13 240); --done: oklch(62% 0.10 155); --warn: oklch(70% 0.13 60);
+    --bad: oklch(58% 0.2 25);
+    /* NOVÉ (feat-016) — barvy čipů */
+    --rework-ink: oklch(50% 0.17 30);
+    --rework-bg: oklch(95% 0.04 30);
+    --rework-line: oklch(82% 0.08 30);
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font-family: 'Inter', system-ui, sans-serif; font-size: 14px; line-height: 1.5; -webkit-font-smoothing: antialiased; }
+  .mono { font-family: 'JetBrains Mono', ui-monospace, Menlo, monospace; font-variant-numeric: tabular-nums; }
+
+  /* ---- mockup chrome (není součást návrhu) ---- */
+  .doc { max-width: 1180px; margin: 0 auto; padding: 24px 16px 48px; }
+  .doc h1 { font-size: 18px; margin: 0 0 4px; }
+  .doc .sub { color: var(--ink-2); font-size: 12px; margin: 0 0 16px; }
+  .ctrl { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 16px; font-size: 12px; }
+  .ctrl button { font: inherit; font-size: 11px; padding: 5px 10px; border-radius: 5px; border: 1px solid var(--line-2); background: var(--panel); cursor: pointer; }
+  .ctrl button.on { background: var(--ink); color: #fff; border-color: var(--ink); }
+  .new { outline: 2px dashed oklch(70% 0.13 240 / .6); outline-offset: 3px; border-radius: 6px; }
+  body.off .new { outline: none; }
+  .grid { display: grid; grid-template-columns: 260px 1fr 280px; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: var(--panel); }
+  @media (max-width: 900px) { .grid { grid-template-columns: 1fr; } }
+  .col { padding: 12px 14px; min-width: 0; }
+  .col + .col { border-left: 1px solid var(--line); }
+  h3 { margin: 0 0 10px; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .5px; color: var(--ink-2); }
+  .stack { display: flex; flex-direction: column; gap: 6px; }
+
+  /* ---- Settings → Team accordion ---- */
+  .acc { width: 100%; text-align: left; font-size: 11px; border: 1px solid var(--line); border-radius: 4px; padding: 4px 8px; background: var(--line); color: var(--ink); font-weight: 600; }
+  .field-label { font-size: 10px; font-weight: 500; color: var(--ink-3); margin: 10px 0 5px; letter-spacing: .2px; }
+  .seg { position: relative; display: inline-grid; grid-template-columns: 1fr 1fr; background: var(--bg); border-radius: 7px; padding: 2px; }
+  .seg .pill { position: absolute; top: 2px; bottom: 2px; width: calc(50% - 2px); left: 2px; border-radius: 5px; background: var(--panel); box-shadow: 0 1px 2px rgba(0,0,0,.12), 0 0 0 .5px rgba(0,0,0,.06); transition: left .2s ease; }
+  .seg[data-i="1"] .pill { left: 50%; }
+  .seg button { position: relative; z-index: 1; padding: 4px 14px; font: inherit; font-size: 10px; font-weight: 500; letter-spacing: .2px; border: 0; background: transparent; cursor: pointer; color: var(--ink-3); }
+  .seg[data-i="0"] button:nth-of-type(1), .seg[data-i="1"] button:nth-of-type(2) { color: var(--ink); }
+  /* NOVÉ: disabled stav SegmentedControlu */
+  .seg.locked { opacity: .5; }
+  .seg.locked button { cursor: not-allowed; }
+  .lock-hint { display: flex; align-items: center; gap: 4px; font-size: 10px; color: var(--ink-3); margin-top: 4px; }
+
+  /* ---- FeatureCard ---- */
+  .fc { border-radius: 6px; padding: 8px 10px; display: flex; flex-direction: column; gap: 6px; min-height: 64px; justify-content: space-between; }
+  .fc-head { display: flex; justify-content: space-between; align-items: center; gap: 6px; }
+  .fc-name { font-size: 11px; color: var(--ink-2); font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; min-width: 0; }
+  .fc-right { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
+  .track { height: 22px; background: rgba(0,0,0,.05); border-radius: 3px; overflow: hidden; display: flex; gap: 2px; }
+  .seg-t { position: relative; background: rgba(0,0,0,.06); overflow: hidden; color: #fff; font-size: 11px; font-weight: 700; display: flex; align-items: center; justify-content: center; text-shadow: 0 0 2px rgba(0,0,0,.35); }
+  .seg-t i { position: absolute; left: 0; top: 0; bottom: 0; }
+  .seg-t span { position: relative; }
+
+  /* ---- NOVÉ: koordinační čipy ---- */
+  .chip { display: inline-flex; align-items: center; gap: 2px; font-family: 'JetBrains Mono', monospace; font-size: 9.5px; font-weight: 600; line-height: 1; padding: 2px 5px; border-radius: 3px; border: 1px solid; white-space: nowrap; }
+  .chip-h { color: var(--ink-2); background: rgba(22,22,26,.04); border-color: var(--line-2); }
+  .chip-r { color: var(--rework-ink); background: var(--rework-bg); border-color: var(--rework-line); }
+  .chip.pulse.chip-h { animation: chip-pulse-h 1.4s ease-out; }
+  .chip.pulse.chip-r { animation: chip-pulse-r 1.4s ease-out; }
+  @keyframes chip-pulse-h {
+    0%   { transform: scale(1);    box-shadow: 0 0 0 0 rgba(22,22,26,.35); }
+    15%  { transform: scale(1.22); box-shadow: 0 0 0 0 rgba(22,22,26,.35); }
+    100% { transform: scale(1);    box-shadow: 0 0 0 6px rgba(22,22,26,0); }
+  }
+  @keyframes chip-pulse-r {
+    0%   { transform: scale(1);    box-shadow: 0 0 0 0 oklch(55% 0.18 30 / .5); background: var(--rework-bg); }
+    15%  { transform: scale(1.22); box-shadow: 0 0 0 0 oklch(55% 0.18 30 / .5); background: oklch(88% 0.08 30); }
+    100% { transform: scale(1);    box-shadow: 0 0 0 7px oklch(55% 0.18 30 / 0); background: var(--rework-bg); }
+  }
+  /* Rework: segment, který se vrátil do todo, krátce problikne */
+  .seg-t.flash::after { content: ''; position: absolute; inset: 0; background: oklch(60% 0.2 30); animation: seg-flash 1.2s ease-out forwards; }
+  @keyframes seg-flash { 0% { opacity: .85; } 100% { opacity: 0; } }
+
+  /* ---- StatTile ---- */
+  .tile { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px; display: flex; flex-direction: column; gap: 2px; }
+  .tile-label { font-size: 10px; color: var(--ink-3); text-transform: uppercase; letter-spacing: .5px; font-weight: 500; display: inline-flex; gap: 4px; align-items: center; }
+  .q { display: inline-flex; align-items: center; justify-content: center; width: 11px; height: 11px; border-radius: 50%; background: var(--line); color: var(--ink-3); font-size: 8px; font-weight: 700; }
+  .tile-val { font-size: 18px; font-weight: 600; line-height: 1.1; }
+  .tile-val small { font-size: 11px; color: var(--ink-3); margin-left: 2px; font-weight: 500; }
+  .tile-hint { font-size: 10px; color: var(--ink-3); }
+  .delta { font-size: 10px; font-weight: 600; letter-spacing: .2px; }
+  .delta em { font-style: normal; font-weight: 400; color: var(--ink-3); }
+  .dot { display: inline-block; width: 6px; height: 6px; border-radius: 2px; margin-right: 3px; vertical-align: 0; }
+  .split { display: flex; height: 4px; border-radius: 2px; overflow: hidden; background: var(--line); margin: 4px 0 2px; }
+
+  /* ---- Done row ---- */
+  .done { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 5px; }
+  .done .bar { width: 4px; align-self: stretch; border-radius: 2px; }
+  .done-meta { display: flex; align-items: center; gap: 4px; font-size: 9px; color: var(--ink-3); }
+
+  body.off .cf-only { display: none !important; }
+  .legend { margin-top: 20px; display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; font-size: 12px; color: var(--ink-2); }
+  .legend div { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; }
+  .legend b { color: var(--ink); display: block; margin-bottom: 2px; font-size: 12px; }
+</style>
+</head>
+<body>
+<div class="doc">
+  <h1>feat-016 Coordination Overhead — UI návrh</h1>
+  <p class="sub">Cash Flow mód. Čárkovaný modrý rámeček = nový prvek. Ovládání nahoře slouží jen k ukázce stavů.</p>
+
+  <div class="ctrl">
+    <span>Přepínač:</span>
+    <button id="b-off">Off</button><button id="b-on" class="on">On</button>
+    <span style="margin-left:12px">Stav běhu:</span>
+    <button id="b-idle" class="on">Před startem</button><button id="b-run">Běží (zamčeno)</button>
+    <span style="margin-left:12px">Události:</span>
+    <button id="b-hand">⇄ Simulovat předání</button><button id="b-rew">↺ Simulovat rework</button>
+  </div>
+
+  <div class="grid">
+    <!-- LEVÝ SLOUPEC: Settings → Team -->
+    <div class="col">
+      <h3>Settings</h3>
+      <button class="acc">👥 Team</button>
+      <div class="field-label">WIP mode</div>
+      <div class="seg" data-i="1"><div class="pill"></div><button>Priority</button><button>Reduce WIP</button></div>
+
+      <div class="new cf-always" style="margin-top:2px; padding:0 2px 2px">
+        <div class="field-label">Coordination overhead</div>
+        <div class="seg" id="co-seg" data-i="1"><div class="pill"></div><button data-v="0">Off</button><button data-v="1">On</button></div>
+        <div class="lock-hint" id="lock-hint" style="display:none">🔒 Takes effect after Reset</div>
+      </div>
+      <p class="sub" style="font-size:10px; margin-top:10px">Hover hint (tooltip jako u WIP): <i>„Handoffs between units add 25 % extra work; 20 % chance of rework.“</i></p>
+    </div>
+
+    <!-- STŘED: In Progress -->
+    <div class="col">
+      <h3>In Progress</h3>
+      <div class="stack">
+        <div class="fc new" id="card-a" style="background: oklch(96% 0.03 200); border: 1px solid oklch(80% 0.08 200)">
+          <div class="fc-head">
+            <span class="mono fc-name">F-012 Checkout redesign</span>
+            <div class="fc-right">
+              <span class="chip chip-h cf-only" id="a-h">⇄ <b>2</b></span>
+              <span class="chip chip-r cf-only" id="a-r">↺ <b>1</b></span>
+              <span class="mono" style="font-size:10px; color:var(--ink-3); margin-left:2px">4t</span>
+            </div>
+          </div>
+          <div class="track">
+            <div class="seg-t" style="width:22%"><i style="width:100%; background:oklch(65% 0.15 25)"></i><span>✓</span></div>
+            <div class="seg-t" id="a-seg2" style="width:30%"><i id="a-seg2-fill" style="width:100%; background:oklch(60% 0.13 240)"></i><span id="a-seg2-lbl">✓</span></div>
+            <div class="seg-t" style="width:28%"><i style="width:45%; background:oklch(62% 0.12 155)"></i><span>B</span></div>
+            <div class="seg-t" style="width:20%"><i style="width:100%; background:oklch(70% 0.13 60); opacity:.25"></i></div>
+          </div>
+        </div>
+
+        <div class="fc" style="background: oklch(96% 0.03 320); border: 1px solid oklch(80% 0.08 320)">
+          <div class="fc-head">
+            <span class="mono fc-name">F-015 Search filters</span>
+            <div class="fc-right">
+              <span class="chip chip-h cf-only">⇄ <b>1</b></span>
+              <span class="mono" style="font-size:10px; color:var(--ink-3); margin-left:2px">3t</span>
+            </div>
+          </div>
+          <div class="track">
+            <div class="seg-t" style="width:40%"><i style="width:100%; background:oklch(60% 0.13 240)"></i><span>✓</span></div>
+            <div class="seg-t" style="width:35%"><i style="width:60%; background:oklch(62% 0.12 155)"></i><span>C</span></div>
+            <div class="seg-t" style="width:25%"><i style="width:100%; background:oklch(65% 0.15 25); opacity:.25"></i></div>
+          </div>
+        </div>
+
+        <div class="fc" style="background: oklch(96% 0.03 90); border: 1px solid oklch(80% 0.08 90)">
+          <div class="fc-head">
+            <span class="mono fc-name">F-018 Onboarding email</span>
+            <div class="fc-right"><span class="mono" style="font-size:10px; color:var(--ink-3)">2t</span></div>
+          </div>
+          <div class="track">
+            <div class="seg-t" style="width:55%"><i style="width:70%; background:oklch(60% 0.13 240)"></i><span>A</span></div>
+            <div class="seg-t" style="width:45%"><i style="width:100%; background:oklch(62% 0.12 155); opacity:.25"></i></div>
+          </div>
+        </div>
+        <p class="sub" style="font-size:10px; margin:4px 0 0">F-018: zatím jedna jednotka → žádné předání → čipy se nezobrazují (čip se ukáže až od n ≥ 1).</p>
+      </div>
+    </div>
+
+    <!-- PRAVÝ SLOUPEC: Metrics + Done -->
+    <div class="col">
+      <h3>Metrics</h3>
+      <div class="stack">
+        <div class="tile"><span class="tile-label">Avg Cycle Time <span class="q">?</span></span><span class="mono tile-val">14.2<small>s</small></span><span class="delta" style="color:var(--bad)">↑ 21% <em>vs prev run</em></span></div>
+        <div class="tile"><span class="tile-label">Total Revenue <span class="q">?</span></span><span class="mono tile-val">€38 400</span><span class="delta" style="color:var(--bad)">↓ 12% <em>vs prev run</em></span></div>
+
+        <div class="tile new cf-only" title="Share of cycle time spent on coordination: handoff tax (extra work when a new unit takes over) and rework (lost progress on returned tasks).">
+          <span class="tile-label">Coordination overhead <span class="q">?</span></span>
+          <span class="mono tile-val">18<small>%</small> <small style="margin-left:4px">of cycle time</small></span>
+          <div class="split"><div style="width:61%; background:var(--ink-3)"></div><div style="width:39%; background:var(--rework-ink)"></div></div>
+          <span class="tile-hint"><span class="dot" style="background:var(--ink-3)"></span>handoff 11 % · <span class="dot" style="background:var(--rework-ink)"></span>rework 7 %</span>
+          <span class="delta" style="color:var(--bad)">↑ 18% <em>vs prev run</em></span>
+        </div>
+      </div>
+
+      <h3 style="margin-top:16px">Done</h3>
+      <div class="stack">
+        <div class="done" style="background: oklch(96% 0.03 140); border: 1px solid oklch(82% 0.06 140)">
+          <span class="bar" style="background: oklch(60% 0.14 140)"></span>
+          <div style="flex:1; min-width:0">
+            <div class="mono" style="font-size:10px; color:var(--ink-2)">F-009 Pricing page</div>
+            <div class="done-meta">€400/tick
+              <span class="chip chip-h cf-only new" style="outline-offset:1px">⇄ <b>3</b></span>
+              <span class="chip chip-r cf-only">↺ <b>2</b></span>
+            </div>
+            <div style="height:3px; background:var(--line); border-radius:2px; margin-top:4px; overflow:hidden"><div style="height:100%; width:62%; background:var(--done)"></div></div>
+          </div>
+          <span class="mono" style="font-size:12px; font-weight:700; color:var(--done)">€4 800</span>
+        </div>
+        <div class="done" style="background: oklch(96% 0.03 260); border: 1px solid oklch(82% 0.06 260)">
+          <span class="bar" style="background: oklch(60% 0.14 260)"></span>
+          <div style="flex:1; min-width:0">
+            <div class="mono" style="font-size:10px; color:var(--ink-2)">F-004 Login SSO</div>
+            <div class="done-meta">€250/tick <span class="chip chip-h cf-only">⇄ <b>1</b></span></div>
+            <div style="height:3px; background:var(--line); border-radius:2px; margin-top:4px; overflow:hidden"><div style="height:100%; width:30%; background:var(--done)"></div></div>
+          </div>
+          <span class="mono" style="font-size:12px; font-weight:700; color:var(--done)">€3 250</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="legend">
+    <div><b>1 · Přepínač</b>Pod WIP módem, stejný SegmentedControl (Off / On), vlastní popisek nad ním. Po startu běhu zešedne (opacity .5, not-allowed) a pod ním se ukáže „🔒 Takes effect after Reset“. Vyžaduje nový volitelný prop <code>disabled</code> v SegmentedControl.</div>
+    <div><b>2 · Čipy na kartě</b><code>⇄ n</code> neutrální šedý, <code>↺ n</code> v teplé červené (výraznější). V hlavičce karty vlevo od „4t“. Zobrazí se až od n ≥ 1. Při změně počtu 1,4 s pulse (zvětšení + rozplývající se prstenec). Při reworku navíc problikne segment vráceného tasku.</div>
+    <div><b>3 · Dlaždice</b>Stávající StatTile: velké % + „of cycle time“, tenký dělený pruh handoff/rework (barvy shodné s čipy), legenda „handoff X % · rework Y %“, delta badge (nižší = lepší, výchozí sémantika). Pozice: pod Total Revenue.</div>
+    <div><b>4 · Done list</b>Done řádky v Cash Flow nejsou FeatureCard, ale vlastní markup v CashFlowPanel → čipy se přidají tam, do řádku s €/tick. Bez pulse (událost už nevzniká).</div>
+  </div>
+</div>
+
+<script>
+  const $ = id => document.getElementById(id)
+  const setOn = (btns, el) => { btns.forEach(b => b.classList.remove('on')); el.classList.add('on') }
+  // Off/On — při Off zmizí všechny nové prvky kromě samotného přepínače
+  $('b-off').onclick = () => { document.body.classList.add('off'); $('co-seg').dataset.i = '0'; setOn([$('b-off'), $('b-on')], $('b-off')) }
+  $('b-on').onclick  = () => { document.body.classList.remove('off'); $('co-seg').dataset.i = '1'; setOn([$('b-off'), $('b-on')], $('b-on')) }
+  // Zamčení přepínače po startu běhu
+  $('b-idle').onclick = () => { $('co-seg').classList.remove('locked'); $('lock-hint').style.display = 'none'; setOn([$('b-idle'), $('b-run')], $('b-idle')) }
+  $('b-run').onclick  = () => { $('co-seg').classList.add('locked'); $('lock-hint').style.display = 'flex'; setOn([$('b-idle'), $('b-run')], $('b-run')) }
+  $('co-seg').querySelectorAll('button').forEach(b => b.onclick = () => {
+    if ($('co-seg').classList.contains('locked')) return
+    ;(b.dataset.v === '1' ? $('b-on') : $('b-off')).click()
+  })
+  // Pulse: restart animace přes reflow (v Reactu přes key={count})
+  const bump = chip => {
+    const n = chip.querySelector('b'); n.textContent = +n.textContent + 1
+    chip.classList.remove('pulse'); void chip.offsetWidth; chip.classList.add('pulse')
+  }
+  $('b-hand').onclick = () => bump($('a-h'))
+  $('b-rew').onclick = () => {
+    bump($('a-r'))
+    const seg = $('a-seg2')
+    $('a-seg2-fill').style.width = '50%'; $('a-seg2-lbl').textContent = ''
+    seg.classList.remove('flash'); void seg.offsetWidth; seg.classList.add('flash')
+  }
+</script>
+</body>
+</html>

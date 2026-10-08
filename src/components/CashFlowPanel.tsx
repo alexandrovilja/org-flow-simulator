@@ -1,6 +1,7 @@
 import { REVENUE_TICK_INTERVAL_SEC } from '@/simulation/engine'
 import { StatTile } from '@/components/StatTile'
 import { PanelHeader } from '@/components/PanelHeader'
+import { CoordinationChips } from '@/components/CoordinationChips'
 import { formatEuro } from '@/lib/formatCurrency'
 import type { SimState, SimStats } from '@/types/simulation'
 
@@ -25,7 +26,18 @@ interface CashFlowPanelProps {
    *  time-matched refinement) — bez tohoto labelu by srovnání vypadalo jako přímé porovnání
    *  finálních čísel, což by bylo zavádějící. */
   revenueDeltaHint?: string
+  /** true = coordination overhead je v tomto běhu zapnutý → zobrazí se dlaždice a čipy (feat-016). */
+  showCoordination?: boolean
+  /** % rozdíl Coordination overhead vs. předchozí dokončený běh (nižší = lepší). */
+  coordinationDelta?: number
 }
+
+/**
+ * Formátuje procento pro dlaždici Coordination overhead — hodnota i legenda používají stejný
+ * formát, aby se celek a rozpad vizuálně nerozcházely. Pod 10 % s jedním desetinným místem,
+ * jinak celé číslo. Rozhoduje se podle už zaokrouhlené hodnoty, aby 9.96 nevyšlo jako "10.0".
+ */
+const fmtPct = (v: number) => (Math.round(v * 10) / 10 < 10 ? v.toFixed(1) : v.toFixed(0))
 
 /**
  * Cash Flow mód — pravý sloupec (Metriky + Done s revenue). Backlog a In Progress/Team
@@ -43,10 +55,15 @@ interface CashFlowPanelProps {
  * @param revenueDelta - % rozdíl Total Revenue vs. předchozí dokončený běh (vyšší = lepší),
  *   time-matched k dřívějšímu ze dvou celkových časů (feat-015 refinement)
  * @param revenueDeltaHint - Popisek referenčního času pro revenueDelta (např. "@ 00:50.0")
+ * @param showCoordination - Zobrazit dlaždici Coordination overhead a čipy v Done listu (feat-016)
+ * @param coordinationDelta - % rozdíl Coordination overhead vs. předchozí dokončený běh
  */
 export function CashFlowPanel({
   state, stats, totalTimeDisplay, avgWip, timeDelta, ltDelta, wipDelta, revenueDelta, revenueDeltaHint,
+  showCoordination = false, coordinationDelta,
 }: CashFlowPanelProps) {
+  // Poměr handoff : rework v rozpadovém pruhu dlaždice — šířky segmentů v % celkového overheadu
+  const handoffShare = stats.coordinationPct > 0 ? (stats.handoffPct / stats.coordinationPct) * 100 : 0
   const done = state.done
   const totalRevenueAllTime = state.totalRevenueAllTime
 
@@ -62,6 +79,32 @@ export function CashFlowPanel({
           <StatTile label="Avg Cycle Time" value={stats.count ? stats.avg.toFixed(1) : '—'} unit={stats.count ? 's' : undefined} tooltip="Mean cycle time across all completed features (from work start to delivery)." delta={ltDelta} />
           <StatTile label="Avg WIP" value={avgWip !== null ? avgWip.toFixed(1) : '—'} tooltip="Average Work In Progress — lower usually means lower cycle time (Little's Law)." delta={wipDelta} />
           <StatTile label="Total Revenue" value={formatEuro(totalRevenueAllTime)} tooltip="Cumulative revenue from all delivered features." delta={revenueDelta} hint={revenueDeltaHint} higherIsBetter />
+          {showCoordination && (
+            <StatTile
+              label="Coordination overhead"
+              value={stats.count ? fmtPct(stats.coordinationPct) : '—'}
+              unit={stats.count ? '% of cycle time' : undefined}
+              tooltip="Share of cycle time spent on coordination: handoff tax (extra work when a new unit takes over) and rework (lost progress on returned tasks)."
+              delta={coordinationDelta}
+            >
+              {stats.count > 0 && (
+                <>
+                  {/* Rozpadový pruh handoff / rework — barvy shodné s čipy na kartách */}
+                  <div style={{ display: 'flex', height: 4, borderRadius: 2, overflow: 'hidden', background: 'var(--line)', margin: '4px 0 2px' }}>
+                    <div style={{ width: `${handoffShare}%`, background: 'var(--ink-3)' }} />
+                    <div style={{ flex: 1, background: stats.reworkPct > 0 ? 'var(--rework-ink)' : 'transparent' }} />
+                  </div>
+                  <span style={{ fontSize: 10, color: 'var(--ink-3)', display: 'flex', alignItems: 'center', gap: 3 }}>
+                    <span style={{ width: 6, height: 6, borderRadius: 2, background: 'var(--ink-3)' }} />
+                    handoff {fmtPct(stats.handoffPct)} %
+                    <span style={{ margin: '0 2px' }}>·</span>
+                    <span style={{ width: 6, height: 6, borderRadius: 2, background: 'var(--rework-ink)' }} />
+                    rework {fmtPct(stats.reworkPct)} %
+                  </span>
+                </>
+              )}
+            </StatTile>
+          )}
         </div>
       </div>
 
@@ -81,7 +124,11 @@ export function CashFlowPanel({
               <span style={{ width: 4, alignSelf: 'stretch', background: `oklch(60% 0.14 ${f.hue})`, borderRadius: 2 }} />
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div className="mono" style={{ fontSize: 10, color: 'var(--ink-2)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{f.name}</div>
-                <div style={{ fontSize: 9, color: 'var(--ink-3)' }}>{formatEuro(f.revenuePerTick)}/tick</div>
+                <div style={{ fontSize: 9, color: 'var(--ink-3)', display: 'flex', alignItems: 'center', gap: 4 }}>
+                  {formatEuro(f.revenuePerTick)}/tick
+                  {/* Čipy coordination overhead (feat-016) — v Done listu bez pulse, událost už nevzniká */}
+                  {showCoordination && <CoordinationChips handoffs={f.handoffCount} reworks={f.reworkCount} />}
+                </div>
                 {/* Progress bar odpočtu do dalšího revenue ticku — vlastní nezávislý cyklus této featury. */}
                 <div style={{ height: 3, background: 'var(--line)', borderRadius: 2, marginTop: 4, overflow: 'hidden' }}>
                   <div style={{

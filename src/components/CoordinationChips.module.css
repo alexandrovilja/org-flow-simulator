@@ -1,0 +1,50 @@
+/* Společný vzhled obou čipů coordination overhead (feat-016) — malý monospace štítek s rámečkem. */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  font-family: 'JetBrains Mono', ui-monospace, Menlo, monospace;
+  font-size: 9.5px;
+  font-weight: 600;
+  line-height: 1;
+  padding: 2px 5px;
+  border-radius: 3px;
+  border: 1px solid;
+  white-space: nowrap;
+}
+
+/* ⇄ předání — neutrální, aby nekonkuroval revenue badge. */
+.handoff {
+  color: var(--ink-2);
+  background: rgba(22, 22, 26, 0.04);
+  border-color: var(--line-2);
+}
+
+/* ↺ rework — výraznější teplá červená, rework je dražší událost. */
+.rework {
+  color: var(--rework-ink);
+  background: var(--rework-bg);
+  border-color: var(--rework-line);
+}
+
+.handoff.pulse {
+  animation: chip-pulse-handoff 1.4s ease-out;
+}
+
+.rework.pulse {
+  animation: chip-pulse-rework 1.4s ease-out;
+}
+
+/* Pulse při novém předání — zvětšení + rozplývající se prstenec. */
+@keyframes chip-pulse-handoff {
+  0%   { transform: scale(1);    box-shadow: 0 0 0 0 rgba(22, 22, 26, 0.35); }
+  15%  { transform: scale(1.22); box-shadow: 0 0 0 0 rgba(22, 22, 26, 0.35); }
+  100% { transform: scale(1);    box-shadow: 0 0 0 6px rgba(22, 22, 26, 0); }
+}
+
+/* Výraznější pulse při reworku — navíc krátce ztmavne pozadí. */
+@keyframes chip-pulse-rework {
+  0%   { transform: scale(1);    box-shadow: 0 0 0 0 oklch(55% 0.18 30 / 0.5); background: var(--rework-bg); }
+  15%  { transform: scale(1.22); box-shadow: 0 0 0 0 oklch(55% 0.18 30 / 0.5); background: oklch(88% 0.08 30); }
+  100% { transform: scale(1);    box-shadow: 0 0 0 7px oklch(55% 0.18 30 / 0); background: var(--rework-bg); }
+}

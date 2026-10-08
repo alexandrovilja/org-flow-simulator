@@ -45,7 +45,7 @@ function makeFeature(id: number, priority: number, tasks: Task[], inProgress = f
     revenuePerTick: 100,
     totalRevenue: 0,
     lastTickRevenue: null,
-    lastRevenueTickAt: 0,
+    lastRevenueTickAt: 0, handoffCount: 0, reworkCount: 0, handoffSec: 0, reworkSec: 0, workedBy: [],
   }
 }
 
