@@ -191,7 +191,7 @@ export function Simulator() {
   // Import status message — null = no message, object = show message
   const [importMsg, setImportMsg] = useState<{ ok: boolean; text: string } | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
-  const [focusMode, setFocusMode] = useState<FocusMode>('priority')
+  const [focusMode] = useState<FocusMode>('priority')
   const [wipMode, setWipMode]     = useState<WipMode>('reduce-wip')
 
   const focusModeRef = useRef<FocusMode>('priority')
