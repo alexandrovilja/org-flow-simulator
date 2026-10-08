@@ -327,6 +327,12 @@ function makeFeature(
     lastTickRevenue: null,
     // Reálná hodnota se nastaví až při dokončení featury (viz blok dokončování v tick()).
     lastRevenueTickAt: 0,
+    // Čítače coordination overhead (feat-016) — rostou jen při zapnutém přepínači.
+    handoffCount: 0,
+    reworkCount: 0,
+    handoffSec: 0,
+    reworkSec: 0,
+    workedBy: [],
   }
 }
 
@@ -377,6 +383,13 @@ function cloneFeatureFresh(f: Feature): Feature {
     lastTickRevenue: null,
     // Irelevantní dokud feature znovu nedoběhne — reálná hodnota se nastaví při dokončení.
     lastRevenueTickAt: 0,
+    // Coordination overhead (feat-016) — nový běh začíná bez předání i bez historie jednotek.
+    // workedBy musí být nové pole, ne sdílená reference ze snapshotu (tick ho mutuje).
+    handoffCount: 0,
+    reworkCount: 0,
+    handoffSec: 0,
+    reworkSec: 0,
+    workedBy: [],
     tasks: f.tasks.map(t => ({
       ...t,
       status: 'todo',
@@ -522,6 +535,88 @@ export function computeHandoffs(feature: Feature, roleConfig: Record<Role, RoleM
     }
   }
   return handoffs
+}
+
+/** Handoff tax (feat-016): přebíraný task dostane navíc tento podíl svého `work`. */
+export const HANDOFF_TAX_PCT = 0.25
+/** Pravděpodobnost, že předání vyvolá rework (feat-016). Rework nastane při `rng() < 0.2`. */
+export const REWORK_PROBABILITY = 0.2
+/** Podíl `work`, o který vrácený task přijde z progresu při reworku (feat-016). */
+export const REWORK_PROGRESS_LOSS_PCT = 0.5
+
+/**
+ * Uplatní coordination overhead (feat-016) v okamžiku, kdy se jednotka přiřazuje k tasku.
+ *
+ * Předání nastane, když jednotka na featuře dosud nepracovala a jiná jednotka už na ní
+ * dokončila aspoň jeden task. Souběžný start více jednotek (bez hotové práce) předání není —
+ * jinak by se multiskill tým, který se sbíhá na jednu featuru, jevil dražší než silo.
+ *
+ * Při předání:
+ *  1. Handoff tax — přebíraný task dostane navíc HANDOFF_TAX_PCT svého `work`.
+ *  2. Hod na rework (1. volání rng) — při `< REWORK_PROBABILITY` se vybere (2. volání rng)
+ *     jeden hotový task jiné jednotky, ztratí REWORK_PROGRESS_LOSS_PCT svého `work`
+ *     z progresu a vrátí se do `todo`.
+ *
+ * Funkci volá tick() jen při zapnutém přepínači — při vypnutém se rng vůbec nespotřebuje.
+ *
+ * @param f - Feature, ke které se jednotka přiřazuje (mutována)
+ * @param t - Task, který jednotka přebírá (mutován — může se zvýšit `work`)
+ * @param memberId - ID přiřazované jednotky
+ * @param rng - Seeded RNG simulace
+ */
+function applyCoordinationOverhead(f: Feature, t: Task, memberId: number, rng: () => number): void {
+  // Jednotka, která na featuře už pracovala, předání nevyvolá — nejčastější případ,
+  // proto se kontroluje dřív než (dražší) filtrování hotových tasků níže.
+  if (f.workedBy.includes(memberId)) return
+  // Historii zapíšeme hned — při dalším přiřazení k téže featuře už jednotka nováček není
+  f.workedBy.push(memberId)
+
+  // Hotové tasky jiných jednotek — podmínka předání a zároveň kandidáti na rework
+  const doneByOthers = f.tasks.filter(o => o.status === 'done' && o.assignee !== memberId)
+  if (doneByOthers.length === 0) return
+
+  // 1. Handoff tax — práce navíc na straně přebírající jednotky. Zapamatujeme si přirážku
+  // na tasku, aby ji resetTaskProgress() mohl vrátit.
+  const tax = t.work * HANDOFF_TAX_PCT
+  t.work += tax
+  t.handoffTax = (t.handoffTax ?? 0) + tax
+  f.handoffSec += tax
+  f.handoffCount++
+
+  // 2. Rework — přebírající jednotka objeví chybu v předané práci
+  if (rng() < REWORK_PROBABILITY) {
+    const victim = doneByOthers[Math.floor(rng() * doneByOthers.length)]
+    // Math.max chrání před záporným progresem (u hotového tasku platí progress === work)
+    const newProgress = Math.max(0, victim.progress - victim.work * REWORK_PROGRESS_LOSS_PCT)
+    f.reworkSec += victim.progress - newProgress
+    f.reworkCount++
+    victim.progress = newProgress
+    victim.status = 'todo'
+    // Bez assignee — task vezme kdokoli s danou rolí podle běžných pravidel přiřazování
+    victim.assignee = null
+  }
+}
+
+/**
+ * Vrátí rozpracovaný task do `todo` s nulovým progresem — používá se, když kouč za běhu
+ * odebere jednotce roli nebo jednotku smaže. Zároveň vrátí přirážku z handoff taxu
+ * (feat-016): práce, za kterou se tax platil, se zahodila, a při dalším převzetí se tax
+ * spočítá znovu z původního `work` místo z už navýšeného (jinak by se tax násobil).
+ * Počet předání (`handoffCount`) zůstává — událost proběhla. Zahozený progres se do
+ * overheadu nepočítá: nejde o koordinaci, ale o ruční zásah do týmu.
+ *
+ * @param f - Feature, které task patří (mutována — snižuje se handoffSec)
+ * @param t - Resetovaný task (mutován)
+ */
+export function resetTaskProgress(f: Feature, t: Task): void {
+  if (t.handoffTax) {
+    t.work -= t.handoffTax
+    f.handoffSec -= t.handoffTax
+    t.handoffTax = 0
+  }
+  t.status = 'todo'
+  t.assignee = null
+  t.progress = 0
 }
 
 /**
@@ -674,6 +769,11 @@ export function tick(
       state.inProgress.push(best.f)
     }
 
+    // Coordination overhead (feat-016) — vyhodnotí se PŘED přiřazením, dokud m.id ještě
+    // není v historii featury. Při vypnutém přepínači se nevolá → rng se nespotřebuje
+    // a běh je identický s Advanced módem.
+    if (settings.coordinationOverhead) applyCoordinationOverhead(best.f, best.t, m.id, rng)
+
     best.t.status = 'doing'
     best.t.assignee = m.id
     m.currentTask = { featureId: best.f.id, taskId: best.t.id }
@@ -743,6 +843,9 @@ export function tick(
         ms: f.finishedAt - (f.startedAt ?? f.createdAt),
         finishedAt: f.finishedAt,
         handoffs: computeHandoffs(f, roleConfig),
+        // Coordination overhead (feat-016) — při vypnutém přepínači 0
+        handoffSec: f.handoffSec,
+        reworkSec: f.reworkSec,
       }
       state.leadTimes.push(lt)
 
@@ -810,7 +913,7 @@ export function tick(
  */
 export function computeStats(leadTimes: LeadTimeEntry[]): SimStats {
   if (leadTimes.length === 0) {
-    return { count: 0, avg: 0, min: 0, max: 0, p50: 0, p85: 0, buckets: [], bucketSize: 0, maxBucket: 0, avgHandoffs: 0 }
+    return { count: 0, avg: 0, min: 0, max: 0, p50: 0, p85: 0, buckets: [], bucketSize: 0, maxBucket: 0, avgHandoffs: 0, handoffPct: 0, reworkPct: 0, coordinationPct: 0 }
   }
 
   const vals = leadTimes.map(l => l.ms)
@@ -836,5 +939,16 @@ export function computeStats(leadTimes: LeadTimeEntry[]): SimStats {
 
   const avgHandoffs = leadTimes.reduce((s, l) => s + l.handoffs, 0) / leadTimes.length
 
-  return { count: vals.length, avg, min, max, p50: pct(0.5), p85: pct(0.85), buckets, bucketSize, maxBucket, avgHandoffs }
+  // Coordination overhead (feat-016): podíl koordinačních sekund na součtu cycle time.
+  // Starší záznamy bez handoffSec/reworkSec se počítají jako 0. Ochrana proti dělení nulou
+  // pro případ, že by všechny cycle time byly 0.
+  const handoffTotal = leadTimes.reduce((s, l) => s + (l.handoffSec ?? 0), 0)
+  const reworkTotal = leadTimes.reduce((s, l) => s + (l.reworkSec ?? 0), 0)
+  const handoffPct = sum > 0 ? (handoffTotal / sum) * 100 : 0
+  const reworkPct = sum > 0 ? (reworkTotal / sum) * 100 : 0
+
+  return {
+    count: vals.length, avg, min, max, p50: pct(0.5), p85: pct(0.85), buckets, bucketSize, maxBucket, avgHandoffs,
+    handoffPct, reworkPct, coordinationPct: handoffPct + reworkPct,
+  }
 }

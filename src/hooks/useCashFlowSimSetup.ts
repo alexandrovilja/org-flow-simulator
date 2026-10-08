@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import {
   MEMBER_NAMES, TEAM_NAMES, PRESETS, mulberry32,
-  makeInitialState, regenerate, applyPreset,
+  makeInitialState, regenerate, applyPreset, resetTaskProgress,
 } from '@/simulation/engine'
 import { addRole, deleteRole } from '@/simulation/roleManagement'
 import { parseXlsFile, type ImportResult } from '@/lib/xlsImport'
@@ -38,6 +38,9 @@ export interface CashFlowSimSetup {
   wipMode: WipMode
   wipModeRef: React.RefObject<WipMode>
   setWipMode: React.Dispatch<React.SetStateAction<WipMode>>
+  /** Přepínač Coordination overhead (feat-016) — uložený v `settings.coordinationOverhead`. */
+  coordinationOverhead: boolean
+  setCoordinationOverhead: (value: boolean) => void
   forceUpdate: () => void
   handleAssignRole: (memberId: number, role: Role) => void
   handleRemoveRole: (memberId: number, role: Role) => void
@@ -102,6 +105,13 @@ export function useCashFlowSimSetup(
   const wipModeRef = useRef<WipMode>('reduce-wip')
   useEffect(() => { wipModeRef.current = wipMode }, [wipMode])
 
+  // Coordination overhead (feat-016) žije v SimSettings, protože ho čte tick() přes settingsRef.
+  // Zamčení během běhu řeší UI (Simulator.tsx) — tady stačí prostý setter.
+  const coordinationOverhead = settings.coordinationOverhead ?? false
+  const setCoordinationOverhead = useCallback((value: boolean) => {
+    setSettings(s => ({ ...s, coordinationOverhead: value }))
+  }, [])
+
   const rngRef = useRef<(() => number) | null>(null)
   const stateRef = useRef<SimState | null>(null)
   if (stateRef.current === null) {
@@ -135,7 +145,9 @@ export function useCashFlowSimSetup(
       if (f) {
         const t = f.tasks.find(t => t.id === m.currentTask!.taskId)
         if (t && t.role === role) {
-          t.status = 'todo'; t.assignee = null; t.progress = 0; m.currentTask = null
+          // resetTaskProgress vrací i přirážku z handoff taxu (feat-016)
+          resetTaskProgress(f, t)
+          m.currentTask = null
         }
       }
     }
@@ -229,7 +241,7 @@ export function useCashFlowSimSetup(
     if (m?.currentTask) {
       const f = s.inProgress.find(f => f.id === m.currentTask!.featureId)
       const t = f?.tasks.find(t => t.id === m.currentTask!.taskId)
-      if (t) { t.status = 'todo'; t.assignee = null; t.progress = 0 }
+      if (f && t) resetTaskProgress(f, t)
     }
     s.team = s.team.filter(m => m.id !== memberId)
     markCustom()
@@ -285,7 +297,8 @@ export function useCashFlowSimSetup(
     roleConfig, roleConfigRef, activePresetId, confirmingPreset, setConfirmingPreset,
     showRoleSettings, setShowRoleSettings, showBacklogControls, setShowBacklogControls,
     showTeamSettings, setShowTeamSettings, importMsg, fileInputRef,
-    focusMode, focusModeRef, wipMode, wipModeRef, setWipMode, forceUpdate,
+    focusMode, focusModeRef, wipMode, wipModeRef, setWipMode,
+    coordinationOverhead, setCoordinationOverhead, forceUpdate,
     handleAssignRole, handleRemoveRole, handleXlsImport, handleRegenerate,
     handlePresetClick, handleConfirmPreset, handleRenameMember, handleRemoveMember,
     handleAddMember, handleRoleChange, handleAddRole, handleDeleteRole,

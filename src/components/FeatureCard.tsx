@@ -1,5 +1,7 @@
+import { useState } from 'react'
 import { ROLE_META } from '@/simulation/engine'
 import { featureTotalWork } from '@/lib/featureSize'
+import { CoordinationChips } from '@/components/CoordinationChips'
 import type { Feature, Member, Role, RoleMeta } from '@/types/simulation'
 
 interface FeatureCardProps {
@@ -23,10 +25,17 @@ interface FeatureCardProps {
    * v hlavičce karty. Používá se jen v Cash Flow módu; jinde se neposílá.
    */
   revenue?: string
+  /**
+   * Zobrazí čipy coordination overhead (⇄ předání, ↺ rework) s pulse efektem a probliknutí
+   * segmentu vráceného tasku. Jen Cash Flow mód se zapnutým přepínačem (feat-016).
+   */
+  showCoordination?: boolean
 }
 
-export function FeatureCard({ feature, team = [], compact = false, neutral = false, maxWork = 0, roleConfig, revenue }: FeatureCardProps) {
+export function FeatureCard({ feature, team = [], compact = false, neutral = false, maxWork = 0, roleConfig, revenue, showCoordination = false }: FeatureCardProps) {
   const totalWork = featureTotalWork(feature.tasks)
+  // Počet reworků při připojení karty (feat-016) — probliknutí vráceného tasku jen pro nové reworky
+  const [mountReworks] = useState(feature.reworkCount)
 
   // Šířka celého baru vůči šířce karty — největší feature dostane 100 %.
   // Math.min(100, ...) zajišťuje, že FP nepřesnosti nevytvoří bar wider than track.
@@ -61,6 +70,11 @@ export function FeatureCard({ feature, team = [], compact = false, neutral = fal
           {feature.name}
         </span>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+          {showCoordination && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+              <CoordinationChips handoffs={feature.handoffCount} reworks={feature.reworkCount} pulse />
+            </div>
+          )}
           {revenue && (
             <span className="mono" style={{ fontSize: 10, color: 'var(--done)', fontWeight: 700 }}>
               {revenue}
@@ -87,7 +101,9 @@ export function FeatureCard({ feature, team = [], compact = false, neutral = fal
           {feature.tasks.map((t) => {
             // roleConfig má přednost před statickým ROLE_META — funguje i pro custom specializace
             const meta = (roleConfig ?? ROLE_META)[t.role] ?? { color: 'var(--ink-3)' }
-            const filled = t.status === 'done' ? 1 : (t.status === 'doing' ? t.progress / t.work : 0)
+            // Todo task má progress 0 — výjimkou je task vrácený reworkem (feat-016), který si nese
+            // zbylý progres; ten musí být vidět, jinak by ztráta vypadala jako 100 %.
+            const filled = t.status === 'done' ? 1 : t.progress / t.work
             const initial = !compact && t.status === 'doing' ? initialFor(t.assignee) : null
 
             // Šířka segmentu uvnitř baru — úměrná pracnosti tasku vůči celku feature
@@ -104,6 +120,17 @@ export function FeatureCard({ feature, team = [], compact = false, neutral = fal
                 <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: `${filled * 100}%`, background: meta.color }} />
                 {t.status === 'todo' && (
                   <div style={{ position: 'absolute', inset: 0, background: meta.color, opacity: 0.25 }} />
+                )}
+                {/* Rework (feat-016): task vrácený do todo si nese zbylý progres (> 0), běžný
+                    todo task má progress 0. key={reworkCount} spustí probliknutí znovu při
+                    každém dalším reworku featury; jen pro reworky po připojení karty, aby se
+                    po remountu (přepnutí módu) staré probliknutí nepřehrálo. */}
+                {showCoordination && t.status === 'todo' && t.progress > 0 && feature.reworkCount > mountReworks && (
+                  <div key={feature.reworkCount} style={{
+                    position: 'absolute', inset: 0, background: 'var(--rework-ink)',
+                    opacity: 0, animation: 'rework-flash 1.2s ease-out',
+                    pointerEvents: 'none',
+                  }} />
                 )}
                 {initial && (
                   <div style={{

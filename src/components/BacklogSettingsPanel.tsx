@@ -38,6 +38,12 @@ interface BacklogSettingsPanelProps {
   tutorialTargetPrefix?: string
   /** Volitelný formátovač revenue badge na kartě backlogu (jen Cash Flow mód, feat-015). */
   getRevenueBadge?: (feature: Feature) => string
+  /** Stav přepínače Coordination overhead (jen Cash Flow mód, feat-016). */
+  coordinationOverhead?: boolean
+  /** Setter přepínače — když není zadán, přepínač se nevykreslí (Advanced mód). */
+  setCoordinationOverhead?: (value: boolean) => void
+  /** true = běh už začal → přepínač je zamčený až do Resetu. */
+  coordinationOverheadLocked?: boolean
 }
 
 /**
@@ -51,6 +57,7 @@ export function BacklogSettingsPanel({
   showTeamSettings, setShowTeamSettings, importMsg, fileInputRef, wipMode, setWipMode, maxWork,
   handleXlsImport, handleRegenerate, handlePresetClick, handleConfirmPreset, getRevenueBadge,
   handleRoleChange, handleAddRole, handleDeleteRole, tutorialTargetPrefix = 'experiment',
+  coordinationOverhead = false, setCoordinationOverhead, coordinationOverheadLocked = false,
 }: BacklogSettingsPanelProps) {
   return (
     <section data-tutorial-target={`${tutorialTargetPrefix}-backlog`} style={{ borderRight: '1px solid var(--line)', background: 'var(--panel)', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
@@ -296,6 +303,30 @@ export function BacklogSettingsPanel({
                   ? 'WIP: units can start new features freely based on priority.'
                   : 'WIP: units finish in-progress features before pulling new ones.'}
               />
+              {/* Coordination overhead (feat-016) — jen Cash Flow, který předává setter */}
+              {setCoordinationOverhead && (
+                <div style={{ marginTop: 10 }}>
+                  <div style={{ fontSize: 10, fontWeight: 500, color: 'var(--ink-3)', marginBottom: 5, letterSpacing: 0.2 }}>
+                    Coordination overhead
+                  </div>
+                  <SegmentedControl
+                    options={[
+                      { value: 'off', label: 'Off' },
+                      { value: 'on', label: 'On' },
+                    ]}
+                    value={coordinationOverhead ? 'on' : 'off'}
+                    onChange={v => setCoordinationOverhead(v === 'on')}
+                    disabled={coordinationOverheadLocked}
+                    hint="Handoffs between units add 25 % extra work; 20 % chance of rework."
+                  />
+                  {/* Změna uprostřed běhu by míchala dva modely v jednom výsledku → až po Resetu */}
+                  {coordinationOverheadLocked && (
+                    <div style={{ fontSize: 10, color: 'var(--ink-3)', marginTop: 4 }}>
+                      🔒 Takes effect after Reset
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           )}
         </div>

@@ -16,6 +16,8 @@ interface InProgressTeamPanelProps {
   handleAddMember: () => void
   /** Prefix pro data-tutorial-target atributy — odlišuje Advanced od Cash Flow v DOM. */
   tutorialTargetPrefix?: string
+  /** Zobrazí čipy coordination overhead na kartách In Progress (jen Cash Flow, feat-016). */
+  showCoordination?: boolean
 }
 
 /**
@@ -26,7 +28,7 @@ interface InProgressTeamPanelProps {
 export function InProgressTeamPanel({
   state, roleConfig, maxWork, activePresetId,
   handleAssignRole, handleRemoveRole, handleRenameMember, handleRemoveMember, handleAddMember,
-  tutorialTargetPrefix = 'experiment',
+  tutorialTargetPrefix = 'experiment', showCoordination = false,
 }: InProgressTeamPanelProps) {
   return (
     <section data-tutorial-target={`${tutorialTargetPrefix}-team`} style={{ display: 'flex', flexDirection: 'column', minHeight: 0, minWidth: 0, background: 'var(--bg)' }}>
@@ -40,7 +42,7 @@ export function InProgressTeamPanel({
           {state.inProgress.length === 0 && (
             <div style={{ fontSize: 11, color: 'var(--ink-3)', fontStyle: 'italic', gridColumn: '1 / -1' }}>Nothing in flight.</div>
           )}
-          {state.inProgress.map(f => <FeatureCard key={f.id} feature={f} team={state.team} maxWork={maxWork} roleConfig={roleConfig} />)}
+          {state.inProgress.map(f => <FeatureCard key={f.id} feature={f} team={state.team} maxWork={maxWork} roleConfig={roleConfig} showCoordination={showCoordination} />)}
         </div>
       </div>
 

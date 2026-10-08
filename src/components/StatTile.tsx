@@ -20,9 +20,11 @@ interface StatTileProps {
    * kladná delta = zelená (zlepšení), záporná = červená (zhoršení). Výchozí: false.
    */
   higherIsBetter?: boolean
+  /** Volitelný obsah pod hodnotou (nad hintem a deltou) — např. rozpadový pruh s legendou (feat-016). */
+  children?: React.ReactNode
 }
 
-export function StatTile({ label, value, unit, hint, tooltip, variant, finished, wide, delta, higherIsBetter = false }: StatTileProps) {
+export function StatTile({ label, value, unit, hint, tooltip, variant, finished, wide, delta, higherIsBetter = false, children }: StatTileProps) {
   const isTimer = variant === 'timer'
 
   const borderColor = isTimer && finished ? 'var(--done)' : 'var(--line)'
@@ -82,6 +84,7 @@ export function StatTile({ label, value, unit, hint, tooltip, variant, finished,
         {value}
         {unit && <span style={{ fontSize: 11, color: 'var(--ink-3)', marginLeft: 2, fontWeight: 500 }}>{unit}</span>}
       </span>
+      {children}
       {hint && <span style={{ fontSize: 10, color: 'var(--ink-3)' }}>{hint}</span>}
       {/* Delta indikátor porovnávající aktuální hodnotu s předchozím během.
           Šipka vždy odpovídá skutečnému směru změny; barva závisí na higherIsBetter

@@ -10,6 +10,8 @@ interface SegmentedControlProps<T extends string> {
   onChange: (value: T) => void
   /** Tooltip text shown on hover as a floating panel */
   hint?: string
+  /** When true, the control is dimmed and clicks are ignored (e.g. setting locked until Reset) */
+  disabled?: boolean
 }
 
 /**
@@ -21,8 +23,9 @@ interface SegmentedControlProps<T extends string> {
  * @param value   - the currently selected value
  * @param onChange - callback fired with the newly selected value
  * @param hint    - optional description shown as a floating tooltip on hover
+ * @param disabled - optional; dims the control and ignores clicks
  */
-export function SegmentedControl<T extends string>({ options, value, onChange, hint }: SegmentedControlProps<T>) {
+export function SegmentedControl<T extends string>({ options, value, onChange, hint, disabled = false }: SegmentedControlProps<T>) {
   const activeIndex = options[0].value === value ? 0 : 1
   const [visible, setVisible] = useState(false)
 
@@ -43,6 +46,7 @@ export function SegmentedControl<T extends string>({ options, value, onChange, h
           background: 'var(--bg)',
           borderRadius: 7,
           padding: 2,
+          opacity: disabled ? 0.5 : 1,
         }}
       >
         {/* Sliding pill — sits behind the labels, moves via left transition */}
@@ -64,6 +68,7 @@ export function SegmentedControl<T extends string>({ options, value, onChange, h
           <button
             key={opt.value}
             onClick={() => onChange(opt.value)}
+            disabled={disabled}
             style={{
               position: 'relative',
               zIndex: 1,
@@ -74,7 +79,7 @@ export function SegmentedControl<T extends string>({ options, value, onChange, h
               letterSpacing: 0.2,
               border: 'none',
               background: 'transparent',
-              cursor: 'pointer',
+              cursor: disabled ? 'not-allowed' : 'pointer',
               borderRadius: 5,
               color: i === activeIndex ? 'var(--ink)' : 'var(--ink-3)',
               transition: 'color 0.15s ease',

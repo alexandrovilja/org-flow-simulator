@@ -155,6 +155,8 @@ export function Simulator() {
     totalTime: number
     totalRevenue: number
     doneFeatures: Pick<Feature, 'finishedAt' | 'revenuePerTick'>[]
+    /** Celkový coordination overhead v % (feat-016) — 0, pokud byl přepínač vypnutý. */
+    coordinationPct: number
   }
   const [cashFlowPrevStats, setCashFlowPrevStats] = useState<CashFlowRunSnapshot | null>(null)
   const cashFlowLastFinishedRef = useRef<CashFlowRunSnapshot | null>(null)
@@ -306,6 +308,7 @@ export function Simulator() {
                     ...state.done.map(f => ({ finishedAt: f.finishedAt, revenuePerTick: f.revenuePerTick })),
                     ...state.doneOverflow.map(o => ({ finishedAt: o.finishedAt, revenuePerTick: o.revenuePerTick })),
                   ],
+                  coordinationPct: finishedStats.coordinationPct,
                 }
               }
             }
@@ -646,6 +649,11 @@ export function Simulator() {
       cfRevenueDeltaHint = `@ ${formatTime(compareTime)}`
     }
   }
+  // Coordination overhead delta (feat-016) — calcDelta vrací undefined, když předchozí běh
+  // měl 0 % (např. přepínač Off), protože procentuální změna z nuly nedává smysl.
+  const cfCoordinationDelta = cashFlowPrevStats && cfStats.count > 0
+    ? calcDelta(cfStats.coordinationPct, cashFlowPrevStats.coordinationPct)
+    : undefined
   const cfMaxWork = featureMaxWork(cfState.backlog, cfState.inProgress)
 
   /** Wraps cf.handleRegenerate to also promote the last finished run into prevStats first —
@@ -972,6 +980,9 @@ export function Simulator() {
           handleDeleteRole={cf.handleDeleteRole}
           tutorialTargetPrefix="cashflow"
           getRevenueBadge={f => `${formatEuro(f.revenuePerTick)}/tick`}
+          coordinationOverhead={cf.coordinationOverhead}
+          setCoordinationOverhead={cf.setCoordinationOverhead}
+          coordinationOverheadLocked={cashFlowHasStarted}
         />
 
         <InProgressTeamPanel
@@ -985,6 +996,7 @@ export function Simulator() {
           handleRemoveMember={cf.handleRemoveMember}
           handleAddMember={cf.handleAddMember}
           tutorialTargetPrefix="cashflow"
+          showCoordination={cf.coordinationOverhead}
         />
 
         <CashFlowPanel
@@ -997,6 +1009,8 @@ export function Simulator() {
           wipDelta={cfWipDelta}
           revenueDelta={cfRevenueDelta}
           revenueDeltaHint={cfRevenueDeltaHint}
+          showCoordination={cf.coordinationOverhead}
+          coordinationDelta={cfCoordinationDelta}
         />
       </div>
     )

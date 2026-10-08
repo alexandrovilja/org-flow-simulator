@@ -13,6 +13,10 @@
   --shadow: 0 1px 0 rgba(20,20,30,0.04), 0 8px 24px -16px rgba(20,20,30,0.12);
   --radius: 8px;
   --radius-lg: 12px;
+  /* Coordination overhead (feat-016) — barvy reworku: čip ↺, pruh v dlaždici */
+  --rework-ink: oklch(50% 0.17 30);
+  --rework-bg: oklch(95% 0.04 30);
+  --rework-line: oklch(82% 0.08 30);
 }
 
 * {
@@ -69,4 +73,10 @@ button {
   15%  { opacity: 1; transform: translateY(0) scale(1); }
   75%  { opacity: 1; transform: translateY(0) scale(1); }
   100% { opacity: 0; transform: translateY(-3px) scale(0.95); }
+}
+
+/* Coordination overhead (feat-016) — krátké probliknutí segmentu tasku vráceného reworkem. */
+@keyframes rework-flash {
+  0%   { opacity: 0.85; }
+  100% { opacity: 0; }
 }
