@@ -283,34 +283,58 @@ describe('feat-016: inicializace polí featury', () => {
 })
 
 describe('feat-016 regrese: stávající backlogy a WIP režimy se nemění', () => {
-  it('backlog pro seed 42 a 7 je beze změny (coordSeed se generuje až po revenue batchi)', () => {
-    // Otisky zachycené ze stavu před revizí 2 (stejné nastavení, ROLE_META)
-    expect(backlogFingerprint(makeInitialState(mulberry32(42), BASE_SETTINGS, ROLE_META))).toBe('963943e5')
-    expect(backlogFingerprint(makeInitialState(mulberry32(7), BASE_SETTINGS, ROLE_META))).toBe('c9446fd3')
+  // POZOR: generování backlogu (`[...].sort(() => rng() - 0.5)` v makeFeature) závisí na implementaci
+  // Array.prototype.sort — nekonzistentní komparátor dává v různých JS enginech i verzích Node různé
+  // permutace (CI na Node 20 vidí jiný backlog než lokální Node 25). Regresní testy proto NESMÍ
+  // pinovat výstup makeInitialState; používají ručně sestavený backlog a vlastní rozpoznání pořadí rng.
+
+  it('coordSeed se generuje z posledních N volání rng (po revenue batchi) — dřívější volání se nezměnila', () => {
+    const inner = mulberry32(42)
+    const drawn: number[] = []
+    const recording = () => { const v = inner(); drawn.push(v); return v }
+    const state = makeInitialState(recording, BASE_SETTINGS, ROLE_META)
+    const n = state.backlog.length
+    // Pokud by se coordSeed losoval dřív, posunul by role, work i výnosy a tohle by neplatilo
+    expect(state.backlog.map(f => f.coordSeed)).toEqual(drawn.slice(-n).map(v => Math.floor(v * 2 ** 31)))
   })
 
-  it('Reduce WIP: běh bez overheadu je shodný s referencí před revizí (6× silo i 3× multiskill)', () => {
-    const silo = fullRun(42, BASE_SETTINGS, 'silo', 'reduce-wip')
-    expect(silo.simTime.toFixed(4)).toBe('24.9000')
-    expect(silo.totalRevenueAllTime.toFixed(2)).toBe('15814.59')
-    expect(leadTimeFingerprint(silo)).toBe('3b47e0c6')
+  /** Ručně sestavený backlog — nezávislý na řazení (Array.sort) i na transcendentních funkcích. */
+  function manualBacklog(size: number): SimState {
+    const state = makeInitialState(mulberry32(1), { ...BASE_SETTINGS, initialBacklog: size })
+    const roles = Object.keys(ROLE_META)
+    const rng = mulberry32(42)
+    state.backlog.forEach((f, i) => {
+      const count = 2 + Math.floor(rng() * 4)
+      f.tasks = Array.from({ length: count }, (_, k): Task => ({
+        id: i * 10 + k + 1, role: roles[Math.floor(rng() * 6)], work: 0.8 + rng() * 1.4, progress: 0, status: 'todo', assignee: null,
+      }))
+      f.revenuePerTick = 100 + (size - i) * 10
+    })
+    return state
+  }
 
-    const multi = fullRun(42, BASE_SETTINGS, 3, 'reduce-wip')
-    expect(multi.simTime.toFixed(4)).toBe('32.0500')
-    expect(multi.totalRevenueAllTime.toFixed(2)).toBe('21371.99')
-    expect(leadTimeFingerprint(multi)).toBe('b8c17685')
-  })
+  /** Doběhne ručně sestavený backlog (20 features) s daným týmem a WIP módem; overhead Off. */
+  function runManual(wipMode: WipMode, units: 'silo' | 3): SimState {
+    const state = manualBacklog(20)
+    if (units !== 'silo') {
+      state.team = state.team.slice(0, units)
+      state.team.forEach(m => { m.roles = Object.keys(ROLE_META) })
+    }
+    for (let i = 0; i < 200_000 && !state.finished; i++) tick(state, DT, BASE_SETTINGS, NO_RNG, ROLE_META, 'priority', wipMode)
+    return state
+  }
 
-  it('Priority: běh bez overheadu je shodný s referencí před revizí (6× silo i 3× multiskill)', () => {
-    const silo = fullRun(42, BASE_SETTINGS, 'silo', 'priority')
-    expect(silo.simTime.toFixed(4)).toBe('24.9000')
-    expect(silo.totalRevenueAllTime.toFixed(2)).toBe('12956.13')
-    expect(leadTimeFingerprint(silo)).toBe('a209ccfa')
-
-    const multi = fullRun(42, BASE_SETTINGS, 3, 'priority')
-    expect(multi.simTime.toFixed(4)).toBe('32.3000')
-    expect(multi.totalRevenueAllTime.toFixed(2)).toBe('14186.68')
-    expect(leadTimeFingerprint(multi)).toBe('9ac7875a')
+  // Referenční hodnoty spočítal původní engine (main, před revizí 2) i nový — shodují se
+  it.each([
+    ['reduce-wip', 'silo', '18.1500', '10600.00', 'fa3edff7'],
+    ['reduce-wip', 3, '30.2000', '20580.00', '6627465f'],
+    ['priority', 'silo', '18.1500', '6350.00', 'fe90b5b8'],
+    ['priority', 3, '30.2500', '12160.00', '700519a8'],
+  ] as const)('%s, tým %s: běh bez overheadu je shodný s referencí před revizí', (wipMode, units, simTime, revenue, leadTimes) => {
+    const state = runManual(wipMode, units)
+    expect(state.simTime.toFixed(4)).toBe(simTime)
+    expect(state.totalRevenueAllTime.toFixed(2)).toBe(revenue)
+    expect(leadTimeFingerprint(state)).toBe(leadTimes)
   })
 })
 
