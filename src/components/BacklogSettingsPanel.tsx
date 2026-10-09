@@ -4,8 +4,11 @@ import { RoleSettings } from '@/components/RoleSettings'
 import { Slider } from '@/components/Slider'
 import { PanelHeader } from '@/components/PanelHeader'
 import { SegmentedControl } from '@/components/SegmentedControl'
+import { ConfirmOverlay } from '@/components/ConfirmOverlay'
+import { RevenueCurvePreview } from '@/components/RevenueCurvePreview'
+import { REVENUE_PROFILE_INFO } from '@/lib/revenueProfiles'
 import { downloadTemplate } from '@/lib/xlsImport'
-import type { Feature, SimState, SimSettings, Role, RoleMeta, WipMode, UnitPreset, ActivePresetId } from '@/types/simulation'
+import type { Feature, SimState, SimSettings, Role, RoleMeta, WipMode, UnitPreset, ActivePresetId, RevenueProfile } from '@/types/simulation'
 
 /** Hover hint pro každý WIP mód — popisuje, jak jednotky vybírají další práci (feat-016: Min units). */
 const WIP_HINTS: Record<WipMode, string> = {
@@ -51,6 +54,16 @@ interface BacklogSettingsPanelProps {
   setCoordinationOverhead?: (value: boolean) => void
   /** true = běh už začal → přepínač je zamčený až do Resetu. */
   coordinationOverheadLocked?: boolean
+  /** Zvolený tvar výnosu (jen Cash Flow mód, feat-017). Výchozí `'flat'`. */
+  revenueProfile?: RevenueProfile
+  /** Callback přepínače „Revenue curve“ — když není zadán, přepínač ani náhled se nevykreslí (Advanced mód). */
+  onRevenueProfileChange?: (profile: RevenueProfile) => void
+  /** Profil čekající na potvrzení (změna během běhu); `null` / nezadáno = dialog je zavřený. */
+  confirmingRevenueProfile?: RevenueProfile | null
+  /** „Change and reset“ v dialogu změny křivky. */
+  onConfirmRevenueProfile?: () => void
+  /** „Cancel“ v dialogu změny křivky. */
+  onCancelRevenueProfile?: () => void
 }
 
 /**
@@ -65,6 +78,8 @@ export function BacklogSettingsPanel({
   handleXlsImport, handleRegenerate, handlePresetClick, handleConfirmPreset, getRevenueBadge,
   handleRoleChange, handleAddRole, handleDeleteRole, tutorialTargetPrefix = 'experiment',
   coordinationOverhead = false, setCoordinationOverhead, coordinationOverheadLocked = false,
+  revenueProfile = 'flat', onRevenueProfileChange, confirmingRevenueProfile = null,
+  onConfirmRevenueProfile, onCancelRevenueProfile,
 }: BacklogSettingsPanelProps) {
   return (
     <section data-tutorial-target={`${tutorialTargetPrefix}-backlog`} style={{ borderRight: '1px solid var(--line)', background: 'var(--panel)', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
@@ -122,52 +137,25 @@ export function BacklogSettingsPanel({
         </div>
 
         {confirmingPreset && (
-          <div style={{
-            position: 'absolute', inset: 0,
-            background: 'rgba(246, 245, 242, 0.84)',
-            backdropFilter: 'blur(2px)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            borderRadius: 'var(--radius)',
-            zIndex: 10,
-          }}>
-            <div style={{
-              background: 'var(--panel)',
-              border: '1px solid var(--line)',
-              borderRadius: 10, padding: 16, width: 200,
-              boxShadow: '0 4px 24px rgba(20,20,30,0.14), 0 1px 3px rgba(20,20,30,0.08)',
-            }}>
-              <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink)', marginBottom: 5 }}>
-                Apply &ldquo;{confirmingPreset.label}&rdquo; preset?
-              </div>
-              <div style={{ fontSize: 11, color: 'var(--ink-2)', lineHeight: 1.5, marginBottom: 13 }}>
-                Your current team and specializations will be replaced. This cannot be undone.
-              </div>
-              <div style={{ display: 'flex', gap: 6 }}>
-                <button
-                  onClick={() => setConfirmingPreset(null)}
-                  style={{
-                    flex: 1, fontFamily: 'inherit', fontSize: 11, fontWeight: 500,
-                    padding: '5px 0', borderRadius: 5,
-                    border: '1px solid var(--line-2)', background: 'transparent',
-                    color: 'var(--ink-2)', cursor: 'pointer',
-                  }}
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleConfirmPreset}
-                  style={{
-                    flex: 1, fontFamily: 'inherit', fontSize: 11, fontWeight: 600,
-                    padding: '5px 0', borderRadius: 5,
-                    border: 'none', background: 'var(--ink)',
-                    color: 'white', cursor: 'pointer',
-                  }}
-                >
-                  Apply preset
-                </button>
-              </div>
-            </div>
-          </div>
+          <ConfirmOverlay
+            title={<>Apply &ldquo;{confirmingPreset.label}&rdquo; preset?</>}
+            body="Your current team and specializations will be replaced. This cannot be undone."
+            confirmLabel="Apply preset"
+            onCancel={() => setConfirmingPreset(null)}
+            onConfirm={handleConfirmPreset}
+          />
+        )}
+
+        {/* Změna křivky výnosu během běhu (feat-017) — stejný dialog jako u presetu */}
+        {confirmingRevenueProfile && onConfirmRevenueProfile && onCancelRevenueProfile && (
+          <ConfirmOverlay
+            title="Change revenue curve?"
+            body="Changing the revenue curve resets the current run. The backlog stays the same."
+            confirmLabel="Change and reset"
+            width={220}
+            onCancel={onCancelRevenueProfile}
+            onConfirm={onConfirmRevenueProfile}
+          />
         )}
 
         <input
@@ -243,6 +231,25 @@ export function BacklogSettingsPanel({
               }}>
                 ♻ Generate new backlog
               </button>
+              {/* Tvar výnosu featur po dodání (feat-017) — jen Cash Flow, který předává callback */}
+              {onRevenueProfileChange && (
+                <div>
+                  <div style={{ fontSize: 10, fontWeight: 500, color: 'var(--ink-3)', marginBottom: 5, letterSpacing: 0.2 }}>
+                    Revenue curve
+                  </div>
+                  <SegmentedControl<RevenueProfile>
+                    options={[
+                      { value: 'flat', label: REVENUE_PROFILE_INFO['flat'].label },
+                      { value: 'j-curve', label: REVENUE_PROFILE_INFO['j-curve'].label },
+                      { value: 's-curve', label: REVENUE_PROFILE_INFO['s-curve'].label },
+                    ]}
+                    value={revenueProfile}
+                    onChange={onRevenueProfileChange}
+                    hint={REVENUE_PROFILE_INFO[revenueProfile].hint}
+                  />
+                  <RevenueCurvePreview profile={revenueProfile} />
+                </div>
+              )}
               <Slider label="Backlog size" value={settings.initialBacklog} min={10} max={1000} step={10}
                 onChange={v => setSettings(s => ({ ...s, initialBacklog: v }))}
                 format={v => `${v} items`}

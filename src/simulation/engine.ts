@@ -1,7 +1,7 @@
 import type {
   Role, RoleMeta, Feature, Task, Member,
   SimState, SimSettings, SimStats, LeadTimeEntry,
-  FocusMode, WipMode, UnitPreset,
+  FocusMode, WipMode, UnitPreset, RevenueProfile,
 } from '@/types/simulation'
 
 /** Všechny dostupné specializace v systému — pořadí odpovídá výchozímu týmu. */
@@ -153,6 +153,109 @@ const REVENUE_MEAN = 140
 const REVENUE_STD_DEV = 100
 const REVENUE_MIN = 15
 
+// --- Tvar výnosu v čase (feat-017) ---
+// Konstanty jsou ILUSTRATIVNÍ (tvar křivek vychází z literatury, parametry z ní kalibrované nejsou —
+// viz sekce Research Basis ve features/feat-017-rozlozeni-vynosu-v-case.md). Časová osa je v ticích
+// (1 tik = REVENUE_TICK_INTERVAL_SEC), tedy zhuštěná tak, aby se tvar projevil v běhu dlouhém desítky sekund.
+
+/** Bassův koeficient inovace p: podíl „inovátorů“, kteří featuru začnou používat sami od sebe. */
+const BASS_P = 0.05
+/** Bassův koeficient imitace q: jak silně adopci táhne už nastřádaná adopce (napodobitelé). */
+const BASS_Q = 0.6
+/** J-curve: násobek výnosu hned po dodání (nízký, ale kladný — žádný propad pod nulu). */
+const J_START = 0.2
+/** J-curve: ustálený násobek (plató) — dvojnásobek úrovně Flat, opatrněji než „až 5×“ z literatury. */
+const J_PLATEAU = 2
+/** J-curve: tik, ve kterém je růst nejstrmější (střed logistické křivky). */
+const J_MIDPOINT_TICK = 6.5
+/** J-curve: strmost růstu kolem středu (větší = rychlejší přechod). */
+const J_STEEPNESS = 0.9
+/** Do kolika ticků se předpočítávají kumulativní součty; dál už je výnos na plató a ocas se dopočte lineárně. */
+const REVENUE_CURVE_TABLE_TICKS = 60
+
+/**
+ * Násobek základního výnosu (`revenuePerTick`) pro k-tý revenue tik od dokončení featury.
+ * Čistá funkce bez RNG — profil je jen štítek, tvar je zde. `k = 0` je definované (kvůli náhledu
+ * křivky v UI), ale engine ho nepoužívá: první skutečný tik má k = 1.
+ *
+ * @param profile - Tvar křivky (`flat`, `j-curve`, `s-curve`)
+ * @param k - Pořadí revenue ticku od dokončení (1 = první tik, 3 s po dokončení)
+ * @returns Násobek: Flat vždy 1, S-curve roste od ~0 k 1, J-curve od ~0,21 k 2
+ */
+export function revenueMultiplier(profile: RevenueProfile, k: number): number {
+  if (profile === 's-curve') {
+    // Kumulativní adopce Bassova modelu: F(k) = (1 − e^(−(p+q)k)) / (1 + (q/p)·e^(−(p+q)k)); roste k 1
+    const decay = Math.exp(-(BASS_P + BASS_Q) * k)
+    return (1 - decay) / (1 + (BASS_Q / BASS_P) * decay)
+  }
+  if (profile === 'j-curve') {
+    // Logistický růst z nízkého startu k plató; vždy kladný
+    return J_START + (J_PLATEAU - J_START) / (1 + Math.exp(-J_STEEPNESS * (k - J_MIDPOINT_TICK)))
+  }
+  return 1
+}
+
+/**
+ * Ustálený násobek (plató), ke kterému křivka dospěje. Používá UI pro badge „ustálený výnos“
+ * na kartě featury (např. J-curve u základu €400 ukáže €800/tick).
+ *
+ * @param profile - Tvar křivky
+ * @returns 1 pro Flat a S-curve, 2 pro J-curve
+ */
+export function revenuePlateau(profile: RevenueProfile): number {
+  return profile === 'j-curve' ? J_PLATEAU : 1
+}
+
+/**
+ * Ustálený výnos featury za tik: základní výnos × plató zvoleného profilu. Je to číslo, které UI ukazuje
+ * jako „€/tick“ na kartě v Backlogu i v řádku Done listu — jediné místo výpočtu zaručuje, že oba údaje
+ * ukazují totéž.
+ *
+ * @param feature - Featura (stačí základní výnos a profil)
+ * @returns Výnos za tik, ke kterému křivka dospěje (u Flat a S-curve základ, u J-curve dvojnásobek)
+ */
+export function plateauRevenuePerTick(feature: Pick<Feature, 'revenuePerTick' | 'revenueProfile'>): number {
+  return feature.revenuePerTick * revenuePlateau(feature.revenueProfile)
+}
+
+/**
+ * Sestaví prefixové součty m(1..n) pro n = 0..REVENUE_CURVE_TABLE_TICKS jednoho profilu.
+ *
+ * @param profile - Tvar křivky
+ * @returns Pole, kde prvek `n` je součet prvních `n` násobků (prvek 0 je 0)
+ */
+function buildCumulativePrefix(profile: RevenueProfile): number[] {
+  const prefix = [0]
+  for (let n = 1; n <= REVENUE_CURVE_TABLE_TICKS; n++) {
+    prefix.push(prefix[n - 1] + revenueMultiplier(profile, n))
+  }
+  return prefix
+}
+
+/** Předpočítané součty m(1..n) pro každý profil — dotaz na kumulativní výnos je pak O(1). Záznam je typově
+ *  vyčerpávající: přidání dalšího profilu do `RevenueProfile` bez doplnění řádku sem se nepřeloží. */
+const CUMULATIVE_TABLE: Record<RevenueProfile, number[]> = {
+  'flat': buildCumulativePrefix('flat'),
+  'j-curve': buildCumulativePrefix('j-curve'),
+  's-curve': buildCumulativePrefix('s-curve'),
+}
+
+/**
+ * Součet násobků m(1) + … + m(n) — kolikrát základní výnos featura celkem vydělá za prvních `n` ticků.
+ * Uzavřená podoba pro `computeRevenueAsOf` (bez nutnosti simulaci dotáhnout).
+ *
+ * @param profile - Tvar křivky
+ * @param n - Počet celých ticků od dokončení (0 = nic nevydělala)
+ * @returns Kumulativní násobek; pro Flat přesně `n`
+ */
+export function cumulativeRevenueMultiplier(profile: RevenueProfile, n: number): number {
+  if (n <= 0) return 0
+  const table = CUMULATIVE_TABLE[profile]
+  if (n <= REVENUE_CURVE_TABLE_TICKS) return table[n]
+  // Za tabulkou je výnos prakticky na plató, takže zbylé tiky přidají plató × počet
+  return table[REVENUE_CURVE_TABLE_TICKS] + (n - REVENUE_CURVE_TABLE_TICKS) * revenuePlateau(profile)
+}
+
 /**
  * Spočítá kumulativní revenue, které by dané featury vydělaly do zadaného simulačního
  * času `simTime`, bez nutnosti simulaci k tomuto času skutečně dotáhnout (feat-015:
@@ -161,21 +264,22 @@ const REVENUE_MIN = 15
  * od `tick()` nic nemutuje.
  *
  * @param features - Dokončené featury nebo jejich zjednodušená projekce (Pick), aby šlo
- *   volat jak s živým `state.done`, tak s uloženým snapshotem předchozího běhu.
+ *   volat jak s živým `state.done`, tak s uloženým snapshotem předchozího běhu. Volitelný
+ *   `revenueProfile` určuje tvar křivky (feat-017); chybějící = Flat, takže starší snapshoty fungují dál.
  * @param simTime - Referenční simulační čas. Může být menší než skutečný finální simTime
  *   běhu (retroaktivní dopočet "co by revenue bylo v tomto bodě").
  * @returns Součet revenue všech features dokončených do `simTime`. Feature s
  *   `finishedAt === null` nebo `finishedAt > simTime` přispívá 0.
  */
 export function computeRevenueAsOf(
-  features: Pick<Feature, 'finishedAt' | 'revenuePerTick'>[],
+  features: (Pick<Feature, 'finishedAt' | 'revenuePerTick'> & { revenueProfile?: RevenueProfile })[],
   simTime: number,
 ): number {
   let total = 0
   for (const f of features) {
     if (f.finishedAt === null || f.finishedAt > simTime) continue
     const ticks = Math.floor((simTime - f.finishedAt) / REVENUE_TICK_INTERVAL_SEC)
-    total += ticks * f.revenuePerTick
+    total += f.revenuePerTick * cumulativeRevenueMultiplier(f.revenueProfile ?? 'flat', ticks)
   }
   return total
 }
@@ -327,6 +431,9 @@ function makeFeature(
     lastTickRevenue: null,
     // Reálná hodnota se nastaví až při dokončení featury (viz blok dokončování v tick()).
     lastRevenueTickAt: 0,
+    // Tvar výnosu (feat-017) se zafixuje při generování; čítač ticků roste až po dokončení featury.
+    revenueProfile: settings.revenueProfile ?? 'flat',
+    revenueTickCount: 0,
     // Čítače coordination overhead (feat-016) — rostou jen při zapnutém přepínači.
     joinCount: 0,
     reworkCount: 0,
@@ -387,6 +494,8 @@ export function cloneFeatureFresh(f: Feature): Feature {
     lastTickRevenue: null,
     // Irelevantní dokud feature znovu nedoběhne — reálná hodnota se nastaví při dokončení.
     lastRevenueTickAt: 0,
+    // Křivka výnosu (feat-017) začíná znovu od prvního ticku; profil zůstává (díky `...f` výše).
+    revenueTickCount: 0,
     // Coordination overhead (feat-016) — nový běh začíná bez připojení i bez historie jednotek.
     // workedBy a pendingDivergence musí být nová pole, ne sdílené reference ze snapshotu (tick je
     // mutuje). coordSeed zůstává (díky `...f` výše) — Reset tak reprodukuje stejný běh.
@@ -490,6 +599,21 @@ export function resetFromSnapshot(state: SimState): SimState {
     m.idleSec = 0
   }
   return state
+}
+
+/**
+ * Přepne tvar výnosu všech featur (feat-017) a vrátí simulaci na začátek se stejným backlogem.
+ * Profil se přepíše na snapshotu, protože Reset z něj backlog znovu sestavuje; featury, tasky,
+ * priority i základní výnos zůstávají beze změny (proto lze tři profily srovnat na identických
+ * datech a funguje to i pro backlog z XLS importu). Rozběhnutý běh se zahodí.
+ *
+ * @param state - Stav simulace (mutován in-place)
+ * @param profile - Nový tvar výnosu
+ * @returns Stejný objekt state po resetu
+ */
+export function setRevenueProfile(state: SimState, profile: RevenueProfile): SimState {
+  for (const f of state.backlogSnapshot) f.revenueProfile = profile
+  return resetFromSnapshot(state)
 }
 
 /**
@@ -970,6 +1094,9 @@ export function tick(
             finishedAt: ev.finishedAt!,
             revenuePerTick: ev.revenuePerTick,
             lastRevenueTickAt: ev.lastRevenueTickAt,
+            // Křivka výnosu (feat-017) po vytěsnění pokračuje od správného ticku, ne od začátku
+            revenueProfile: ev.revenueProfile,
+            revenueTickCount: ev.revenueTickCount,
           })
         }
       }
@@ -985,10 +1112,13 @@ export function tick(
   // podmínka while níže pro ni ještě není splněná — první tick přijde až za 3s.
   for (const f of state.done) {
     while (state.simTime - f.lastRevenueTickAt >= REVENUE_TICK_INTERVAL_SEC) {
-      f.totalRevenue += f.revenuePerTick
-      f.lastTickRevenue = f.revenuePerTick
+      // Tvar výnosu (feat-017): k-tý tik od dokončení vydělá základ × m(k); u Flat je m(k) = 1
+      f.revenueTickCount += 1
+      const amount = f.revenuePerTick * revenueMultiplier(f.revenueProfile, f.revenueTickCount)
+      f.totalRevenue += amount
+      f.lastTickRevenue = amount
       f.lastRevenueTickAt += REVENUE_TICK_INTERVAL_SEC
-      state.totalRevenueAllTime += f.revenuePerTick
+      state.totalRevenueAllTime += amount
     }
   }
   // Stejný mechanismus pro features vytěsněné z displaye (doneOverflow) — bez lastTickRevenue/
@@ -996,8 +1126,9 @@ export function tick(
   // pro ně nemá smysl; do state.totalRevenueAllTime ale musí přispívat úplně stejně.
   for (const overflow of state.doneOverflow) {
     while (state.simTime - overflow.lastRevenueTickAt >= REVENUE_TICK_INTERVAL_SEC) {
+      overflow.revenueTickCount += 1
       overflow.lastRevenueTickAt += REVENUE_TICK_INTERVAL_SEC
-      state.totalRevenueAllTime += overflow.revenuePerTick
+      state.totalRevenueAllTime += overflow.revenuePerTick * revenueMultiplier(overflow.revenueProfile, overflow.revenueTickCount)
     }
   }
 

@@ -22,7 +22,7 @@ function makeFeature(id: number, tasks: Task[]): Feature {
   return {
     id, name: `F-${id}`, hue: 0, priority: id,
     tasks, createdAt: 0, startedAt: null, finishedAt: null, status: 'backlog',
-    revenuePerTick: 100, totalRevenue: 0, lastTickRevenue: null, lastRevenueTickAt: 0, joinCount: 0, reworkCount: 0, joinTaxSec: 0, reworkSec: 0, workedBy: [], pendingDivergence: [], coordSeed: 0,
+    revenuePerTick: 100, totalRevenue: 0, lastTickRevenue: null, lastRevenueTickAt: 0, joinCount: 0, reworkCount: 0, joinTaxSec: 0, reworkSec: 0, workedBy: [], pendingDivergence: [], revenueProfile: 'flat', revenueTickCount: 0, coordSeed: 0,
   }
 }
 

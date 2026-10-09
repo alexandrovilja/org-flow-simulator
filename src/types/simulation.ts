@@ -34,6 +34,13 @@ export type TaskStatus = 'todo' | 'doing' | 'done'
 /** Stav celé feature — kde se právě nachází v procesu. */
 export type FeatureStatus = 'backlog' | 'in-progress' | 'done'
 
+/** Tvar, jakým featura po dodání vydělává v čase (Cash Flow mód, feat-017).
+ *  `flat` = pořád stejná částka za tik (původní chování), `j-curve` = nízký start, zpoždění a pak
+ *  růst nad úroveň Flat (plató 2×, bez propadu pod nulu), `s-curve` = pozvolný rozjezd (Bassova
+ *  adopce) na plató shodné s Flat. Profil je jen štítek na featuře — tvar počítá čistá funkce
+ *  `revenueMultiplier` v engine.ts. */
+export type RevenueProfile = 'flat' | 'j-curve' | 's-curve'
+
 /** Jeden atomický pracovní úkol uvnitř feature.
  *  Feature se skládá z více úkolů různých rolí — všechny musí být
  *  dokončeny, aby byla feature hotova. */
@@ -93,6 +100,13 @@ export interface Feature {
    *  ticku. Každá feature má vlastní nezávislý 3s cyklus od svého dokončení (Cash Flow
    *  mód, feat-015) — používá se i pro výpočet progress baru odpočtu v UI. */
   lastRevenueTickAt: number
+  /** Tvar výnosu této featury po dodání (feat-017). Zafixuje se při generování backlogu
+   *  (a při přepnutí profilu v nastavení); běh jen čte hotovou hodnotu. */
+  revenueProfile: RevenueProfile
+  /** Kolik revenue ticků už bylo této featuře připsáno (feat-017). Příští tik má pořadí
+   *  `revenueTickCount + 1` a výnos `revenuePerTick × revenueMultiplier(revenueProfile, pořadí)`.
+   *  Při Resetu se vrací na 0. */
+  revenueTickCount: number
   /** Počet připojení (feat-016): kolikrát se k featuře poprvé přiřadila jednotka, zatímco na ní
    *  už pracovala nebo pracuje jiná jednotka (první jednotka je zdarma). Název je historický
    *  („handoff“), ale po revizi 2 znamená připojení, ne předání po hotové práci.
@@ -176,7 +190,14 @@ export interface SimState {
   /** Lehký záznam pro features vytěsněné z `done` (feat-015 fix): revenue accrual v `tick()`
    *  pro ně pokračuje dál nezávisle na tom, že se už nezobrazují v Done listu — jen dvě
    *  čísla místo celého Feature objektu, aby to zůstalo levné i při dlouhých simulacích. */
-  doneOverflow: { finishedAt: number; revenuePerTick: number; lastRevenueTickAt: number }[]
+  doneOverflow: {
+    finishedAt: number
+    revenuePerTick: number
+    lastRevenueTickAt: number
+    /** Tvar výnosu a počet už připsaných ticků (feat-017), aby křivka po vytěsnění pokračovala dál. */
+    revenueProfile: RevenueProfile
+    revenueTickCount: number
+  }[]
   team: Member[]
   /** Historie Cycle Time pro výpočet statistik. Ukládáme max. 200 záznamů. */
   leadTimes: LeadTimeEntry[]
@@ -228,6 +249,9 @@ export interface SimSettings {
   /** Coordination overhead (feat-016, jen Cash Flow mód): předání mezi jednotkami stojí
    *  práci navíc a může vyvolat rework. Chybějící hodnota = vypnuto (chování jako Advanced). */
   coordinationOverhead?: boolean
+  /** Tvar výnosu featur po dodání (feat-017, jen Cash Flow mód). Chybějící hodnota = `'flat'`
+   *  (původní chování). Zapisuje se na každou featuru při generování backlogu. */
+  revenueProfile?: RevenueProfile
 }
 
 /** Vypočtené statistiky z historie Cycle Time.

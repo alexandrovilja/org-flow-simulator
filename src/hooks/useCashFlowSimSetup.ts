@@ -3,12 +3,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import {
   MEMBER_NAMES, TEAM_NAMES, PRESETS, mulberry32,
-  makeInitialState, regenerate, applyPreset, resetTaskProgress, cloneFeatureFresh,
+  makeInitialState, regenerate, applyPreset, resetTaskProgress, cloneFeatureFresh, setRevenueProfile,
 } from '@/simulation/engine'
 import { addRole, deleteRole } from '@/simulation/roleManagement'
 import { parseXlsFile, type ImportResult } from '@/lib/xlsImport'
 import type {
-  SimSettings, SimState, Role, RoleMeta, FocusMode, WipMode, UnitPreset, ActivePresetId,
+  SimSettings, SimState, Role, RoleMeta, FocusMode, WipMode, UnitPreset, ActivePresetId, RevenueProfile,
 } from '@/types/simulation'
 
 /**
@@ -48,6 +48,16 @@ export interface CashFlowSimSetup {
   /** Přepínač Coordination overhead (feat-016) — uložený v `settings.coordinationOverhead`. */
   coordinationOverhead: boolean
   setCoordinationOverhead: (value: boolean) => void
+  /** Aktuální tvar výnosu featur (feat-017) — uložený v `settings.revenueProfile`, výchozí `'flat'`. */
+  revenueProfile: RevenueProfile
+  /** Profil, na který se uživatel právě ptá potvrzovací dialog (změna během běhu); `null` = dialog je zavřený. */
+  confirmingRevenueProfile: RevenueProfile | null
+  setConfirmingRevenueProfile: React.Dispatch<React.SetStateAction<RevenueProfile | null>>
+  /** Kliknutí na volbu přepínače „Revenue curve“: před startem a po doběhnutém běhu změna proběhne hned,
+   *  během běhu se jen otevře dialog. */
+  handleRevenueProfileChange: (profile: RevenueProfile) => void
+  /** „Change and reset“ v dialogu — provede čekající změnu profilu. */
+  handleConfirmRevenueProfile: () => void
   forceUpdate: () => void
   handleAssignRole: (memberId: number, role: Role) => void
   handleRemoveRole: (memberId: number, role: Role) => void
@@ -123,6 +133,11 @@ export function useCashFlowSimSetup(
     setSettings(s => ({ ...s, coordinationOverhead: value }))
   }, [])
 
+  // Tvar výnosu (feat-017) žije v SimSettings, aby ho zachovaly „Generate new backlog“ i výběr presetu
+  // (obojí předává settingsRef.current do generování backlogu).
+  const revenueProfile: RevenueProfile = settings.revenueProfile ?? 'flat'
+  const [confirmingRevenueProfile, setConfirmingRevenueProfile] = useState<RevenueProfile | null>(null)
+
   const rngRef = useRef<(() => number) | null>(null)
   const stateRef = useRef<SimState | null>(null)
   if (stateRef.current === null) {
@@ -177,6 +192,10 @@ export function useCashFlowSimSetup(
         return
       }
 
+      // Import zakládá featury na Flat — zvolený tvar výnosu (feat-017) jim nastavíme před tvorbou snapshotu
+      const importProfile = settingsRef.current.revenueProfile ?? 'flat'
+      for (const f of result.features) f.revenueProfile = importProfile
+
       const newState: SimState = {
         backlog: result.features,
         // cloneFeatureFresh vytvoří nezávislé kopie včetně polí workedBy / pendingDivergence — plochá
@@ -197,6 +216,8 @@ export function useCashFlowSimSetup(
 
       stateRef.current = newState
       setRoleConfig(result.roleConfig)
+      // Rozpracovaný dialog změny křivky by se ptal na zahozený běh — zavřeme ho (platí i pro preset a Generate níže)
+      setConfirmingRevenueProfile(null)
       onStateReplaced?.()
       forceUpdate()
 
@@ -219,6 +240,7 @@ export function useCashFlowSimSetup(
     stateRef.current.team = team
     setRoleConfig(newRoleConfig)
     setActivePresetIdState(preset.id)
+    setConfirmingRevenueProfile(null)
     onStateReplaced?.()
     forceUpdate()
   }, [forceUpdate, onStateReplaced])
@@ -301,8 +323,39 @@ export function useCashFlowSimSetup(
     state.team = stateRef.current!.team.map(m => ({ ...m, currentTask: null, idleSec: 0 }))
     stateRef.current = state
     rngRef.current = rng
+    setConfirmingRevenueProfile(null)
     forceUpdate()
   }, [forceUpdate])
+
+  /** Přepne tvar výnosu na všech featurách a vrátí simulaci na začátek se stejným backlogem. */
+  const applyRevenueProfile = useCallback((profile: RevenueProfile) => {
+    const s = stateRef.current
+    if (!s) return
+    setRevenueProfile(s, profile)
+    setSettings(prev => ({ ...prev, revenueProfile: profile }))
+    // ref se jinak srovná až efektem po renderu; handlery volané hned po změně (Generate, preset) ho čtou
+    settingsRef.current = { ...settingsRef.current, revenueProfile: profile }
+    // Simulace se vrátila na začátek — stejně jako po výběru presetu se má zastavit a čekat na Start
+    onStateReplaced?.()
+    forceUpdate()
+  }, [forceUpdate, onStateReplaced])
+
+  const handleRevenueProfileChange = useCallback((profile: RevenueProfile) => {
+    const s = stateRef.current
+    if (!s || profile === (settingsRef.current.revenueProfile ?? 'flat')) return
+    // Dialog jen když běh už začal a ještě nedoběhl; před startem a po doběhnutém běhu se mění hned
+    if (s.startedAt !== null && !s.finished) {
+      setConfirmingRevenueProfile(profile)
+      return
+    }
+    applyRevenueProfile(profile)
+  }, [applyRevenueProfile])
+
+  const handleConfirmRevenueProfile = useCallback(() => {
+    if (!confirmingRevenueProfile) return
+    applyRevenueProfile(confirmingRevenueProfile)
+    setConfirmingRevenueProfile(null)
+  }, [confirmingRevenueProfile, applyRevenueProfile])
 
   return {
     stateRef, rngRef, settings, setSettings, settingsRef,
@@ -310,7 +363,9 @@ export function useCashFlowSimSetup(
     showRoleSettings, setShowRoleSettings, showBacklogControls, setShowBacklogControls,
     showTeamSettings, setShowTeamSettings, importMsg, fileInputRef,
     focusMode, focusModeRef, wipMode, wipModeRef, setWipMode,
-    coordinationOverhead, setCoordinationOverhead, forceUpdate,
+    coordinationOverhead, setCoordinationOverhead,
+    revenueProfile, confirmingRevenueProfile, setConfirmingRevenueProfile,
+    handleRevenueProfileChange, handleConfirmRevenueProfile, forceUpdate,
     handleAssignRole, handleRemoveRole, handleXlsImport, handleRegenerate,
     handlePresetClick, handleConfirmPreset, handleRenameMember, handleRemoveMember,
     handleAddMember, handleRoleChange, handleAddRole, handleDeleteRole,

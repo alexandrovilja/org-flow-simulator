@@ -32,7 +32,7 @@ function makeFeature(tasks: Task[]): Feature {
     revenuePerTick: 100,
     totalRevenue: 0,
     lastTickRevenue: null,
-    lastRevenueTickAt: 0, joinCount: 0, reworkCount: 0, joinTaxSec: 0, reworkSec: 0, workedBy: [], pendingDivergence: [], coordSeed: 0,
+    lastRevenueTickAt: 0, joinCount: 0, reworkCount: 0, joinTaxSec: 0, reworkSec: 0, workedBy: [], pendingDivergence: [], revenueProfile: 'flat', revenueTickCount: 0, coordSeed: 0,
   }
 }
 

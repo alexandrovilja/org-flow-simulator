@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>feat-017 UI mockup</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  /* Tokens 1:1 z src/app/globals.css */
+  :root {
+    --bg: #f6f5f2; --panel: #ffffff; --ink: #16161a; --ink-2: #4a4a52; --ink-3: #8a8a92;
+    --line: #e6e4de; --line-2: #d8d6cf;
+    --accent: oklch(58% 0.13 240); --done: oklch(62% 0.10 155); --warn: oklch(70% 0.13 60);
+    --bad: oklch(58% 0.2 25); --good: oklch(52% 0.13 150);
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font-family: 'Inter', system-ui, sans-serif; font-size: 14px; line-height: 1.5; -webkit-font-smoothing: antialiased; }
+  .mono { font-family: 'JetBrains Mono', ui-monospace, Menlo, monospace; font-variant-numeric: tabular-nums; }
+
+  /* ---- mockup chrome (není součást návrhu) ---- */
+  .doc { max-width: 1240px; margin: 0 auto; padding: 24px 16px 48px; }
+  .doc h1 { font-size: 18px; margin: 0 0 4px; }
+  .sub { color: var(--ink-2); font-size: 12px; margin: 0 0 12px; }
+  .ctrl { display: flex; flex-wrap: wrap; gap: 6px 8px; align-items: center; margin-bottom: 10px; font-size: 12px; }
+  .ctrl .grp { display: inline-flex; gap: 4px; align-items: center; margin-right: 10px; }
+  .ctrl button { font: inherit; font-size: 11px; padding: 5px 10px; border-radius: 5px; border: 1px solid var(--line-2); background: var(--panel); cursor: pointer; }
+  .ctrl button.on { background: var(--ink); color: #fff; border-color: var(--ink); }
+  .new { outline: 2px dashed oklch(70% 0.13 240 / .6); outline-offset: 3px; border-radius: 6px; }
+  .grid { display: grid; grid-template-columns: 300px 1fr 300px; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: var(--panel); }
+  @media (max-width: 960px) { .grid { grid-template-columns: 1fr; } }
+  .col { padding: 0; min-width: 0; position: relative; }
+  .col + .col { border-left: 1px solid var(--line); }
+  .pad { padding: 12px 14px; }
+  h3 { margin: 0 0 10px; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .5px; color: var(--ink-2); }
+  .stack { display: flex; flex-direction: column; gap: 6px; }
+  .hdr { display: flex; justify-content: space-between; align-items: baseline; padding: 12px 14px 4px; }
+  .hdr h3 { margin: 0; }
+  .hdr small { font-size: 10px; color: var(--ink-3); }
+
+  /* ---- SegmentedControl (3 volby, 1:1 se src/components/SegmentedControl.tsx) ---- */
+  .segwrap { position: relative; display: inline-block; }
+  .seg { position: relative; display: inline-grid; grid-template-columns: repeat(3, 1fr); background: var(--bg); border-radius: 7px; padding: 2px; }
+  .seg .pill { position: absolute; top: 2px; bottom: 2px; left: calc(2px + var(--i) * (100% - 4px) / 3); width: calc((100% - 4px) / 3); border-radius: 5px; background: var(--panel); box-shadow: 0 1px 2px rgba(0,0,0,.12), 0 0 0 .5px rgba(0,0,0,.06); transition: left .2s ease; pointer-events: none; }
+  .seg button { position: relative; z-index: 1; padding: 4px 14px; font: inherit; font-size: 10px; font-weight: 500; letter-spacing: .2px; border: 0; background: transparent; cursor: pointer; color: var(--ink-3); }
+  .seg button.act { color: var(--ink); }
+  .tip { display: none; position: absolute; left: 0; top: calc(100% + 6px); z-index: 20; width: max-content; max-width: 260px; background: var(--ink); color: #fff; font-size: 10.5px; line-height: 1.45; padding: 6px 8px; border-radius: 5px; box-shadow: 0 4px 14px rgba(20,20,30,.2); }
+  .segwrap:hover .tip { display: block; }
+  .field-label { font-size: 10px; font-weight: 500; color: var(--ink-3); margin: 0 0 5px; letter-spacing: .2px; }
+  .row-sec { padding-bottom: 10px; border-bottom: 1px solid var(--line); }
+  .acc { width: 100%; text-align: left; font: inherit; font-size: 11px; border: 1px solid var(--line); border-radius: 4px; padding: 4px 8px; background: var(--bg); color: var(--ink-2); }
+  .acc.open { background: var(--line); color: var(--ink); font-weight: 600; }
+  .btn-dark { background: var(--ink); border: 0; border-radius: 4px; padding: 7px 0; font: inherit; font-size: 11px; font-weight: 600; color: #fff; width: 100%; letter-spacing: .2px; }
+  .btn-light { flex: 1; border: 1px solid var(--ink-2); border-radius: 4px; padding: 6px 0; font: inherit; font-size: 11px; font-weight: 600; background: var(--bg); color: var(--ink); }
+  .fake-slider { font-size: 10px; color: var(--ink-3); display: flex; justify-content: space-between; }
+  .fake-slider i { display: block; height: 3px; background: var(--line); border-radius: 2px; margin-top: 4px; }
+
+  /* ---- Potvrzovací dialog (1:1 vzor confirmingPreset) ---- */
+  .overlay { position: absolute; inset: 0; background: rgba(246,245,242,.84); backdrop-filter: blur(2px); display: none; align-items: center; justify-content: center; z-index: 10; }
+  .overlay.show { display: flex; }
+  .dlg { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 16px; width: 220px; box-shadow: 0 4px 24px rgba(20,20,30,.14), 0 1px 3px rgba(20,20,30,.08); }
+  .dlg b { display: block; font-size: 12px; margin-bottom: 5px; }
+  .dlg p { font-size: 11px; color: var(--ink-2); line-height: 1.5; margin: 0 0 13px; }
+  .dlg .btns { display: flex; gap: 6px; }
+  .dlg button { flex: 1; font: inherit; font-size: 11px; font-weight: 500; padding: 5px 0; border-radius: 5px; border: 1px solid var(--line-2); background: transparent; color: var(--ink-2); }
+  .dlg button.go { border: 0; background: var(--ink); color: #fff; font-weight: 600; }
+
+  /* ---- FeatureCard v Backlogu (compact + neutral) ---- */
+  .fc { border: 1px solid var(--line); border-radius: 6px; padding: 6px 8px; display: flex; flex-direction: column; gap: 6px; background: var(--panel); }
+  .fc-head { display: flex; justify-content: space-between; align-items: center; gap: 6px; }
+  .fc-name { font-size: 11px; color: var(--ink-2); font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; min-width: 0; }
+  .fc-right { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+  .badge { font-size: 10px; color: var(--done); font-weight: 700; }
+  .track { height: 6px; background: rgba(0,0,0,.05); border-radius: 3px; overflow: hidden; display: flex; gap: 2px; }
+  .track i { display: block; background: rgba(0,0,0,.12); }
+  svg.spark { display: block; width: 36px; height: 12px; overflow: visible; }
+  svg.spark .ref { stroke: var(--ink-3); stroke-width: .6; stroke-dasharray: 1.5 1.5; opacity: .7; }
+  svg.spark .ln { fill: none; stroke: var(--done); stroke-width: 1.3; stroke-linejoin: round; stroke-linecap: round; }
+
+  /* Náhled tvaru u přepínače */
+  .prev-wrap { margin-top: 8px; }
+  svg.prev { display: block; width: 100%; max-width: 250px; height: 46px; overflow: visible; }
+  svg.prev .ref { stroke: var(--ink-3); stroke-width: .7; stroke-dasharray: 2 2; }
+  svg.prev .ln { fill: none; stroke: var(--done); stroke-width: 1.8; stroke-linejoin: round; stroke-linecap: round; }
+  svg.prev text { font-size: 8px; fill: var(--ink-3); font-family: 'Inter', sans-serif; }
+  .prev-cap { font-size: 9.5px; color: var(--ink-3); margin-top: 2px; }
+
+  /* ---- StatTile ---- */
+  .tile { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px; display: flex; flex-direction: column; gap: 2px; }
+  .tile-label { font-size: 10px; color: var(--ink-3); text-transform: uppercase; letter-spacing: .5px; font-weight: 500; }
+  .tile-val { font-size: 18px; font-weight: 600; line-height: 1.1; }
+  .tile-hint { font-size: 10px; color: var(--ink-3); }
+  .delta { font-size: 10px; font-weight: 600; letter-spacing: .2px; }
+  .delta em { font-style: normal; font-weight: 400; color: var(--ink-3); }
+
+  /* ---- Done row (1:1 s CashFlowPanel.tsx) ---- */
+  .done { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 5px; }
+  .done .bar { width: 4px; align-self: stretch; border-radius: 2px; }
+  .done-meta { font-size: 9px; color: var(--ink-3); }
+  .pulse { font-size: 9px; font-weight: 600; color: var(--done); animation: revenue-pulse 1.6s ease-out forwards; }
+  @keyframes revenue-pulse {
+    0%   { opacity: 0; transform: translateY(3px) scale(.9); }
+    15%  { opacity: 1; transform: translateY(0) scale(1); }
+    75%  { opacity: 1; transform: translateY(0) scale(1); }
+    100% { opacity: 0; transform: translateY(-3px) scale(.95); }
+  }
+
+  /* ---- review panel (jen mockup) ---- */
+  .review { background: #fbfaf7; }
+  .review svg { width: 100%; height: auto; display: block; }
+  .review .lg { display: flex; gap: 10px; font-size: 10.5px; color: var(--ink-2); margin: 4px 0 12px; flex-wrap: wrap; }
+  .review .lg span::before { content: ''; display: inline-block; width: 14px; height: 3px; margin-right: 4px; vertical-align: middle; border-radius: 2px; background: var(--c); }
+  .legend { margin-top: 18px; display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; font-size: 12px; color: var(--ink-2); }
+  .legend div { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; }
+  .legend b { color: var(--ink); display: block; margin-bottom: 2px; font-size: 12px; }
+</style>
+</head>
+<body>
+<div class="doc">
+  <h1>feat-017 Rozložení výnosu v čase — UI návrh (schválená verze)</h1>
+  <p class="sub">Cash Flow mód. Čárkovaný modrý rámeček = nový prvek. Ovládání nahoře slouží jen k ukázce stavů; přepínač v levém sloupci je klikací. Najetím na přepínač se ukáže hover hint.</p>
+
+  <div class="ctrl">
+    <span class="grp">Stav běhu:
+      <button data-run="idle" class="on">Před startem</button><button data-run="running">Běží</button><button data-run="finished">Doběhl</button>
+    </span>
+    <span class="grp"><button id="b-tick">＋ Revenue tik (jen při „Běží“)</button></span>
+  </div>
+
+  <div class="grid">
+    <!-- LEVÝ SLOUPEC: Backlog + Settings -->
+    <div class="col" id="left">
+      <div class="hdr"><h3>Backlog <span style="font-weight:400">· 17</span></h3><small>sorted by revenue</small></div>
+      <div class="stack" style="padding: 8px 12px 12px" id="backlog"></div>
+
+      <div class="pad" style="border-top:1px solid var(--line); position:relative">
+        <h3>Settings</h3>
+        <div class="stack" style="gap:12px">
+          <div class="row-sec">
+            <div class="field-label">Unit preset</div>
+            <div style="display:flex; gap:4px"><span style="font-size:11px; font-weight:500; padding:4px 12px; border-radius:5px; background:var(--ink); color:#fff; border:1px solid var(--ink)">Teams</span><span style="font-size:11px; font-weight:500; padding:4px 12px; border-radius:5px; color:var(--ink-3); border:1px solid var(--line-2)">People</span></div>
+          </div>
+
+          <div>
+            <button class="acc open">♻ Backlog</button>
+            <div class="stack" style="gap:10px; margin-top:8px">
+              <div style="display:flex; gap:6px"><button class="btn-light">↑ Import XLS</button><button class="btn-light" style="font-weight:400; color:var(--ink-2); border-color:var(--line)">↓ Šablona</button></div>
+              <button class="btn-dark">♻ Generate new backlog</button>
+              <!-- Schválené umístění: uvnitř akordeonu ♻ Backlog, pod Generate new backlog -->
+              <div id="plB">
+                <div class="new" style="padding:2px 4px 6px; margin:-2px -4px 0">
+                  <div class="field-label">Revenue curve</div>
+                  <div data-rc></div>
+                  <div class="prev-wrap" data-prev></div>
+                </div>
+              </div>
+              <div class="fake-slider"><span>Backlog size</span><span>20 items</span></div>
+              <div class="fake-slider"><span>Item size variability</span><span>high</span></div>
+            </div>
+          </div>
+          <button class="acc">⚙ Specializations</button>
+          <button class="acc">👥 Team</button>
+        </div>
+
+        <div class="overlay" id="ov">
+          <div class="dlg">
+            <b>Change revenue curve?</b>
+            <p>Changing the revenue curve resets the current run. The backlog stays the same.</p>
+            <div class="btns"><button id="dl-cancel">Cancel</button><button class="go" id="dl-ok">Change and reset</button></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- STŘED: review (mockup) -->
+    <div class="col review pad">
+      <h3>Pro review: jak křivky vypadají</h3>
+      <p class="sub" style="font-size:11px">Násobek základního výnosu v čase (1 tik = 3 s). Hodnoty jsou ze specu (S: Bass p=0,05, q=0,6; J: start 0,2, plató 2,0, střed 6,5, strmost 0,9).</p>
+      <div class="lg"><span style="--c:var(--ink-3)">Flat</span><span style="--c:oklch(58% 0.13 240)">S‑curve</span><span style="--c:oklch(58% 0.17 40)">J‑curve</span></div>
+      <svg id="ch1" viewBox="0 0 440 190"></svg>
+      <p class="sub" style="font-size:11px; margin-top:14px">Kumulativní rozdíl proti Flat (Σ m(k) − k, v násobcích základu). J se dostane nad nulu po 11 tiku (33 s).</p>
+      <svg id="ch2" viewBox="0 0 440 170"></svg>
+    </div>
+
+    <!-- PRAVÝ SLOUPEC: Metrics + Done -->
+    <div class="col pad">
+      <h3>Metrics</h3>
+      <div class="stack">
+        <div class="tile"><span class="tile-label">Avg Cycle Time</span><span class="mono tile-val">14.2<small style="font-size:11px; color:var(--ink-3)">s</small></span><span class="delta" style="color:var(--ink-3)">— <em>same backlog, same team</em></span></div>
+        <div class="tile new"><span class="tile-label">Total Revenue</span><span class="mono tile-val" id="total">€0</span><span id="delta"></span><span class="tile-hint" id="dhint"></span></div>
+      </div>
+
+      <h3 style="margin-top:16px">Done <span style="font-weight:400" id="dcount"></span></h3>
+      <div class="stack" id="done"></div>
+    </div>
+  </div>
+
+  <div class="legend">
+    <div><b>1 · Přepínač (schváleno)</b>Stávající <code>SegmentedControl</code> (už umí 3 volby), popisek „Revenue curve“, uvnitř akordeonu „♻ Backlog“ pod Generate new backlog. Hover hint se zalamuje do 260 px.</div>
+    <div><b>2 · Karta v Backlogu (schváleno)</b>Jen badge s ustáleným výnosem (J = 2× základ). Žádný mini‑graf na kartě: všechny karty mají tentýž tvar, liší se jen částkou.</div>
+    <div><b>3 · Náhled tvaru v nastavení (schváleno)</b>Jediné místo, kde se křivka kreslí: pod přepínačem, sdílená osa 0–2×, tečkovaná čára = úroveň Flat (1×), popisek „plateau N× Flat“.</div>
+    <div><b>4 · Potvrzení</b>Jen když běh začal a ještě nedoběhl (stav „Běží“). Vzor dialogu jako u presetu. Před startem a po doběhnutém běhu se změna provede hned; po doběhnutém běhu se výsledek uloží jako předchozí a Total Revenue dostane delta badge vs Flat (time‑matched).</div>
+    <div><b>5 · Done list</b>Layout beze změny. Řádek <code>€/tick</code> ukazuje ustálený výnos, pulse „+€“ skutečný přírůstek posledního ticku. U S‑curve a J‑curve se čísla v pulsech mění, u Flat jsou stále stejná.</div>
+  </div>
+</div>
+
+<script>
+  // --- model (1:1 se specem; ilustrativní konstanty) ---
+  const P = 0.05, Q = 0.6
+  const S = k => { const e = Math.exp(-(P + Q) * k); return (1 - e) / (1 + (Q / P) * e) }
+  const J = k => 0.2 + 1.8 / (1 + Math.exp(-0.9 * (k - 6.5)))
+  const mult = (p, k) => p === 'flat' ? 1 : p === 's' ? S(k) : J(k)
+  const cum = (p, n) => { let t = 0; for (let k = 1; k <= n; k++) t += mult(p, k); return t }
+  const plateau = p => p === 'j' ? 2 : 1
+  const NAMES = { flat: 'Flat', j: 'J-curve', s: 'S-curve' }
+  const ORDER = ['flat', 'j', 's']
+  const HINTS = {
+    flat: 'Every feature earns the same amount per tick from the moment it is delivered.',
+    j: 'Earns little right after delivery, then grows past the flat level. Illustrative shape inspired by delayed returns to IT investment.',
+    s: 'Ramps up gradually after delivery and levels off at the flat amount. Bass adoption curve.',
+  }
+  const eur = v => v >= 1000 ? '€' + (v / 1000).toFixed(1).replace(/\.0$/, '') + 'k' : '€' + Math.round(v)
+
+  // --- stav mockupu ---
+  const st = { profile: 'flat', run: 'idle', pl: 'A', sp: 'cards', pending: null, ks: [9, 4, 1] }
+  const BACKLOG = [['F-017 Checkout redesign', 400], ['F-018 Search filters', 310], ['F-019 Onboarding email', 150]]
+  const DONE = [['F-009 Pricing page', 400, 140], ['F-004 Login SSO', 250, 260], ['F-021 Export CSV', 150, 30]]
+  const $ = s => document.querySelector(s)
+  const $$ = s => [...document.querySelectorAll(s)]
+
+  // sdílená osa 0–2×; tečkovaná čára = Flat (1×)
+  function sparkSVG(p, w, h, pad) {
+    const pts = []
+    for (let k = 0; k <= 16; k++) {
+      const m = k === 0 ? (p === 'flat' ? 1 : p === 's' ? 0 : J(0)) : mult(p, k)
+      pts.push((pad + k / 16 * (w - 2 * pad)).toFixed(1) + ',' + (h - pad - m / 2 * (h - 2 * pad)).toFixed(1))
+    }
+    const yRef = (h - pad - 0.5 * (h - 2 * pad)).toFixed(1)
+    return { pts: pts.join(' '), yRef }
+  }
+  const prevEl = p => {
+    const s = sparkSVG(p, 250, 46, 3)
+    return `<svg class="prev" viewBox="0 0 250 46"><line class="ref" x1="0" x2="250" y1="${s.yRef}" y2="${s.yRef}"/><polyline class="ln" points="${s.pts}"/><text x="2" y="${(+s.yRef - 2).toFixed(1)}">Flat level</text></svg><div class="prev-cap">Revenue per tick after delivery · 0–16 ticks · plateau ${plateau(p)}× Flat</div>`
+  }
+
+  function segHTML() {
+    const i = ORDER.indexOf(st.profile)
+    return `<div class="segwrap"><div class="seg" style="--i:${i}"><div class="pill"></div>${ORDER.map(v => `<button data-v="${v}" class="${v === st.profile ? 'act' : ''}">${NAMES[v]}</button>`).join('')}</div><div class="tip">${HINTS[st.profile]}</div></div>`
+  }
+
+  function render() {
+    $$('[data-rc]').forEach(el => { el.innerHTML = segHTML() })
+    $$('[data-prev]').forEach(el => { el.innerHTML = prevEl(st.profile) })
+    $$('[data-rc] button').forEach(b => b.onclick = () => choose(b.dataset.v))
+
+    $('#backlog').innerHTML = BACKLOG.map(([n, base]) => `
+      <div class="fc"><div class="fc-head"><span class="mono fc-name">${n}</span>
+        <div class="fc-right"><span class="mono badge new" style="outline-offset:2px; padding:0 2px">${eur(base * plateau(st.profile))}/tick</span></div></div>
+        <div class="track"><i style="width:30%"></i><i style="width:40%"></i><i style="width:30%"></i></div></div>`).join('')
+
+    // Done list + metriky
+    const showDone = st.run !== 'idle'
+    $('#dcount').textContent = showDone ? '· 3' : ''
+    $('#done').innerHTML = showDone ? DONE.map(([n, base, hue], i) => {
+      const k = st.ks[i], last = base * mult(st.profile, k), total = base * cum(st.profile, k)
+      return `<div class="done" style="background:oklch(96% 0.03 ${hue}); border:1px solid oklch(82% 0.06 ${hue})">
+        <span class="bar" style="background:oklch(60% 0.14 ${hue})"></span>
+        <div style="flex:1; min-width:0"><div class="mono" style="font-size:10px; color:var(--ink-2)">${n}</div>
+          <div class="done-meta"><span class="new" style="outline-offset:1px">${eur(base * plateau(st.profile))}/tick</span></div>
+          <div style="height:3px; background:var(--line); border-radius:2px; margin-top:4px; overflow:hidden"><div style="height:100%; width:${[62, 30, 8][i]}%; background:var(--done)"></div></div></div>
+        <div style="display:flex; flex-direction:column; align-items:flex-end; gap:1px; min-width:44px">
+          <span class="mono" style="font-size:12px; font-weight:700; color:var(--done)">${eur(total)}</span>
+          <span class="mono pulse">+${eur(last)}</span></div></div>`
+    }).join('') : '<div style="font-size:11px; color:var(--ink-3); font-style:italic; padding:8px 0">No completed features yet.</div>'
+    const tot = showDone ? DONE.reduce((a, [, b], i) => a + b * cum(st.profile, st.ks[i]), 0) : 0
+    $('#total').textContent = eur(tot)
+    // delta jen po doběhnutém běhu; porovnání s předchozím během na Flat v čase 45 s (15 ticků)
+    let d = '', h = ''
+    if (st.run === 'finished' && st.profile !== 'flat') {
+      const pct = Math.round((cum(st.profile, 15) / 15 - 1) * 100)
+      d = `<span class="delta" style="color:${pct >= 0 ? 'var(--good)' : 'var(--bad)'}">${pct >= 0 ? '↑' : '↓'} ${Math.abs(pct)}% <em>vs prev run (Flat)</em></span>`
+      h = '@ 00:45.0'
+    }
+    $('#delta').innerHTML = d; $('#dhint').textContent = h
+
+    $$('[data-run]').forEach(b => b.classList.toggle('on', b.dataset.run === st.run))
+    $('#ov').classList.toggle('show', !!st.pending)
+  }
+
+  function choose(v) {
+    if (v === st.profile) return
+    // dialog jen během běhu; před startem a po doběhnutém běhu se mění hned
+    if (st.run === 'running') { st.pending = v; render(); return }
+    st.profile = v
+    if (st.run === 'finished') { st.run = 'idle'; st.ks = [9, 4, 1] }
+    render()
+  }
+  $('#dl-cancel').onclick = () => { st.pending = null; render() }
+  $('#dl-ok').onclick = () => { st.profile = st.pending; st.pending = null; st.run = 'idle'; st.ks = [9, 4, 1]; render() }
+  $$('[data-run]').forEach(b => b.onclick = () => { st.run = b.dataset.run; st.pending = null; if (st.run === 'idle') st.ks = [9, 4, 1]; if (st.run === 'finished') st.ks = [15, 12, 9]; render() })
+  $('#b-tick').onclick = () => { if (st.run === 'running') { st.ks = st.ks.map(k => Math.min(30, k + 1)); render() } }
+
+  // --- review grafy (jen mockup) ---
+  function lineChart(el, series, opts) {
+    const W = 440, H = opts.h, L = 34, R = 10, T = 10, B = 24
+    const sx = k => L + k / 16 * (W - L - R)
+    const sy = v => T + (opts.max - v) / (opts.max - opts.min) * (H - T - B)
+    let s = ''
+    for (const t of opts.ticks) s += `<line x1="${L}" x2="${W - R}" y1="${sy(t)}" y2="${sy(t)}" stroke="${t === opts.zero ? '#8a8a92' : '#e6e4de'}" stroke-width="${t === opts.zero ? 1 : .6}" ${t === opts.zero ? 'stroke-dasharray="3 3"' : ''}/><text x="${L - 5}" y="${sy(t) + 3}" text-anchor="end" font-size="9" fill="#8a8a92">${t}${opts.unit}</text>`
+    for (let k = 0; k <= 16; k += 2) s += `<text x="${sx(k)}" y="${H - 8}" text-anchor="middle" font-size="9" fill="#8a8a92">${k}</text>`
+    s += `<text x="${W - R}" y="${H - 8}" text-anchor="end" font-size="9" fill="#8a8a92">tik →</text>`
+    for (const [pts, color] of series) s += `<polyline fill="none" stroke="${color}" stroke-width="2" stroke-linejoin="round" points="${pts.map(([k, v]) => sx(k).toFixed(1) + ',' + sy(v).toFixed(1)).join(' ')}"/>`
+    el.innerHTML = s
+  }
+  const COL = { flat: '#8a8a92', s: 'oklch(58% 0.13 240)', j: 'oklch(58% 0.17 40)' }
+  const range = f => Array.from({ length: 17 }, (_, k) => [k, f(k)])
+  lineChart($('#ch1'), ['flat', 's', 'j'].map(p => [range(k => k === 0 ? (p === 'flat' ? 1 : p === 's' ? 0 : J(0)) : mult(p, k)), COL[p]]), { h: 190, min: 0, max: 2.2, ticks: [0, 0.5, 1, 1.5, 2], unit: '×', zero: 0 })
+  lineChart($('#ch2'), ['s', 'j'].map(p => [range(k => cum(p, k) - k), COL[p]]), { h: 170, min: -5, max: 5, ticks: [-4, -2, 0, 2, 4], unit: '', zero: 0 })
+  render()
+</script>
+</body>
+</html>
