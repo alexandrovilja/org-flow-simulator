@@ -1,9 +1,17 @@
 import { useState } from 'react'
 
-/** Props for a two-option segmented control */
+/** One choice of a segmented control */
+interface SegmentedOption<T extends string> {
+  /** Value passed to onChange when this option is picked */
+  value: T
+  /** Text shown on the segment */
+  label: string
+}
+
+/** Props for a two- or three-option segmented control */
 interface SegmentedControlProps<T extends string> {
-  /** The two options to display */
-  options: [{ value: T; label: string }, { value: T; label: string }]
+  /** The two or three options to display */
+  options: [SegmentedOption<T>, SegmentedOption<T>] | [SegmentedOption<T>, SegmentedOption<T>, SegmentedOption<T>]
   /** Currently active value */
   value: T
   /** Called when the user picks a different option */
@@ -16,17 +24,19 @@ interface SegmentedControlProps<T extends string> {
 
 /**
  * iOS-style segmented control with a sliding white pill.
- * Both options are always visible; the active one gets a raised pill background.
+ * All options are always visible; the active one gets a raised pill background.
  * Animates smoothly on toggle. Shows an optional floating hint tooltip on hover.
  *
- * @param options - exactly two choices, each with a value and display label
+ * @param options - two or three choices, each with a value and display label
  * @param value   - the currently selected value
  * @param onChange - callback fired with the newly selected value
  * @param hint    - optional description shown as a floating tooltip on hover
  * @param disabled - optional; dims the control and ignores clicks
  */
 export function SegmentedControl<T extends string>({ options, value, onChange, hint, disabled = false }: SegmentedControlProps<T>) {
-  const activeIndex = options[0].value === value ? 0 : 1
+  // Unknown value falls back to the first segment (previously: anything but the first = second)
+  const activeIndex = Math.max(0, options.findIndex(o => o.value === value))
+  const count = options.length
   const [visible, setVisible] = useState(false)
 
   return (
@@ -35,14 +45,14 @@ export function SegmentedControl<T extends string>({ options, value, onChange, h
       onMouseEnter={() => hint && setVisible(true)}
       onMouseLeave={() => setVisible(false)}
     >
-      {/* Track — grid ensures both segments are always exactly equal width */}
+      {/* Track — grid ensures all segments are always exactly equal width */}
       <div
         role="group"
         aria-label={options.map(o => o.label).join(' / ')}
         style={{
           position: 'relative',
           display: 'inline-grid',
-          gridTemplateColumns: '1fr 1fr',
+          gridTemplateColumns: `repeat(${count}, 1fr)`,
           background: 'var(--bg)',
           borderRadius: 7,
           padding: 2,
@@ -54,9 +64,11 @@ export function SegmentedControl<T extends string>({ options, value, onChange, h
           position: 'absolute',
           top: 2,
           bottom: 2,
-          // Each segment is exactly 50% of the grid; pill shifts one segment width on toggle
-          left: activeIndex === 0 ? 2 : 'calc(50%)',
-          width: 'calc(50% - 2px)',
+          // Each segment is exactly 1/count of the inner width (track minus 2px padding on both sides);
+          // the pill shifts by one segment width per index. For two options this equals the former
+          // 50 % layout (left 2px / 50 %, width 50 % - 2px).
+          left: `calc(2px + ${activeIndex} * (100% - 4px) / ${count})`,
+          width: `calc((100% - 4px) / ${count})`,
           borderRadius: 5,
           background: 'var(--panel)',
           boxShadow: '0 1px 2px rgba(0,0,0,0.12), 0 0 0 0.5px rgba(0,0,0,0.06)',
@@ -108,7 +120,11 @@ export function SegmentedControl<T extends string>({ options, value, onChange, h
           lineHeight: 1.5,
           padding: '6px 10px',
           borderRadius: 6,
-          whiteSpace: 'nowrap',
+          // Long hints wrap instead of running past the 320px settings sidebar (max-content keeps
+          // short hints on one line; 260px keeps the tooltip inside the sidebar)
+          width: 'max-content',
+          maxWidth: 260,
+          whiteSpace: 'normal',
           boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
           pointerEvents: 'none',
         }}>

@@ -328,11 +328,15 @@ function makeFeature(
     // Reálná hodnota se nastaví až při dokončení featury (viz blok dokončování v tick()).
     lastRevenueTickAt: 0,
     // Čítače coordination overhead (feat-016) — rostou jen při zapnutém přepínači.
-    handoffCount: 0,
+    joinCount: 0,
     reworkCount: 0,
-    handoffSec: 0,
+    joinTaxSec: 0,
     reworkSec: 0,
     workedBy: [],
+    pendingDivergence: [],
+    // Skutečný seed kostek se nastaví až v makeInitialState po revenue batchi (viz tam), aby se
+    // sekvence rng pro tasky, role, work a výnos nezměnila.
+    coordSeed: 0,
   }
 }
 
@@ -372,7 +376,7 @@ function defaultTeam(roleConfig: Record<string, RoleMeta>): Member[] {
  * @param f - Původní featura (zpravidla ze snapshoту)
  * @returns Nová featura se stejnými vlastnostmi, ale čistým stavem
  */
-function cloneFeatureFresh(f: Feature): Feature {
+export function cloneFeatureFresh(f: Feature): Feature {
   return {
     ...f,
     status: 'backlog',
@@ -383,13 +387,15 @@ function cloneFeatureFresh(f: Feature): Feature {
     lastTickRevenue: null,
     // Irelevantní dokud feature znovu nedoběhne — reálná hodnota se nastaví při dokončení.
     lastRevenueTickAt: 0,
-    // Coordination overhead (feat-016) — nový běh začíná bez předání i bez historie jednotek.
-    // workedBy musí být nové pole, ne sdílená reference ze snapshotu (tick ho mutuje).
-    handoffCount: 0,
+    // Coordination overhead (feat-016) — nový běh začíná bez připojení i bez historie jednotek.
+    // workedBy a pendingDivergence musí být nová pole, ne sdílené reference ze snapshotu (tick je
+    // mutuje). coordSeed zůstává (díky `...f` výše) — Reset tak reprodukuje stejný běh.
+    joinCount: 0,
     reworkCount: 0,
-    handoffSec: 0,
+    joinTaxSec: 0,
     reworkSec: 0,
     workedBy: [],
+    pendingDivergence: [],
     tasks: f.tasks.map(t => ({
       ...t,
       status: 'todo',
@@ -444,6 +450,11 @@ export function makeInitialState(
   // Batch je seřazený sestupně, feature[0] má prioritu 1 → dostane nejvyšší výnos.
   const revenueBatch = generateRevenueBatch(rng, seedCount)
   state.backlog.forEach((f, i) => { f.revenuePerTick = revenueBatch[i] })
+
+  // Seed kostek coordination overhead (feat-016) — stejný princip jako revenue: generuje se až po
+  // všech ostatních rng() voláních, takže stávající backlogy (Advanced, Compare) zůstávají beze
+  // změny. Celé číslo do 2^31, aby šlo bezpečně míchat bitovými operacemi v coordinationRoll.
+  state.backlog.forEach(f => { f.coordSeed = Math.floor(rng() * 2 ** 31) })
 
   // Uložíme kopii backlogu jako snapshot — slouží k resetu bez regenerace
   state.backlogSnapshot = state.backlog.map(cloneFeatureFresh)
@@ -537,82 +548,148 @@ export function computeHandoffs(feature: Feature, roleConfig: Record<Role, RoleM
   return handoffs
 }
 
-/** Handoff tax (feat-016): přebíraný task dostane navíc tento podíl svého `work`. */
-export const HANDOFF_TAX_PCT = 0.25
-/** Pravděpodobnost, že předání vyvolá rework (feat-016). Rework nastane při `rng() < 0.2`. */
+/** Tax za připojení (feat-016): první task připojené jednotky dostane navíc tento podíl svého `work`. */
+export const JOIN_TAX_PCT = 0.25
+/** Pravděpodobnost, že připojená jednotka chápe featuru jinak a vznikne rozpor (feat-016). */
 export const REWORK_PROBABILITY = 0.2
 /** Podíl `work`, o který vrácený task přijde z progresu při reworku (feat-016). */
 export const REWORK_PROGRESS_LOSS_PCT = 0.5
 
 /**
+ * Deterministická kostka coordination overhead (feat-016) — čistá funkce, žádný sdílený stav.
+ *
+ * Výsledek závisí jen na seedu featury, pořadí události a účelu kostky. Proto nezávisí na
+ * pořadí zpracování jiných featur, na týmu ani na WIP módu a po Resetu dá stejný běh.
+ *
+ * Sloty (účel kostky):
+ *  - 0 = rozpor („chápe jednotka featuru jinak?“), `index` = pořadí připojení (`joinCount`)
+ *  - 1 = výběr vraceného tasku při převzetí hotové práce, `index` = pořadí připojení
+ *  - 2 = výběr vraceného tasku při dokončení featury, `index` = `reworkCount` featury
+ *
+ * @param coordSeed - Seed featury (`Feature.coordSeed`)
+ * @param index - Pořadí události (viz sloty)
+ * @param slot - Účel kostky (0, 1 nebo 2)
+ * @returns Číslo v intervalu [0, 1)
+ */
+export function coordinationRoll(coordSeed: number, index: number, slot: 0 | 1 | 2): number {
+  // Smíchání trojice do jednoho 32bitového čísla; velké liché konstanty (zlatý řez, Murmur3)
+  // rozptýlí i sousední hodnoty indexu a slotu
+  let h = (coordSeed | 0) ^ Math.imul(index + 1, 0x9e3779b1) ^ Math.imul(slot + 1, 0x85ebca6b)
+  // Avalanche — každý vstupní bit ovlivní všechny výstupní bity (jinak by první výstup
+  // mulberry32 pro sousední seedy byl příliš podobný)
+  h = Math.imul(h ^ (h >>> 16), 0x45d9f3b)
+  h = Math.imul(h ^ (h >>> 16), 0x45d9f3b)
+  h ^= h >>> 16
+  return mulberry32(h >>> 0)()
+}
+
+/**
+ * Vrátí hotový task do `todo` s poloviční ztrátou progresu (rework, feat-016).
+ *
+ * @param f - Feature, které task patří (mutována — roste `reworkCount` a `reworkSec`)
+ * @param victim - Hotový task, který se vrací (mutován)
+ */
+function reworkTask(f: Feature, victim: Task): void {
+  // Math.max chrání před záporným progresem (u hotového tasku platí progress === work)
+  const newProgress = Math.max(0, victim.progress - victim.work * REWORK_PROGRESS_LOSS_PCT)
+  f.reworkSec += victim.progress - newProgress
+  f.reworkCount++
+  victim.progress = newProgress
+  victim.status = 'todo'
+  // Bez assignee — task vezme kdokoli s danou rolí podle běžných pravidel přiřazování
+  victim.assignee = null
+}
+
+/**
  * Uplatní coordination overhead (feat-016) v okamžiku, kdy se jednotka přiřazuje k tasku.
  *
- * Předání nastane, když jednotka na featuře dosud nepracovala a jiná jednotka už na ní
- * dokončila aspoň jeden task. Souběžný start více jednotek (bez hotové práce) předání není —
- * jinak by se multiskill tým, který se sbíhá na jednu featuru, jevil dražší než silo.
+ * Připojení: jednotka na featuře dosud nepracovala a pracuje/pracovala na ní jiná jednotka
+ * (bez ohledu na to, zda už něco dokončila — platí i pro souběžný start). První jednotka je
+ * zdarma, stejně jako jednotka, která se na featuru vrací.
  *
- * Při předání:
- *  1. Handoff tax — přebíraný task dostane navíc HANDOFF_TAX_PCT svého `work`.
- *  2. Hod na rework (1. volání rng) — při `< REWORK_PROBABILITY` se vybere (2. volání rng)
- *     jeden hotový task jiné jednotky, ztratí REWORK_PROGRESS_LOSS_PCT svého `work`
- *     z progresu a vrátí se do `todo`.
+ * Při připojení:
+ *  1. Tax — první task připojené jednotky dostane navíc JOIN_TAX_PCT svého `work`.
+ *  2. Kostka rozporu (slot 0); při `< REWORK_PROBABILITY` jednotka „chápe featuru jinak“:
+ *     - existuje-li hotový task jiné jednotky, rozpor se odhalí hned a jeden takový task
+ *       (vybraný kostkou slotu 1) se vrátí do `todo` se ztrátou progresu,
+ *     - jinak rozpor čeká v `pendingDivergence` a odhalí se při dokončení featury
+ *       (viz `resolvePendingDivergence`).
  *
- * Funkci volá tick() jen při zapnutém přepínači — při vypnutém se rng vůbec nespotřebuje.
+ * Funkci volá tick() jen při zapnutém přepínači. Nepoužívá žádný sdílený RNG.
  *
  * @param f - Feature, ke které se jednotka přiřazuje (mutována)
  * @param t - Task, který jednotka přebírá (mutován — může se zvýšit `work`)
  * @param memberId - ID přiřazované jednotky
- * @param rng - Seeded RNG simulace
  */
-function applyCoordinationOverhead(f: Feature, t: Task, memberId: number, rng: () => number): void {
-  // Jednotka, která na featuře už pracovala, předání nevyvolá — nejčastější případ,
-  // proto se kontroluje dřív než (dražší) filtrování hotových tasků níže.
+function applyCoordinationOverhead(f: Feature, t: Task, memberId: number): void {
+  // Jednotka, která na featuře už pracovala, nic neplatí — nejčastější případ, proto první.
+  // workedBy zapisuje tick() až PO tomto volání (vede se vždy, nezávisle na overheadu).
   if (f.workedBy.includes(memberId)) return
-  // Historii zapíšeme hned — při dalším přiřazení k téže featuře už jednotka nováček není
-  f.workedBy.push(memberId)
+  // První jednotka na featuře je zdarma — není s kým koordinovat
+  if (f.workedBy.length === 0) return
 
-  // Hotové tasky jiných jednotek — podmínka předání a zároveň kandidáti na rework
-  const doneByOthers = f.tasks.filter(o => o.status === 'done' && o.assignee !== memberId)
-  if (doneByOthers.length === 0) return
+  // Pořadí tohoto připojení = index kostek; joinCount se zvyšuje níže
+  const index = f.joinCount
 
-  // 1. Handoff tax — práce navíc na straně přebírající jednotky. Zapamatujeme si přirážku
-  // na tasku, aby ji resetTaskProgress() mohl vrátit.
-  const tax = t.work * HANDOFF_TAX_PCT
+  // 1. Tax — práce navíc na straně připojené jednotky. Počítá se z PŮVODNÍHO work tasku (bez
+  // dřívějších přirážek), jinak by task vrácený reworkem a převzatý další jednotkou platil
+  // tax z už zdaněné práce (25 % z 125 % ≈ 156 %). Přirážku si pamatujeme na tasku,
+  // aby ji resetTaskProgress() mohl vrátit.
+  const tax = (t.work - (t.joinTax ?? 0)) * JOIN_TAX_PCT
   t.work += tax
-  t.handoffTax = (t.handoffTax ?? 0) + tax
-  f.handoffSec += tax
-  f.handoffCount++
+  t.joinTax = (t.joinTax ?? 0) + tax
+  f.joinTaxSec += tax
+  f.joinCount++
 
-  // 2. Rework — přebírající jednotka objeví chybu v předané práci
-  if (rng() < REWORK_PROBABILITY) {
-    const victim = doneByOthers[Math.floor(rng() * doneByOthers.length)]
-    // Math.max chrání před záporným progresem (u hotového tasku platí progress === work)
-    const newProgress = Math.max(0, victim.progress - victim.work * REWORK_PROGRESS_LOSS_PCT)
-    f.reworkSec += victim.progress - newProgress
-    f.reworkCount++
-    victim.progress = newProgress
-    victim.status = 'todo'
-    // Bez assignee — task vezme kdokoli s danou rolí podle běžných pravidel přiřazování
-    victim.assignee = null
+  // 2. Rozpor — „chápe jednotka featuru jinak než ostatní?“
+  if (coordinationRoll(f.coordSeed, index, 0) >= REWORK_PROBABILITY) return
+
+  // Hotové tasky jiných jednotek — kandidáti na okamžité odhalení
+  const doneByOthers = f.tasks.filter(o => o.status === 'done' && o.assignee !== memberId)
+  if (doneByOthers.length > 0) {
+    const pick = Math.floor(coordinationRoll(f.coordSeed, index, 1) * doneByOthers.length)
+    reworkTask(f, doneByOthers[pick])
+  } else {
+    // Nic hotového, co by šlo vrátit (souběžný start) — rozpor vyjde najevo až při integraci
+    f.pendingDivergence.push(memberId)
   }
 }
 
 /**
+ * Vyřeší čekající rozpory featury, jejíž všechny tasky jsou hotové (feat-016): za každou
+ * čekající jednotku se vrátí jeden její hotový task (jinak libovolný hotový) se ztrátou
+ * progresu. Feature se tím nedokončí, dokud nejsou vrácené tasky znovu hotové.
+ *
+ * @param f - Feature se všemi tasky hotovými (mutována)
+ */
+function resolvePendingDivergence(f: Feature): void {
+  for (const unit of f.pendingDivergence) {
+    const own = f.tasks.filter(o => o.status === 'done' && o.assignee === unit)
+    const pool = own.length > 0 ? own : f.tasks.filter(o => o.status === 'done')
+    // Všechny tasky už byly vráceny dřívějším rozporem — není co vracet
+    if (pool.length === 0) continue
+    const pick = Math.floor(coordinationRoll(f.coordSeed, f.reworkCount, 2) * pool.length)
+    reworkTask(f, pool[pick])
+  }
+  f.pendingDivergence = []
+}
+
+/**
  * Vrátí rozpracovaný task do `todo` s nulovým progresem — používá se, když kouč za běhu
- * odebere jednotce roli nebo jednotku smaže. Zároveň vrátí přirážku z handoff taxu
+ * odebere jednotce roli nebo jednotku smaže. Zároveň vrátí přirážku z taxu za připojení
  * (feat-016): práce, za kterou se tax platil, se zahodila, a při dalším převzetí se tax
  * spočítá znovu z původního `work` místo z už navýšeného (jinak by se tax násobil).
- * Počet předání (`handoffCount`) zůstává — událost proběhla. Zahozený progres se do
+ * Počet připojení (`joinCount`) zůstává — událost proběhla. Zahozený progres se do
  * overheadu nepočítá: nejde o koordinaci, ale o ruční zásah do týmu.
  *
- * @param f - Feature, které task patří (mutována — snižuje se handoffSec)
+ * @param f - Feature, které task patří (mutována — snižuje se joinTaxSec)
  * @param t - Resetovaný task (mutován)
  */
 export function resetTaskProgress(f: Feature, t: Task): void {
-  if (t.handoffTax) {
-    t.work -= t.handoffTax
-    f.handoffSec -= t.handoffTax
-    t.handoffTax = 0
+  if (t.joinTax) {
+    t.work -= t.joinTax
+    f.joinTaxSec -= t.joinTax
+    t.joinTax = 0
   }
   t.status = 'todo'
   t.assignee = null
@@ -630,16 +707,22 @@ export function resetTaskProgress(f: Feature, t: Task): void {
  * 1. Posuneme simulační čas
  * 2. Přiřadíme volné členy týmu k dostupným úkolům (s respektováním úrovní)
  * 3. Necháme přiřazené členy pokračovat v práci
- * 4. Dokončíme featury, kde jsou všechny úkoly hotovy
+ * 4. Dokončíme featury, kde jsou všechny úkoly hotovy. Výjimka (coordination overhead, feat-016):
+ *    feature s čekajícím rozporem se nedokončí — vrátí se task rozjeté jednotky a feature zůstane
+ *    rozpracovaná
  * 5. Zkontrolujeme, zda je simulace u konce
+ *
+ * Při zapnutém `settings.coordinationOverhead` se v kroku 2 navíc vyhodnocuje připojení další
+ * jednotky na featuru (tax a kostka rozporu — viz applyCoordinationOverhead).
  *
  * @param state      - Aktuální stav simulace (mutován in-place)
  * @param dtSim      - Délka tohoto ticku v simulačních sekundách
  * @param settings   - Konfigurace simulace
- * @param rng        - Seeded RNG pro případné doplnění backlogu
+ * @param rng        - Seeded RNG pro případné doplnění backlogu (coordination overhead ho nepoužívá)
  * @param roleConfig - Konfigurace specializací (level, required); výchozí = ROLE_META
  * @param focusMode  - Zda členové preferují vlastní feature ('continuity') nebo nejvyšší prioritu ('priority')
- * @param wipMode    - 'priority' = tahem z backlogu (vysoké WIP); 'reduce-wip' = dokončení rozběhnutých (nízké WIP)
+ * @param wipMode    - 'priority' = tahem z backlogu (vysoké WIP); 'reduce-wip' = dokončení rozběhnutých (nízké WIP);
+ *                     'min-units' = jednotka zůstává na featuře, kterou zná, a vyhýbá se featurám, na kterých pracují jiné (feat-016)
  * @returns Stejný objekt state po aktualizaci
  */
 export function tick(
@@ -673,6 +756,8 @@ export function tick(
     // riziko se neprojeví — pokud by se minBacklog někdy nastavil > 0, je potřeba tohle
     // ošetřit stejným batch-after-generation přístupem jako v makeInitialState().
     f.revenuePerTick = Math.max(REVENUE_MIN, gaussianRandom(rng, REVENUE_MEAN, REVENUE_STD_DEV))
+    // Bez vlastního seedu by všechny doplněné featury měly coordSeed 0, tedy identické kostky (feat-016)
+    f.coordSeed = Math.floor(rng() * 2 ** 31)
     state.backlog.push(f)
   }
 
@@ -726,7 +811,8 @@ export function tick(
 
     // Třístupňové řazení — každý stupeň se uplatní jen pokud je příslušný režim aktivní:
     // 1. WIP preference: priority = backlog před inProgress (vysoké WIP),
-    //                    reduce-wip = inProgress před backlogem (nízké WIP)
+    //                    reduce-wip = inProgress před backlogem (nízké WIP),
+    //                    min-units = feature, kterou znám, pak feature bez jiných jednotek
     // 2. Continuity: features kde člen již pracoval (má done task) před ostatními
     // 3. Priorita: vždy jako finální tiebreaker
     //
@@ -742,9 +828,20 @@ export function tick(
     const workedFeatureIds = focusMode === 'continuity'
       ? new Set(candidates.filter(c => c.f.tasks.some(t => t.assignee === m.id && t.status === 'done')).map(c => c.f.id))
       : null
+    // Min units (feat-016): "znám featuru" = pracovala jsem na ní (workedBy, vede se vždy a přežije
+    // i rework, který vrácenému tasku nuluje assignee); "dotkl se jí někdo jiný" = workedBy obsahuje
+    // jinou jednotku. Obojí je levné čtení krátkého pole, proto bez předpočítaných množin.
+    const knownByMe = (f: Feature) => f.workedBy.includes(m.id)
+    const touchedByOthers = (f: Feature) => f.workedBy.some(id => id !== m.id)
     candidates.sort((a, b) => {
       // backlogIdx === -1 = feature je v inProgress; ≥ 0 = feature je v backlogu
-      if (wipMode === 'priority') {
+      if (wipMode === 'min-units') {
+        // Min units: 1) feature, kterou znám; 2) feature, na které nepracuje nikdo jiný; 3) priorita
+        const knownDiff = (knownByMe(a.f) ? 0 : 1) - (knownByMe(b.f) ? 0 : 1)
+        if (knownDiff !== 0) return knownDiff
+        const othersDiff = (touchedByOthers(a.f) ? 1 : 0) - (touchedByOthers(b.f) ? 1 : 0)
+        if (othersDiff !== 0) return othersDiff
+      } else if (wipMode === 'priority') {
         // Preference nové práce z backlogu — zvyšuje WIP
         const wipDiff = (a.backlogIdx === -1 ? 1 : 0) - (b.backlogIdx === -1 ? 1 : 0)
         if (wipDiff !== 0) return wipDiff
@@ -770,9 +867,12 @@ export function tick(
     }
 
     // Coordination overhead (feat-016) — vyhodnotí se PŘED přiřazením, dokud m.id ještě
-    // není v historii featury. Při vypnutém přepínači se nevolá → rng se nespotřebuje
-    // a běh je identický s Advanced módem.
-    if (settings.coordinationOverhead) applyCoordinationOverhead(best.f, best.t, m.id, rng)
+    // není v historii featury. Při vypnutém přepínači se nevolá, takže běh je identický
+    // s Advanced módem. Kostky jsou čistá funkce coordSeed featury — sdílený rng se nepoužívá.
+    if (settings.coordinationOverhead) applyCoordinationOverhead(best.f, best.t, m.id)
+    // Historie jednotek na featuře se vede vždy (i při Off) — používá ji coordination overhead
+    // i režim Min units. Zapisuje se až po vyhodnocení overheadu výše, které ji čte.
+    if (!best.f.workedBy.includes(m.id)) best.f.workedBy.push(m.id)
 
     best.t.status = 'doing'
     best.t.assignee = m.id
@@ -829,6 +929,12 @@ export function tick(
   for (let i = state.inProgress.length - 1; i >= 0; i--) {
     const f = state.inProgress[i]
     if (f.tasks.every(t => t.status === 'done')) {
+      // Coordination overhead (feat-016): čekající rozpor vyjde najevo při skládání výsledku —
+      // task rozjeté jednotky se vrátí do todo a feature se v tomto ticku nedokončí
+      if (f.pendingDivergence.length > 0) {
+        resolvePendingDivergence(f)
+        continue
+      }
       f.status = 'done'
       f.finishedAt = state.simTime
       // Vlastní revenue hodiny featury začínají běžet přesně v okamžiku dokončení —
@@ -844,7 +950,7 @@ export function tick(
         finishedAt: f.finishedAt,
         handoffs: computeHandoffs(f, roleConfig),
         // Coordination overhead (feat-016) — při vypnutém přepínači 0
-        handoffSec: f.handoffSec,
+        joinTaxSec: f.joinTaxSec,
         reworkSec: f.reworkSec,
       }
       state.leadTimes.push(lt)
@@ -913,7 +1019,7 @@ export function tick(
  */
 export function computeStats(leadTimes: LeadTimeEntry[]): SimStats {
   if (leadTimes.length === 0) {
-    return { count: 0, avg: 0, min: 0, max: 0, p50: 0, p85: 0, buckets: [], bucketSize: 0, maxBucket: 0, avgHandoffs: 0, handoffPct: 0, reworkPct: 0, coordinationPct: 0 }
+    return { count: 0, avg: 0, min: 0, max: 0, p50: 0, p85: 0, buckets: [], bucketSize: 0, maxBucket: 0, avgHandoffs: 0, joinTaxPct: 0, reworkPct: 0, coordinationPct: 0 }
   }
 
   const vals = leadTimes.map(l => l.ms)
@@ -940,15 +1046,15 @@ export function computeStats(leadTimes: LeadTimeEntry[]): SimStats {
   const avgHandoffs = leadTimes.reduce((s, l) => s + l.handoffs, 0) / leadTimes.length
 
   // Coordination overhead (feat-016): podíl koordinačních sekund na součtu cycle time.
-  // Starší záznamy bez handoffSec/reworkSec se počítají jako 0. Ochrana proti dělení nulou
+  // Starší záznamy bez joinTaxSec/reworkSec se počítají jako 0. Ochrana proti dělení nulou
   // pro případ, že by všechny cycle time byly 0.
-  const handoffTotal = leadTimes.reduce((s, l) => s + (l.handoffSec ?? 0), 0)
+  const joinTaxTotal = leadTimes.reduce((s, l) => s + (l.joinTaxSec ?? 0), 0)
   const reworkTotal = leadTimes.reduce((s, l) => s + (l.reworkSec ?? 0), 0)
-  const handoffPct = sum > 0 ? (handoffTotal / sum) * 100 : 0
+  const joinTaxPct = sum > 0 ? (joinTaxTotal / sum) * 100 : 0
   const reworkPct = sum > 0 ? (reworkTotal / sum) * 100 : 0
 
   return {
     count: vals.length, avg, min, max, p50: pct(0.5), p85: pct(0.85), buckets, bucketSize, maxBucket, avgHandoffs,
-    handoffPct, reworkPct, coordinationPct: handoffPct + reworkPct,
+    joinTaxPct, reworkPct, coordinationPct: joinTaxPct + reworkPct,
   }
 }

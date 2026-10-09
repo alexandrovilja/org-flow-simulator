@@ -49,10 +49,10 @@ export interface Task {
   status: TaskStatus
   /** ID člena týmu, který úkol právě zpracovává. Null pokud nikdo. */
   assignee: number | null
-  /** Přirážka z handoff taxu, která je obsažena ve `work` (feat-016). Pamatujeme si ji, aby
+  /** Přirážka z taxu za připojení (join tax), která je obsažena ve `work` (feat-016). Pamatujeme si ji, aby
    *  šla vrátit, když se task za běhu resetuje (odebrání role/jednotky) — jinak by se tax
    *  při dalším převzetí počítal z už navýšené práce. Chybějící hodnota = žádný tax. */
-  handoffTax?: number
+  joinTax?: number
 }
 
 /** Jedna feature (položka backlogu) procházející vývojovým procesem.
@@ -93,20 +93,31 @@ export interface Feature {
    *  ticku. Každá feature má vlastní nezávislý 3s cyklus od svého dokončení (Cash Flow
    *  mód, feat-015) — používá se i pro výpočet progress baru odpočtu v UI. */
   lastRevenueTickAt: number
-  /** Počet předání (feat-016): kolikrát se k featuře přiřadila jednotka, která na ní dosud
-   *  nepracovala, zatímco jiná jednotka už na ní dokončila aspoň jeden task.
-   *  Roste jen při zapnutém `SimSettings.coordinationOverhead`. */
-  handoffCount: number
-  /** Počet reworků (feat-016): kolikrát se kvůli předání vrátil hotový task zpět do `todo`. */
+  /** Počet připojení (feat-016): kolikrát se k featuře poprvé přiřadila jednotka, zatímco na ní
+   *  už pracovala nebo pracuje jiná jednotka (první jednotka je zdarma). Název je historický
+   *  („handoff“), ale po revizi 2 znamená připojení, ne předání po hotové práci.
+   *  Slouží zároveň jako `index` kostek `coordinationRoll`. Roste jen při zapnutém
+   *  `SimSettings.coordinationOverhead`. */
+  joinCount: number
+  /** Počet reworků (feat-016): kolikrát se kvůli rozporu vrátil hotový task zpět do `todo`. */
   reworkCount: number
-  /** Práce navíc z handoff taxu v simulačních sekundách (feat-016) — součet přirážek k `work`. */
-  handoffSec: number
+  /** Práce navíc z taxu za připojení v simulačních sekundách (feat-016) — součet přirážek k `work`. */
+  joinTaxSec: number
   /** Ztracený progres z reworku v simulačních sekundách (feat-016). */
   reworkSec: number
   /** ID jednotek, které na featuře kdy pracovaly (feat-016). Samostatná historie je nutná,
    *  protože rework vrací task do `todo` bez assignee — bez ní by se vracející jednotka
-   *  chybně počítala jako nové předání. Plní se jen při zapnutém coordination overhead. */
+   *  chybně počítala jako nové připojení. Plní se vždy (i při vypnutém overheadu) při prvním
+   *  přiřazení jednotky k tasku featury; využívá ji coordination overhead i režim Min units. */
   workedBy: number[]
+  /** Seed kostek coordination overhead této featury (feat-016, determinismus). Vzniká při
+   *  generování backlogu a přežívá Reset (je ve snapshotu). Výsledek k-tého připojení určuje
+   *  čistá funkce `coordinationRoll(coordSeed, k, slot)`, ne sdílený proud RNG. */
+  coordSeed: number
+  /** ID jednotek, jejichž rozpor („chápu featuru jinak“) čeká na odhalení (feat-016). Rozpor se
+   *  zapíše sem, když v okamžiku připojení neexistuje hotová práce jiné jednotky; vyřeší se, až
+   *  jsou všechny tasky featury hotové (feature se pak nedokončí a task jednotky se vrátí). */
+  pendingDivergence: number[]
 }
 
 /** Jeden člen vývojového týmu.
@@ -141,9 +152,9 @@ export interface LeadTimeEntry {
   /** Počet předání mezi jednotkami: kolikrát bylo nutné předat práci jinému členu
    *  při přechodu mezi fázemi. Závisí na konfiguraci fází (level) a cross-funkčnosti týmu. */
   handoffs: number
-  /** Práce navíc z handoff taxu (feat-016). Volitelné kvůli zpětné kompatibilitě —
+  /** Práce navíc z taxu za připojení (feat-016). Volitelné kvůli zpětné kompatibilitě —
    *  chybějící hodnota se počítá jako 0. */
-  handoffSec?: number
+  joinTaxSec?: number
   /** Ztracený progres z reworku (feat-016). Volitelné, chybějící = 0. */
   reworkSec?: number
 }
@@ -244,11 +255,13 @@ export interface SimStats {
   /** Průměrný počet předání mezi jednotkami na feature.
    *  Odráží míru koordinační zátěže — nižší = efektivnější tok práce. */
   avgHandoffs: number
-  /** Podíl handoff taxu na celkovém Cycle Time v % (0–100): Σ handoffSec / Σ cycle time (feat-016). */
-  handoffPct: number
+  /** Podíl taxu za připojení na celkovém Cycle Time v % (0–100): Σ joinTaxSec / Σ cycle time (feat-016).
+   *  Čitatel jsou sekundy práce sečtené přes všechny jednotky, jmenovatel wall-clock Cycle Time featur —
+   *  vysoce paralelní týmy proto mohou ukazovat vysoké hodnoty. */
+  joinTaxPct: number
   /** Podíl ztraceného progresu z reworku na celkovém Cycle Time v % (feat-016). */
   reworkPct: number
-  /** Celkový podíl koordinace na Cycle Time v % = handoffPct + reworkPct (feat-016). */
+  /** Celkový podíl koordinace na Cycle Time v % = joinTaxPct + reworkPct (feat-016). */
   coordinationPct: number
 }
 
@@ -259,8 +272,10 @@ export type FocusMode = 'priority' | 'continuity'
 
 /** Režim přiřazování úkolů z hlediska WIP — zda člen preferuje novou nebo rozběhnutou práci.
  *  'priority'    = backlogové features jsou preferovány před in-progress (vysoké WIP; výchozí)
- *  'reduce-wip'  = in-progress features jsou preferovány před backlogovými (nízké WIP) */
-export type WipMode = 'priority' | 'reduce-wip'
+ *  'reduce-wip'  = in-progress features jsou preferovány před backlogovými (nízké WIP)
+ *  'min-units'   = jednotka zůstává na featuře, kterou zná, a vyhýbá se featurám, na kterých
+ *                  pracují jiné jednotky (nejméně jednotek na featuru; feat-016) */
+export type WipMode = 'priority' | 'reduce-wip' | 'min-units'
 
 /**
  * Identifikátor aktivního presetu.
