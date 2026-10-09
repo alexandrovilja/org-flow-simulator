@@ -1,0 +1,40 @@
+/* Náhled tvaru výnosové křivky (feat-017) — schválený návrh docs/feat-017-ui-mockup.html. */
+.wrap {
+  margin-top: 8px;
+}
+
+.svg {
+  display: block;
+  width: 100%;
+  max-width: 250px;
+  height: 46px;
+  overflow: visible;
+}
+
+/* Tečkovaná čára = úroveň Flat (1× základní výnos). */
+.flatLine {
+  stroke: var(--ink-3);
+  stroke-width: 0.7;
+  stroke-dasharray: 2 2;
+}
+
+.flatLabel {
+  font-size: 8px;
+  fill: var(--ink-3);
+  font-family: 'Inter', sans-serif;
+}
+
+/* Samotná křivka ve stejné barvě jako výnos (badge, Done list). */
+.curve {
+  fill: none;
+  stroke: var(--done);
+  stroke-width: 1.8;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+.caption {
+  font-size: 9.5px;
+  color: var(--ink-3);
+  margin-top: 2px;
+}

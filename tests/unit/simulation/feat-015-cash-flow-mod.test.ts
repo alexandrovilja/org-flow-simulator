@@ -258,7 +258,7 @@ describe('feat-015: doneOverflow keeps evicted features earning (code review fix
     return {
       id, name: `F-${id}`, hue: 0, tasks: [], createdAt: 0, startedAt: 0, finishedAt,
       status: 'done', priority: id, revenuePerTick, totalRevenue: 0,
-      lastTickRevenue: null, lastRevenueTickAt: finishedAt, joinCount: 0, reworkCount: 0, joinTaxSec: 0, reworkSec: 0, workedBy: [], pendingDivergence: [], coordSeed: 0,
+      lastTickRevenue: null, lastRevenueTickAt: finishedAt, joinCount: 0, reworkCount: 0, joinTaxSec: 0, reworkSec: 0, workedBy: [], pendingDivergence: [], revenueProfile: 'flat', revenueTickCount: 0, coordSeed: 0,
     }
   }
 
@@ -276,7 +276,7 @@ describe('feat-015: doneOverflow keeps evicted features earning (code review fix
       id: 41, name: 'F-41', hue: 0,
       tasks: [{ id: 1, role: 'FE', work: 1, progress: 1, status: 'done', assignee: 1 }],
       createdAt: 0, startedAt: 0, finishedAt: null, status: 'in-progress', priority: 41,
-      revenuePerTick: 200, totalRevenue: 0, lastTickRevenue: null, lastRevenueTickAt: 0, joinCount: 0, reworkCount: 0, joinTaxSec: 0, reworkSec: 0, workedBy: [], pendingDivergence: [], coordSeed: 0,
+      revenuePerTick: 200, totalRevenue: 0, lastTickRevenue: null, lastRevenueTickAt: 0, joinCount: 0, reworkCount: 0, joinTaxSec: 0, reworkSec: 0, workedBy: [], pendingDivergence: [], revenueProfile: 'flat', revenueTickCount: 0, coordSeed: 0,
     }
     state.inProgress = [finishingFeature]
     return { state, settings, rng }

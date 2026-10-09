@@ -1,4 +1,4 @@
-import { REVENUE_TICK_INTERVAL_SEC } from '@/simulation/engine'
+import { REVENUE_TICK_INTERVAL_SEC, plateauRevenuePerTick } from '@/simulation/engine'
 import { StatTile } from '@/components/StatTile'
 import { PanelHeader } from '@/components/PanelHeader'
 import { CoordinationChips } from '@/components/CoordinationChips'
@@ -125,7 +125,8 @@ export function CashFlowPanel({
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div className="mono" style={{ fontSize: 10, color: 'var(--ink-2)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{f.name}</div>
                 <div style={{ fontSize: 9, color: 'var(--ink-3)', display: 'flex', alignItems: 'center', gap: 4 }}>
-                  {formatEuro(f.revenuePerTick)}/tick
+                  {/* Ustálený výnos (feat-017) — stejné číslo jako badge v Backlogu; pulse vpravo ukazuje skutečný přírůstek ticku */}
+                  {formatEuro(plateauRevenuePerTick(f))}/tick
                   {/* Čipy coordination overhead (feat-016) — v Done listu bez pulse, událost už nevzniká */}
                   {showCoordination && <CoordinationChips joins={f.joinCount} reworks={f.reworkCount} />}
                 </div>

@@ -4,9 +4,9 @@ import { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import { flushSync } from 'react-dom'
 import {
   ROLE_META, MEMBER_NAMES, TEAM_NAMES, PRESETS, mulberry32,
-  makeInitialState, resetFromSnapshot, regenerate, tick, computeStats, computeRevenueAsOf, applyPreset,
+  makeInitialState, resetFromSnapshot, regenerate, tick, computeStats, computeRevenueAsOf, applyPreset, plateauRevenuePerTick,
 } from '@/simulation/engine'
-import type { SimSettings, SimState, Feature, Role, RoleMeta, FocusMode, WipMode, UnitPreset, ActivePresetId } from '@/types/simulation'
+import type { SimSettings, SimState, Feature, Role, RoleMeta, FocusMode, WipMode, UnitPreset, ActivePresetId, RevenueProfile } from '@/types/simulation'
 import { StatTile } from '@/components/StatTile'
 import { SpeedControl } from '@/components/SpeedControl'
 import { PanelHeader } from '@/components/PanelHeader'
@@ -154,7 +154,9 @@ export function Simulator() {
     avgWip: number
     totalTime: number
     totalRevenue: number
-    doneFeatures: Pick<Feature, 'finishedAt' | 'revenuePerTick'>[]
+    /** Tvar výnosu každé featury (feat-017) je součástí snapshotu, aby se běhy s různými profily
+     *  dopočítaly ke stejnému času správně. */
+    doneFeatures: Pick<Feature, 'finishedAt' | 'revenuePerTick' | 'revenueProfile'>[]
     /** Celkový coordination overhead v % (feat-016) — 0, pokud byl přepínač vypnutý. */
     coordinationPct: number
   }
@@ -305,8 +307,8 @@ export function Simulator() {
                   // doneOverflow zahrnuto, aby zpětný dopočet (computeRevenueAsOf) nepodhodnocoval
                   // běhy s > 40 dokončenými featurami — stejný fix jako pro živé totalRevenueAllTime.
                   doneFeatures: [
-                    ...state.done.map(f => ({ finishedAt: f.finishedAt, revenuePerTick: f.revenuePerTick })),
-                    ...state.doneOverflow.map(o => ({ finishedAt: o.finishedAt, revenuePerTick: o.revenuePerTick })),
+                    ...state.done.map(f => ({ finishedAt: f.finishedAt, revenuePerTick: f.revenuePerTick, revenueProfile: f.revenueProfile })),
+                    ...state.doneOverflow.map(o => ({ finishedAt: o.finishedAt, revenuePerTick: o.revenuePerTick, revenueProfile: o.revenueProfile })),
                   ],
                   coordinationPct: finishedStats.coordinationPct,
                 }
@@ -656,16 +658,38 @@ export function Simulator() {
     : undefined
   const cfMaxWork = featureMaxWork(cfState.backlog, cfState.inProgress)
 
+  /** Uloží naposledy doběhnutý běh jako předchozí (pro delta badge) — stejný krok jako tlačítko Reset. */
+  const promoteCashFlowFinishedRun = useCallback(() => {
+    if (cashFlowLastFinishedRef.current) setCashFlowPrevStats(cashFlowLastFinishedRef.current)
+  }, [])
+
   /** Wraps cf.handleRegenerate to also promote the last finished run into prevStats first —
    *  mirrors Advanced mode's handleRegenerate, which lives in Simulator.tsx (not the hook)
    *  because run-comparison bookkeeping is coordinated alongside the RAF loop above. */
   const handleCashFlowRegenerate = useCallback(() => {
-    if (cashFlowLastFinishedRef.current) setCashFlowPrevStats(cashFlowLastFinishedRef.current)
+    promoteCashFlowFinishedRun()
     cf.handleRegenerate()
     setCashFlowPaused(true)
     setCashFlowHasStarted(false)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [cf.handleRegenerate])
+  }, [cf.handleRegenerate, promoteCashFlowFinishedRun])
+
+  /** Změna křivky výnosu (feat-017). Po doběhnutém běhu hook změnu provede hned a simulaci vrátí na začátek,
+   *  proto před tím uložíme doběhnutý běh jako předchozí — jako tlačítko Reset — a delta badge pak srovná
+   *  stejný backlog napříč profily. Během běhu hook jen otevře potvrzovací dialog a nic nepromuje. */
+  const handleCashFlowRevenueProfileChange = useCallback((profile: RevenueProfile) => {
+    if (profile !== cf.revenueProfile && cf.stateRef.current?.finished) promoteCashFlowFinishedRun()
+    cf.handleRevenueProfileChange(profile)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cf.revenueProfile, cf.handleRevenueProfileChange, promoteCashFlowFinishedRun])
+
+  /** „Change and reset“ v dialogu změny křivky. Běh mohl doběhnout, zatímco dialog byl otevřený (simulace
+   *  za překryvem dál tiká), proto i tady před resetem uložíme doběhnutý běh jako předchozí. */
+  const handleCashFlowConfirmRevenueProfile = useCallback(() => {
+    promoteCashFlowFinishedRun()
+    cf.handleConfirmRevenueProfile()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cf.handleConfirmRevenueProfile, promoteCashFlowFinishedRun])
 
   // ── Derived values (compare mode) ─────────────────────────────────────────
 
@@ -771,8 +795,10 @@ export function Simulator() {
             onReset={() => {
               // Promote the last naturally-finished run into prevStats for comparison —
               // same pattern as Advanced mode's handleReset.
-              if (cashFlowLastFinishedRef.current) setCashFlowPrevStats(cashFlowLastFinishedRef.current)
+              promoteCashFlowFinishedRun()
               if (cf.stateRef.current) resetFromSnapshot(cf.stateRef.current)
+              // Dialog změny křivky by se ptal na zahozený běh
+              cf.setConfirmingRevenueProfile(null)
               setCashFlowPaused(true)
               setCashFlowHasStarted(false)
               cf.forceUpdate()
@@ -979,10 +1005,16 @@ export function Simulator() {
           handleAddRole={cf.handleAddRole}
           handleDeleteRole={cf.handleDeleteRole}
           tutorialTargetPrefix="cashflow"
-          getRevenueBadge={f => `${formatEuro(f.revenuePerTick)}/tick`}
+          // Badge ukazuje ustálený výnos (feat-017), ke kterému zvolená křivka dospěje
+          getRevenueBadge={f => `${formatEuro(plateauRevenuePerTick(f))}/tick`}
           coordinationOverhead={cf.coordinationOverhead}
           setCoordinationOverhead={cf.setCoordinationOverhead}
           coordinationOverheadLocked={cashFlowHasStarted}
+          revenueProfile={cf.revenueProfile}
+          onRevenueProfileChange={handleCashFlowRevenueProfileChange}
+          confirmingRevenueProfile={cf.confirmingRevenueProfile}
+          onConfirmRevenueProfile={handleCashFlowConfirmRevenueProfile}
+          onCancelRevenueProfile={() => cf.setConfirmingRevenueProfile(null)}
         />
 
         <InProgressTeamPanel

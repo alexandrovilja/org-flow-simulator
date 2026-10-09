@@ -192,6 +192,10 @@ export function parseRows(rawRows: Record<string, unknown>[]): ImportResult {
       totalRevenue: 0,
       lastTickRevenue: null,
       lastRevenueTickAt: 0,
+      // Tvar výnosu (feat-017): import vždy začíná na Flat, aktuální volbu přepínače mu nastaví
+      // hook Cash Flow (Advanced profil nepoužívá).
+      revenueProfile: 'flat',
+      revenueTickCount: 0,
       // Čítače coordination overhead (feat-016)
       joinCount: 0,
       reworkCount: 0,
