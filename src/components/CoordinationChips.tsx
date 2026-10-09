@@ -3,8 +3,8 @@ import styles from './CoordinationChips.module.css'
 
 /** Vstupní props komponenty CoordinationChips. */
 interface CoordinationChipsProps {
-  /** Počet předání featury (`Feature.handoffCount`). */
-  handoffs: number
+  /** Počet předání featury (`Feature.joinCount`). */
+  joins: number
   /** Počet reworků featury (`Feature.reworkCount`). */
   reworks: number
   /** true = při zvýšení počtu čip krátce zapulsuje (karty In Progress); false = statické (Done list). */
@@ -36,20 +36,20 @@ interface ChipSpec {
  * při připojení komponenty — jinak by se po každém remountu (např. přepnutí módu) přehrály
  * pulsy všech karet najednou, i když žádná nová událost nenastala.
  *
- * @param handoffs - Počet předání
+ * @param joins - Počet připojených jednotek (po první)
  * @param reworks - Počet reworků
  * @param pulse - Zda čip při změně počtu zapulsuje
  */
-export function CoordinationChips({ handoffs, reworks, pulse = false }: CoordinationChipsProps) {
+export function CoordinationChips({ joins, reworks, pulse = false }: CoordinationChipsProps) {
   // Počty při připojení — useState initializer se vyhodnotí jen jednou za život komponenty
-  const [mountHandoffs] = useState(handoffs)
+  const [mountJoins] = useState(joins)
   const [mountReworks] = useState(reworks)
 
   const chips: ChipSpec[] = [
-    { id: 'h', glyph: '⇄', count: handoffs, mountCount: mountHandoffs, variantClass: styles.handoff,
-      title: n => `${n} handoff${n !== 1 ? 's' : ''} between units` },
+    { id: 'h', glyph: '⇄', count: joins, mountCount: mountJoins, variantClass: styles.handoff,
+      title: n => `${n} unit${n !== 1 ? 's' : ''} joined this feature` },
     { id: 'r', glyph: '↺', count: reworks, mountCount: mountReworks, variantClass: styles.rework,
-      title: n => `${n} rework${n !== 1 ? 's' : ''} — finished work returned after a handoff` },
+      title: n => `${n} rework${n !== 1 ? 's' : ''} — finished work returned because units understood the feature differently` },
   ]
 
   return (

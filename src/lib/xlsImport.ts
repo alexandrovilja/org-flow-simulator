@@ -160,7 +160,11 @@ export function parseRows(rawRows: Record<string, unknown>[]): ImportResult {
   // nejvyšší výnos. Fixní seed udržuje parseRows() deterministickou (stejný soubor →
   // stejný výsledek), zatímco Cash Flow backlog je pro import stejně relevantní jako
   // pro Advanced, takže výnos nemůže být plochý.
-  const revenueBatch = generateRevenueBatch(mulberry32(42), featureTasksMap.size)
+  const importRng = mulberry32(42)
+  const revenueBatch = generateRevenueBatch(importRng, featureTasksMap.size)
+  // Seed kostek coordination overhead (feat-016) z téhož pevného proudu jako výnos, generovaný až
+  // po něm — výnos se tím nemění a stejný soubor dá vždy stejný backlog i stejný běh.
+  const coordSeeds = Array.from({ length: featureTasksMap.size }, () => Math.floor(importRng() * 2 ** 31))
 
   let featureId = 1
   const features: Feature[] = []
@@ -189,11 +193,13 @@ export function parseRows(rawRows: Record<string, unknown>[]): ImportResult {
       lastTickRevenue: null,
       lastRevenueTickAt: 0,
       // Čítače coordination overhead (feat-016)
-      handoffCount: 0,
+      joinCount: 0,
       reworkCount: 0,
-      handoffSec: 0,
+      joinTaxSec: 0,
       reworkSec: 0,
       workedBy: [],
+      pendingDivergence: [],
+      coordSeed: coordSeeds[fId - 1],
     })
   }
 

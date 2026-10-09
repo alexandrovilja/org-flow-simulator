@@ -72,7 +72,7 @@ export function FeatureCard({ feature, team = [], compact = false, neutral = fal
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
           {showCoordination && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-              <CoordinationChips handoffs={feature.handoffCount} reworks={feature.reworkCount} pulse />
+              <CoordinationChips joins={feature.joinCount} reworks={feature.reworkCount} pulse />
             </div>
           )}
           {revenue && (

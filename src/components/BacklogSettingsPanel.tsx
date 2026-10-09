@@ -7,6 +7,13 @@ import { SegmentedControl } from '@/components/SegmentedControl'
 import { downloadTemplate } from '@/lib/xlsImport'
 import type { Feature, SimState, SimSettings, Role, RoleMeta, WipMode, UnitPreset, ActivePresetId } from '@/types/simulation'
 
+/** Hover hint pro každý WIP mód — popisuje, jak jednotky vybírají další práci (feat-016: Min units). */
+const WIP_HINTS: Record<WipMode, string> = {
+  'priority': 'WIP: units can start new features freely based on priority.',
+  'reduce-wip': 'WIP: units finish in-progress features before pulling new ones.',
+  'min-units': 'WIP: units stay on features they already know and avoid features others are working on.',
+}
+
 /** Vstupní props komponenty BacklogSettingsPanel — levý sloupec sdílený Advanced a Cash Flow módem. */
 interface BacklogSettingsPanelProps {
   state: SimState
@@ -297,11 +304,10 @@ export function BacklogSettingsPanel({
                 options={[
                   { value: 'priority' as WipMode, label: 'Priority' },
                   { value: 'reduce-wip' as WipMode, label: 'Reduce WIP' },
+                  { value: 'min-units' as WipMode, label: 'Min units' },
                 ]}
                 value={wipMode} onChange={setWipMode}
-                hint={wipMode === 'priority'
-                  ? 'WIP: units can start new features freely based on priority.'
-                  : 'WIP: units finish in-progress features before pulling new ones.'}
+                hint={WIP_HINTS[wipMode]}
               />
               {/* Coordination overhead (feat-016) — jen Cash Flow, který předává setter */}
               {setCoordinationOverhead && (
@@ -317,7 +323,7 @@ export function BacklogSettingsPanel({
                     value={coordinationOverhead ? 'on' : 'off'}
                     onChange={v => setCoordinationOverhead(v === 'on')}
                     disabled={coordinationOverheadLocked}
-                    hint="Handoffs between units add 25 % extra work; 20 % chance of rework."
+                    hint="Each additional unit on a feature pays 25 % extra work and has a 20 % chance of causing rework."
                   />
                   {/* Změna uprostřed běhu by míchala dva modely v jednom výsledku → až po Resetu */}
                   {coordinationOverheadLocked && (

@@ -3,13 +3,20 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import {
   MEMBER_NAMES, TEAM_NAMES, PRESETS, mulberry32,
-  makeInitialState, regenerate, applyPreset, resetTaskProgress,
+  makeInitialState, regenerate, applyPreset, resetTaskProgress, cloneFeatureFresh,
 } from '@/simulation/engine'
 import { addRole, deleteRole } from '@/simulation/roleManagement'
 import { parseXlsFile, type ImportResult } from '@/lib/xlsImport'
 import type {
   SimSettings, SimState, Role, RoleMeta, FocusMode, WipMode, UnitPreset, ActivePresetId,
 } from '@/types/simulation'
+
+/**
+ * Pevný seed výchozího backlogu Cash Flow (feat-016, determinismus). Po načtení stránky a po
+ * výběru presetu tak vzniká vždy stejný backlog — stejně jako v Advanced módu (seed 42).
+ * „Generate new backlog“ používá náhodný seed záměrně (cesta k jinému backlogu).
+ */
+const CASH_FLOW_SEED = 42
 
 /** Kompletní stav a handlery pro plnou konfiguraci Cash Flow simulace (backlog,
  *  specializace, tým, presety, XLS import) — zrcadlí Advanced mód, ale jako zcela
@@ -98,6 +105,10 @@ export function useCashFlowSimSetup(
   const [showTeamSettings, setShowTeamSettings] = useState(false)
   const [importMsg, setImportMsg] = useState<{ ok: boolean; text: string } | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  // Nejvyšší ID jednotky, které kdy bylo přiděleno (feat-016). Samotný max ID aktuálního týmu
+  // nestačí: po smazání jednotky s nejvyšším ID by nová jednotka dostala stejné ID a v historii
+  // featur (workedBy, pendingDivergence) by se tvářila jako ta smazaná.
+  const lastMemberIdRef = useRef(0)
 
   const [focusMode] = useState<FocusMode>('priority')
   const focusModeRef = useRef<FocusMode>('priority')
@@ -117,7 +128,7 @@ export function useCashFlowSimSetup(
   if (stateRef.current === null) {
     const initPreset = PRESETS[0]
     const { team: initTeam } = applyPreset(initPreset)
-    const rng = mulberry32(Math.floor(Math.random() * 1e9))
+    const rng = mulberry32(CASH_FLOW_SEED)
     rngRef.current = rng
     stateRef.current = makeInitialState(rng, initialSettings, initPreset.roleMeta)
     stateRef.current.team = initTeam
@@ -168,10 +179,9 @@ export function useCashFlowSimSetup(
 
       const newState: SimState = {
         backlog: result.features,
-        backlogSnapshot: result.features.map(f => ({
-          ...f,
-          tasks: f.tasks.map(t => ({ ...t })),
-        })),
+        // cloneFeatureFresh vytvoří nezávislé kopie včetně polí workedBy / pendingDivergence — plochá
+        // kopie přes `...f` by je sdílela s živými featurami a tick() by do snapshotu zapisoval
+        backlogSnapshot: result.features.map(cloneFeatureFresh),
         inProgress: [],
         done: [],
         doneOverflow: [],
@@ -203,7 +213,7 @@ export function useCashFlowSimSetup(
   /** Applies a preset: replaces team + roleConfig, regenerates backlog, resets simulation. */
   const doApplyPreset = useCallback((preset: UnitPreset) => {
     const { team, roleConfig: newRoleConfig } = applyPreset(preset)
-    const rng = mulberry32(Math.floor(Math.random() * 1e9))
+    const rng = mulberry32(CASH_FLOW_SEED)
     rngRef.current = rng
     stateRef.current = makeInitialState(rng, settingsRef.current, newRoleConfig)
     stateRef.current.team = team
@@ -254,8 +264,10 @@ export function useCashFlowSimSetup(
     const usedNames = new Set(s.team.map(m => m.name))
     const namePool = activePresetIdRef.current === 'teams' ? TEAM_NAMES : MEMBER_NAMES
     const name = namePool.find(n => !usedNames.has(n)) ?? `Unit ${s.team.length + 1}`
-    const maxId = s.team.reduce((max, m) => Math.max(max, m.id), 0)
-    s.team.push({ id: maxId + 1, name, roles: [], currentTask: null, idleSec: 0 })
+    const maxId = s.team.reduce((max, m) => Math.max(max, m.id), lastMemberIdRef.current)
+    const newId = maxId + 1
+    lastMemberIdRef.current = newId
+    s.team.push({ id: newId, name, roles: [], currentTask: null, idleSec: 0 })
     markCustom()
     forceUpdate()
   }, [markCustom, forceUpdate])
