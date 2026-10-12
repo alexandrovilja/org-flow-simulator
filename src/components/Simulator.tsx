@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import { flushSync } from 'react-dom'
 import {
   ROLE_META, MEMBER_NAMES, TEAM_NAMES, PRESETS, mulberry32,
-  makeInitialState, resetFromSnapshot, regenerate, tick, computeStats, computeRevenueAsOf, applyPreset, plateauRevenuePerTick,
+  makeInitialState, resetFromSnapshot, regenerate, tick, computeStats, applyPreset, plateauRevenuePerTick,
 } from '@/simulation/engine'
 import type { SimSettings, SimState, Feature, Role, RoleMeta, FocusMode, WipMode, UnitPreset, ActivePresetId, RevenueProfile } from '@/types/simulation'
 import { StatTile } from '@/components/StatTile'
@@ -17,6 +17,7 @@ import { InProgressTeamPanel } from '@/components/InProgressTeamPanel'
 import { useCashFlowSimSetup } from '@/hooks/useCashFlowSimSetup'
 import { formatTime } from '@/lib/formatTime'
 import { formatEuro } from '@/lib/formatCurrency'
+import { computeRevenueComparison } from '@/lib/revenueComparison'
 import { featureMaxWork } from '@/lib/featureSize'
 import { parseXlsFile, type ImportResult } from '@/lib/xlsImport'
 import { addRole, deleteRole } from '@/simulation/roleManagement'
@@ -148,7 +149,7 @@ export function Simulator() {
   // a promotuje se do prevStats při Reset/Regenerate. Total Revenue nejde porovnávat přímo
   // (běhy různé délky = nefér srovnání kumulativního čísla) — proto doneFeatures ukládá
   // minimální per-feature data pro zpětný dopočet revenue k libovolnému dřívějšímu času
-  // (computeRevenueAsOf), viz cfRevenueDelta níže.
+  // (computeRevenueAsOf), viz cfRevenueComparison níže.
   type CashFlowRunSnapshot = {
     avgLt: number
     avgWip: number
@@ -628,29 +629,21 @@ export function Simulator() {
   const cfLtDelta = cashFlowPrevStats && cfStats.count > 0 ? calcDelta(cfStats.avg, cashFlowPrevStats.avgLt) : undefined
   const cfWipDelta = cashFlowPrevStats && cfAvgWip !== null ? calcDelta(cfAvgWip, cashFlowPrevStats.avgWip) : undefined
   const cfTimeDelta = cashFlowPrevStats && cfState.finished ? calcDelta(cfState.simTime, cashFlowPrevStats.totalTime) : undefined
-  // Time-matched porovnání revenue (feat-015 refinement) — finální totaly nejsou fér
-  // porovnatelné mezi běhy různé délky (delší běh měl víc času na akumulaci revenue).
-  // Obě strany se vyhodnotí ve STEJNÉM referenčním čase = dřívějším ze dvou celkových
-  // časů; strana s delším vlastním časem se dopočítá zpětně z uložených per-feature dat.
-  // Velké číslo na dlaždici (formatEuro(cfState.totalRevenueAllTime), níže) zůstává
-  // skutečný finální total — jen tato delta je time-matched.
-  let cfRevenueDelta: number | undefined
-  let cfRevenueDeltaHint: string | undefined
-  if (cashFlowPrevStats && cfState.finished) {
-    const compareTime = Math.min(cfState.simTime, cashFlowPrevStats.totalTime)
-    // doneOverflow zahrnuto stejně jako v cashFlowLastFinishedRef výše — jinak by delta
-    // podhodnocovala běhy s > 40 dokončenými featurami.
-    cfRevenueDelta = calcDelta(
-      computeRevenueAsOf([...cfState.done, ...cfState.doneOverflow], compareTime),
-      computeRevenueAsOf(cashFlowPrevStats.doneFeatures, compareTime),
-    )
-    // Anchor time se zobrazuje jen když má k čemu patřit — degenerovaný okrajový
-    // případ (compareTime tak brzy, že ani jedna strana ještě nic nevydělala) by jinak
-    // ukázal osamocený hint bez delty pod ním.
-    if (cfRevenueDelta !== undefined) {
-      cfRevenueDeltaHint = `@ ${formatTime(compareTime)}`
-    }
-  }
+  // Time-matched výnos (feat-015 refinement, feat-018): finální totaly nejsou fér porovnatelné
+  // mezi běhy různé délky (rychlejší běh přestane sbírat tiky dřív). Po doběhnutí obou běhů se
+  // proto velké číslo i delta vyhodnotí ve STEJNÉM čase = kratším ze dvou celkových časů.
+  // doneOverflow je zahrnuto stejně jako v cashFlowLastFinishedRef výše — jinak by se výnos
+  // podhodnotil u běhů s > 40 dokončenými featurami.
+  const cfRevenueComparison = computeRevenueComparison(
+    {
+      finished: cfState.finished,
+      simTime: cfState.simTime,
+      totalRevenue: cfState.totalRevenueAllTime,
+      // Pole featur se skládá jen po doběhnutí — dřív se nepoužije a render běží ~60× za sekundu
+      features: cfState.finished ? [...cfState.done, ...cfState.doneOverflow] : [],
+    },
+    cashFlowPrevStats,
+  )
   // Coordination overhead delta (feat-016) — calcDelta vrací undefined, když předchozí běh
   // měl 0 % (např. přepínač Off), protože procentuální změna z nuly nedává smysl.
   const cfCoordinationDelta = cashFlowPrevStats && cfStats.count > 0
@@ -1039,8 +1032,7 @@ export function Simulator() {
           timeDelta={cfTimeDelta}
           ltDelta={cfLtDelta}
           wipDelta={cfWipDelta}
-          revenueDelta={cfRevenueDelta}
-          revenueDeltaHint={cfRevenueDeltaHint}
+          revenueComparison={cfRevenueComparison}
           showCoordination={cf.coordinationOverhead}
           coordinationDelta={cfCoordinationDelta}
         />

@@ -28,7 +28,7 @@ Jako agilní kouč chci v Cash Flow módu přepínat tvar, jakým featury po dod
   - **po doběhlém běhu** se změna provede hned bez dialogu a výsledek běhu se uloží jako předchozí běh pro delta badge, přesně jako tlačítko Reset (feat-015, příklad 6).
 - **Karta featury v Backlogu:** badge ukazuje **ustálený výnos** za tik (výnos, ke kterému křivka dospěje): Flat `€400/tick`, S‑curve `€400/tick`, J‑curve `€800/tick` (základ × 2). Karta se jinak nemění, **mini‑graf na kartě není** (všechny featury mají tentýž tvar, ukazuje ho jen náhled v nastavení).
 - **Done list:** layout beze změny (kumulativní výnos, pulse „+€“ posledního ticku, progress bar do dalšího ticku). Řádek `€/tick` ukazuje stejný ustálený výnos jako badge v Backlogu; pulse ukazuje **skutečný** přírůstek posledního ticku, takže je vidět, jak výnos roste.
-- **Panel metrik** se nemění. Total Revenue a delta badge fungují beze změny (time‑matched, i mezi různými profily).
+- **Panel metrik** se nemění. Total Revenue a delta badge fungují beze změny (time‑matched, i mezi různými profily). *(Dlaždice se později přejmenuje na „Revenue (time-matched)“ a ukazuje výnos ve společném čase, viz feat-018.)*
 - **Perzistence:** zvolený profil se drží v paměti (výchozí Flat po načtení stránky), stejně jako `activePresetId` v Cash Flow; do `localStorage` se neukládá.
 
 ### Schválený UI návrh (fáze 3, mockup `docs/feat-017-ui-mockup.html`)
