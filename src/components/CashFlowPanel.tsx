@@ -1,8 +1,12 @@
+import { useEffect, useRef, useState } from 'react'
 import { REVENUE_TICK_INTERVAL_SEC, plateauRevenuePerTick } from '@/simulation/engine'
 import { StatTile } from '@/components/StatTile'
 import { PanelHeader } from '@/components/PanelHeader'
 import { CoordinationChips } from '@/components/CoordinationChips'
 import { formatEuro } from '@/lib/formatCurrency'
+import { formatTime } from '@/lib/formatTime'
+import { formatPercent } from '@/lib/formatPercent'
+import type { RevenueComparison } from '@/lib/revenueComparison'
 import type { SimState, SimStats } from '@/types/simulation'
 
 /** Vstupní props komponenty CashFlowPanel — pravý sloupec (Metriky + Done) Cash Flow módu. */
@@ -19,25 +23,14 @@ interface CashFlowPanelProps {
   timeDelta?: number
   ltDelta?: number
   wipDelta?: number
-  revenueDelta?: number
-  /** Popisek "as of" referenčního času pro revenueDelta, např. "@ 00:50.0" — zobrazí se pod
-   *  Total Revenue dlaždicí, kdykoli je revenueDelta definovaná. Nutné, protože revenueDelta
-   *  neporovnává finální totaly obou běhů, ale hodnoty ve stejném dřívějším bodě (feat-015
-   *  time-matched refinement) — bez tohoto labelu by srovnání vypadalo jako přímé porovnání
-   *  finálních čísel, což by bylo zavádějící. */
-  revenueDeltaHint?: string
+  /** Hodnoty dlaždice „Revenue (time-matched)“ (feat-018): velké číslo, delta a data detailu.
+   *  Počítá je `computeRevenueComparison` v Simulator.tsx. */
+  revenueComparison: RevenueComparison
   /** true = coordination overhead je v tomto běhu zapnutý → zobrazí se dlaždice a čipy (feat-016). */
   showCoordination?: boolean
   /** % rozdíl Coordination overhead vs. předchozí dokončený běh (nižší = lepší). */
   coordinationDelta?: number
 }
-
-/**
- * Formátuje procento pro dlaždici Coordination overhead — hodnota i legenda používají stejný
- * formát, aby se celek a rozpad vizuálně nerozcházely. Pod 10 % s jedním desetinným místem,
- * jinak celé číslo. Rozhoduje se podle už zaokrouhlené hodnoty, aby 9.96 nevyšlo jako "10.0".
- */
-const fmtPct = (v: number) => (Math.round(v * 10) / 10 < 10 ? v.toFixed(1) : v.toFixed(0))
 
 /**
  * Cash Flow mód — pravý sloupec (Metriky + Done s revenue). Backlog a In Progress/Team
@@ -52,20 +45,35 @@ const fmtPct = (v: number) => (Math.round(v * 10) / 10 < 10 ? v.toFixed(1) : v.t
  * @param timeDelta - % rozdíl Total Time vs. předchozí dokončený běh
  * @param ltDelta - % rozdíl Avg Cycle Time vs. předchozí dokončený běh
  * @param wipDelta - % rozdíl Avg WIP vs. předchozí dokončený běh
- * @param revenueDelta - % rozdíl Total Revenue vs. předchozí dokončený běh (vyšší = lepší),
- *   time-matched k dřívějšímu ze dvou celkových časů (feat-015 refinement)
- * @param revenueDeltaHint - Popisek referenčního času pro revenueDelta (např. "@ 00:50.0")
+ * @param revenueComparison - Výnos ve společném čase obou běhů, delta (vyšší = lepší) a data
+ *   rozbalitelného detailu dlaždice „Revenue (time-matched)“ (feat-018)
  * @param showCoordination - Zobrazit dlaždici Coordination overhead a čipy v Done listu (feat-016)
  * @param coordinationDelta - % rozdíl Coordination overhead vs. předchozí dokončený běh
  */
 export function CashFlowPanel({
-  state, stats, totalTimeDisplay, avgWip, timeDelta, ltDelta, wipDelta, revenueDelta, revenueDeltaHint,
+  state, stats, totalTimeDisplay, avgWip, timeDelta, ltDelta, wipDelta, revenueComparison,
   showCoordination = false, coordinationDelta,
 }: CashFlowPanelProps) {
   // Poměr handoff : rework v rozpadovém pruhu dlaždice — šířky segmentů v % celkového overheadu
   const joinTaxShare = stats.coordinationPct > 0 ? (stats.joinTaxPct / stats.coordinationPct) * 100 : 0
   const done = state.done
-  const totalRevenueAllTime = state.totalRevenueAllTime
+
+  // Detail dlaždice výnosu se sbalí při Resetu: simulační čas se vrátí zpět (i uprostřed běhu).
+  // Samotný start běhu (0 → >0) čas nesníží, takže rozbalený detail zůstane. Efekt běží při každé
+  // změně simTime, ale `setRunEpoch` volá jen při Resetu; změna `key` dlaždici přemountuje.
+  const [runEpoch, setRunEpoch] = useState(0)
+  const lastSimTime = useRef(state.simTime)
+  useEffect(() => {
+    if (state.simTime < lastSimTime.current) setRunEpoch(e => e + 1)
+    lastSimTime.current = state.simTime
+  }, [state.simTime])
+
+  // Hint pod hodnotou: za běhu upozorní, že jde o průběžný součet (po doběhnutí se přepočte na
+  // společný čas); po srovnání ukáže společný čas, ale jen když k němu existuje delta
+  const { comparison } = revenueComparison
+  const revenueHint = comparison?.delta !== undefined
+    ? `@ ${formatTime(comparison.compareTime)}`
+    : (!state.finished && state.simTime > 0 ? 'live total' : undefined)
 
   return (
     <aside style={{ borderLeft: '1px solid var(--line)', background: 'var(--panel)', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
@@ -78,11 +86,30 @@ export function CashFlowPanel({
           <StatTile label="Total Time" value={totalTimeDisplay} variant="timer" finished={state.finished} wide tooltip="Elapsed simulation time." delta={timeDelta} />
           <StatTile label="Avg Cycle Time" value={stats.count ? stats.avg.toFixed(1) : '—'} unit={stats.count ? 's' : undefined} tooltip="Mean cycle time across all completed features (from work start to delivery)." delta={ltDelta} />
           <StatTile label="Avg WIP" value={avgWip !== null ? avgWip.toFixed(1) : '—'} tooltip="Average Work In Progress — lower usually means lower cycle time (Little's Law)." delta={wipDelta} />
-          <StatTile label="Total Revenue" value={formatEuro(totalRevenueAllTime)} tooltip="Cumulative revenue from all delivered features." delta={revenueDelta} hint={revenueDeltaHint} higherIsBetter />
+          <StatTile
+            key={runEpoch}
+            label="Revenue (time-matched)"
+            value={formatEuro(revenueComparison.value)}
+            tooltip="Revenue of both runs compared at the same point in time (the shorter run's total time), so a longer run does not look better just because it ran longer. Open Details for the full total."
+            delta={comparison?.delta}
+            hint={revenueHint}
+            higherIsBetter
+            details={
+              <>
+                <div>Total {formatEuro(revenueComparison.currentTotal.revenue)} in {formatTime(revenueComparison.currentTotal.time)}</div>
+                {comparison && (
+                  <>
+                    <div>Previous run @ {formatTime(comparison.compareTime)}: {formatEuro(comparison.previous.revenueAtCompare)}</div>
+                    <div>Previous total {formatEuro(comparison.previous.totalRevenue)} in {formatTime(comparison.previous.totalTime)}</div>
+                  </>
+                )}
+              </>
+            }
+          />
           {showCoordination && (
             <StatTile
               label="Coordination overhead"
-              value={stats.count ? fmtPct(stats.coordinationPct) : '—'}
+              value={stats.count ? formatPercent(stats.coordinationPct) : '—'}
               unit={stats.count ? '% of cycle time' : undefined}
               tooltip="Extra work caused by coordination, relative to feature cycle time: handoff tax (extra work each additional unit pays when it joins a feature) plus rework (progress lost when units understood the feature differently). It is counted in work-seconds across all units, so highly parallel teams can show high values."
               delta={coordinationDelta}
@@ -96,10 +123,10 @@ export function CashFlowPanel({
                   </div>
                   <span style={{ fontSize: 10, color: 'var(--ink-3)', display: 'flex', alignItems: 'center', gap: 3 }}>
                     <span style={{ width: 6, height: 6, borderRadius: 2, background: 'var(--ink-3)' }} />
-                    handoff {fmtPct(stats.joinTaxPct)} %
+                    handoff {formatPercent(stats.joinTaxPct)} %
                     <span style={{ margin: '0 2px' }}>·</span>
                     <span style={{ width: 6, height: 6, borderRadius: 2, background: 'var(--rework-ink)' }} />
-                    rework {fmtPct(stats.reworkPct)} %
+                    rework {formatPercent(stats.reworkPct)} %
                   </span>
                 </>
               )}

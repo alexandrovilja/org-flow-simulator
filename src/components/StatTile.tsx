@@ -1,3 +1,6 @@
+import { useState } from 'react'
+import { formatPercent } from '@/lib/formatPercent'
+
 interface StatTileProps {
   label: string
   value: string
@@ -22,10 +25,29 @@ interface StatTileProps {
   higherIsBetter?: boolean
   /** Volitelný obsah pod hodnotou (nad hintem a deltou) — např. rozpadový pruh s legendou (feat-016). */
   children?: React.ReactNode
+  /**
+   * Volitelný rozbalitelný detail (feat-018). Když je zadaný, dlaždice dostane tlačítko „Details“
+   * s `aria-expanded`; obsah se vykresluje jen v rozbaleném stavu. Ve výchozím stavu je sbalený.
+   */
+  details?: React.ReactNode
 }
 
-export function StatTile({ label, value, unit, hint, tooltip, variant, finished, wide, delta, higherIsBetter = false, children }: StatTileProps) {
+/**
+ * Dlaždice jedné metriky v panelu Metrics: popisek, velká hodnota, volitelný hint, delta badge
+ * oproti předchozímu běhu a volitelný rozbalitelný detail. Existuje, aby všechny metriky
+ * (Compare, Advanced, Cash Flow) vypadaly a chovaly se stejně.
+ *
+ * @param props - Popisek, hodnota, jednotka, hint, tooltip, varianta, delta (v %), `higherIsBetter`
+ *   (obrací barvy delty), `children` (obsah pod hodnotou) a `details` (rozbalitelný detail, feat-018)
+ * @returns Vykreslená dlaždice
+ */
+export function StatTile({ label, value, unit, hint, tooltip, variant, finished, wide, delta, higherIsBetter = false, children, details }: StatTileProps) {
   const isTimer = variant === 'timer'
+  // Stav rozbalení je lokální — nepersistuje se (feat-018); rodič ho resetuje změnou `key`
+  const [expanded, setExpanded] = useState(false)
+  // Text delty (bez znaménka a %) a příznak „beze změny“ — malé rozdíly se nesmí tvářit jako zlepšení/zhoršení
+  const deltaText = delta === undefined ? '' : formatPercent(Math.abs(delta))
+  const isUnchanged = delta !== undefined && deltaText === '0.0'
 
   const borderColor = isTimer && finished ? 'var(--done)' : 'var(--line)'
   const bg = isTimer && finished ? 'oklch(97% 0.02 155)' : 'var(--panel)'
@@ -93,13 +115,34 @@ export function StatTile({ label, value, unit, hint, tooltip, variant, finished,
         <span style={{
           fontSize: 10,
           fontWeight: 600,
-          color: (higherIsBetter ? delta > 0 : delta < 0) ? 'var(--done)' : 'oklch(58% 0.2 25)',
+          // Změna, která se zaokrouhlí na 0.0 %, je „beze změny“ — neutrální šedá, ne zelená/červená
+          color: isUnchanged ? 'var(--ink-3)' : (higherIsBetter ? delta > 0 : delta < 0) ? 'var(--done)' : 'oklch(58% 0.2 25)',
           letterSpacing: 0.2,
         }}>
-          {delta < 0 ? `↓ ${Math.abs(delta).toFixed(0)}%` : `↑ ${delta.toFixed(0)}%`}
+          {isUnchanged ? `→ ${deltaText}%` : delta < 0 ? `↓ ${deltaText}%` : `↑ ${deltaText}%`}
           {' '}
           <span style={{ fontWeight: 400, color: 'var(--ink-3)' }}>vs prev run</span>
         </span>
+      )}
+      {details !== undefined && (
+        <>
+          <button
+            type="button"
+            aria-expanded={expanded}
+            onClick={() => setExpanded(e => !e)}
+            style={{
+              alignSelf: 'flex-start', background: 'none', border: 'none', padding: 0,
+              fontSize: 10, color: 'var(--ink-3)', cursor: 'pointer', textDecoration: 'underline',
+            }}
+          >
+            Details {expanded ? '▴' : '▾'}
+          </button>
+          {expanded && (
+            <div style={{ fontSize: 10, color: 'var(--ink-2)', display: 'flex', flexDirection: 'column', gap: 2 }}>
+              {details}
+            </div>
+          )}
+        </>
       )}
     </div>
   )
