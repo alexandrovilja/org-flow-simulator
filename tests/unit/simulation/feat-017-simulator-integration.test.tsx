@@ -50,6 +50,9 @@ function openCashFlowSettings(): void {
 const WAIT_STEP_MS = 500
 /** Horní mez čekání na doběhnutí (falešný čas) — o řád víc, než kolik běh s TEST_BACKLOG_SIZE featurami na 10× potřebuje. */
 const WAIT_LIMIT_MS = 60_000
+/** Časový limit (reálný čas) testů, které nechávají doběhnout celý běh. Lokálně trvají 1–2 s, ale CI
+ *  runner je 3–4× pomalejší a výchozích 5 s Vitestu nestačí (PR #14: timeouty 5,1–5,6 s). */
+const SIM_RUN_TIMEOUT_MS = 20_000
 
 /**
  * Posouvá falešný čas, dokud tlačítko nezobrazí „✓ Done“ (celý backlog zpracovaný). Test tak nezávisí
@@ -69,7 +72,7 @@ async function runToEnd(): Promise<void> {
   await advanceUntilDone()
 }
 
-describe('feat-017 Příklad 7: srovnání stejného backlogu napříč profily (Simulator)', () => {
+describe('feat-017 Příklad 7: srovnání stejného backlogu napříč profily (Simulator)', { timeout: SIM_RUN_TIMEOUT_MS }, () => {
   it('bez předchozího běhu se žádná delta „vs prev run“ nezobrazuje', async () => {
     openCashFlowSettings()
     await runToEnd()

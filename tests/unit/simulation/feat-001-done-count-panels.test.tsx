@@ -83,7 +83,11 @@ describe('feat-001 Příklad 6: hlavička Done v panelech', () => {
   })
 })
 
-describe('feat-001 Příklad 6: hlavička Done v Advanced módu (Simulator)', () => {
+/** Časový limit (reálný čas) testu, který nechává doběhnout celý běh. Lokálně trvá kolem 2 s, ale CI
+ *  runner je 3–4× pomalejší a výchozích 5 s Vitestu nestačí (PR #14: timeout 5,5 s). */
+const SIM_RUN_TIMEOUT_MS = 20_000
+
+describe('feat-001 Příklad 6: hlavička Done v Advanced módu (Simulator)', { timeout: SIM_RUN_TIMEOUT_MS }, () => {
   // Advanced vykresluje panel Done přímo v Simulator.tsx, proto test pohání celý Simulator
   // falešným časem — stejný vzor jako integrační testy feat-017 a feat-018.
   beforeEach(() => {
