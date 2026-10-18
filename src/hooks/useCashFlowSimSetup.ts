@@ -4,11 +4,12 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import {
   MEMBER_NAMES, TEAM_NAMES, PRESETS, mulberry32,
   makeInitialState, regenerate, applyPreset, resetTaskProgress, cloneFeatureFresh, setRevenueProfile,
+  setMemberAiMultiplier,
 } from '@/simulation/engine'
 import { addRole, deleteRole } from '@/simulation/roleManagement'
 import { parseXlsFile, type ImportResult } from '@/lib/xlsImport'
 import type {
-  SimSettings, SimState, Role, RoleMeta, FocusMode, WipMode, UnitPreset, ActivePresetId, RevenueProfile,
+  SimSettings, SimState, Role, RoleMeta, FocusMode, WipMode, UnitPreset, ActivePresetId, RevenueProfile, AiMultiplier,
 } from '@/types/simulation'
 
 /**
@@ -66,6 +67,8 @@ export interface CashFlowSimSetup {
   handlePresetClick: (preset: UnitPreset) => void
   handleConfirmPreset: () => void
   handleRenameMember: (memberId: number, name: string) => void
+  /** Nastaví jednotce AI multiplikátor (feat-019); 1 = vypnout AI. Platí okamžitě, i za běhu. */
+  handleSetAiMultiplier: (memberId: number, value: AiMultiplier) => void
   handleRemoveMember: (memberId: number) => void
   handleAddMember: () => void
   handleRoleChange: (roleId: string, updates: Partial<RoleMeta>) => void
@@ -266,6 +269,15 @@ export function useCashFlowSimSetup(
     forceUpdate()
   }, [markCustom, forceUpdate])
 
+  // AI multiplikátor (feat-019): zápis dělá sdílený setMemberAiMultiplier (stejně jako Advanced).
+  // Skutečná změna je ruční úprava týmu, proto markCustom; beze změny hodnoty se nic neděje.
+  const handleSetAiMultiplier = useCallback((memberId: number, value: AiMultiplier) => {
+    const s = stateRef.current
+    if (!s || !setMemberAiMultiplier(s, memberId, value)) return
+    markCustom()
+    forceUpdate()
+  }, [markCustom, forceUpdate])
+
   const handleRemoveMember = useCallback((memberId: number) => {
     const s = stateRef.current
     if (!s) return
@@ -367,7 +379,7 @@ export function useCashFlowSimSetup(
     revenueProfile, confirmingRevenueProfile, setConfirmingRevenueProfile,
     handleRevenueProfileChange, handleConfirmRevenueProfile, forceUpdate,
     handleAssignRole, handleRemoveRole, handleXlsImport, handleRegenerate,
-    handlePresetClick, handleConfirmPreset, handleRenameMember, handleRemoveMember,
+    handlePresetClick, handleConfirmPreset, handleRenameMember, handleSetAiMultiplier, handleRemoveMember,
     handleAddMember, handleRoleChange, handleAddRole, handleDeleteRole,
   }
 }

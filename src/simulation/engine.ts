@@ -1,7 +1,7 @@
 import type {
   Role, RoleMeta, Feature, Task, Member,
   SimState, SimSettings, SimStats, LeadTimeEntry,
-  FocusMode, WipMode, UnitPreset, RevenueProfile,
+  FocusMode, WipMode, UnitPreset, RevenueProfile, AiMultiplier,
 } from '@/types/simulation'
 
 /** Všechny dostupné specializace v systému — pořadí odpovídá výchozímu týmu. */
@@ -1031,13 +1031,20 @@ export function tick(
   }
 
   // --- Postup práce ---
-  // Každý rozpracovaný úkol se posune o dtSim; pokud dosáhne work, je hotov
+  // Každý rozpracovaný úkol se posune o dtSim × AI multiplikátor jednotky, která ho zpracovává
+  // (feat-019; bez AI 1×). Multiplikátor čteme v každém ticku, takže změna za běhu platí hned
+  // a odvedená práce se neztratí. Pokud progress dosáhne work, je úkol hotov.
+  // Jednotku k tasku hledáme jen tehdy, když má někdo AI zapnuté — ve výchozím stavu (a v Compare
+  // módu) tak horká smyčka nedělá žádné hledání navíc a jednotku najde až při dokončení úkolu.
+  const anyAi = state.team.some(m => (m.aiMultiplier ?? 1) !== 1)
   for (const f of state.inProgress) {
     for (const t of f.tasks) {
       if (t.status === 'doing') {
-        t.progress += dtSim
+        const speed = anyAi ? (state.team.find(m => m.id === t.assignee)?.aiMultiplier ?? 1) : 1
+        t.progress += dtSim * speed
         if (t.progress >= t.work) {
           // Zaokrouhlíme na přesnou hodnotu aby nevznikaly floating-point odchylky
+          // (a aby zrychlená jednotka work „nepřestřelila“)
           t.progress = t.work
           t.status = 'done'
           // Uvolníme člena týmu pro další úkol
@@ -1139,6 +1146,25 @@ export function tick(
   }
 
   return state
+}
+
+/**
+ * Nastaví jednotce AI multiplikátor výkonu (feat-019). Sdílí ho Advanced (Simulator.tsx) i Cash Flow
+ * (useCashFlowSimSetup.ts), aby se oba módy chovaly stejně. Hodnota se jen zapíše na jednotku —
+ * `tick()` ji čte v každém ticku, takže rozpracovaný úkol si odvedenou práci ponechá.
+ *
+ * @param state    - Stav simulace, jehož tým se upravuje (mutován in-place)
+ * @param memberId - ID jednotky
+ * @param value    - Nový multiplikátor; 1 = bez AI
+ * @returns true, pokud se hodnota změnila (volající pak přepne preset na „custom“ a překreslí UI);
+ *          false, pokud jednotka neexistuje nebo už tuto hodnotu má
+ */
+export function setMemberAiMultiplier(state: SimState, memberId: number, value: AiMultiplier): boolean {
+  const m = state.team.find(m => m.id === memberId)
+  // Chybějící hodnota a 1 znamenají totéž (bez AI) — takový zápis není změna týmu
+  if (!m || (m.aiMultiplier ?? 1) === value) return false
+  m.aiMultiplier = value
+  return true
 }
 
 /**

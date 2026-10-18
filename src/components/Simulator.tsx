@@ -5,8 +5,9 @@ import { flushSync } from 'react-dom'
 import {
   ROLE_META, MEMBER_NAMES, TEAM_NAMES, PRESETS, mulberry32,
   makeInitialState, resetFromSnapshot, regenerate, tick, computeStats, applyPreset, plateauRevenuePerTick, doneCount,
+  setMemberAiMultiplier,
 } from '@/simulation/engine'
-import type { SimSettings, SimState, Feature, Role, RoleMeta, FocusMode, WipMode, UnitPreset, ActivePresetId, RevenueProfile } from '@/types/simulation'
+import type { SimSettings, SimState, Feature, Role, RoleMeta, FocusMode, WipMode, UnitPreset, ActivePresetId, RevenueProfile, AiMultiplier } from '@/types/simulation'
 import { StatTile } from '@/components/StatTile'
 import { SpeedControl } from '@/components/SpeedControl'
 import { PanelHeader } from '@/components/PanelHeader'
@@ -530,6 +531,21 @@ export function Simulator() {
     forceUpdate(n => n + 1)
   }, [markCustom])
 
+  /**
+   * Nastaví jednotce AI multiplikátor (feat-019); 1 = vypnout AI. Zápis dělá sdílený
+   * `setMemberAiMultiplier` (stejně jako Cash Flow). Skutečná změna je ruční úprava týmu, proto
+   * preset přejde na „custom“; beze změny hodnoty se nic neděje.
+   *
+   * @param memberId - ID jednotky
+   * @param value    - Nový multiplikátor (1, 2 nebo 5)
+   */
+  const handleSetAiMultiplier = useCallback((memberId: number, value: AiMultiplier) => {
+    const s = stateRef.current
+    if (!s || !setMemberAiMultiplier(s, memberId, value)) return
+    markCustom()
+    forceUpdate(n => n + 1)
+  }, [markCustom])
+
   const handleRemoveMember = useCallback((memberId: number) => {
     const s = stateRef.current
     if (!s) return
@@ -1017,6 +1033,7 @@ export function Simulator() {
           handleAssignRole={cf.handleAssignRole}
           handleRemoveRole={cf.handleRemoveRole}
           handleRenameMember={cf.handleRenameMember}
+          handleSetAiMultiplier={cf.handleSetAiMultiplier}
           handleRemoveMember={cf.handleRemoveMember}
           handleAddMember={cf.handleAddMember}
           tutorialTargetPrefix="cashflow"
@@ -1091,6 +1108,7 @@ export function Simulator() {
         handleAssignRole={handleAssignRole}
         handleRemoveRole={handleRemoveRole}
         handleRenameMember={handleRenameMember}
+        handleSetAiMultiplier={handleSetAiMultiplier}
         handleRemoveMember={handleRemoveMember}
         handleAddMember={handleAddMember}
         tutorialTargetPrefix="experiment"

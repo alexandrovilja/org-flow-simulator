@@ -73,6 +73,8 @@ Kliknutí na preset okamžitě přepíše aktuální tým a specializace hodnota
 
 ### Stav „custom" (uživatel ručně upravil tým nebo specializace)
 
+Za ruční úpravu týmu se počítá i změna AI multiplikátoru jednotky (feat-019). Jednotky vzniklé aplikací presetu mají vždy AI 1×.
+
 Před přepsáním se zobrazí potvrzovací dialog:
 
 ```

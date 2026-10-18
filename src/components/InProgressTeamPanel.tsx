@@ -1,7 +1,7 @@
 import { FeatureCard } from '@/components/FeatureCard'
 import { MemberCard } from '@/components/MemberCard'
 import { PanelHeader } from '@/components/PanelHeader'
-import type { Feature, Task, SimState, Role, RoleMeta, ActivePresetId } from '@/types/simulation'
+import type { Feature, Task, SimState, Role, RoleMeta, ActivePresetId, AiMultiplier } from '@/types/simulation'
 
 /** Vstupní props komponenty InProgressTeamPanel — střední sloupec sdílený Advanced a Cash Flow módem. */
 interface InProgressTeamPanelProps {
@@ -12,6 +12,8 @@ interface InProgressTeamPanelProps {
   handleAssignRole: (memberId: number, role: Role) => void
   handleRemoveRole: (memberId: number, role: Role) => void
   handleRenameMember: (memberId: number, name: string) => void
+  /** Nastaví jednotce AI multiplikátor (feat-019) — každý mód předává handler nad svým týmem. */
+  handleSetAiMultiplier: (memberId: number, value: AiMultiplier) => void
   handleRemoveMember: (memberId: number) => void
   handleAddMember: () => void
   /** Prefix pro data-tutorial-target atributy — odlišuje Advanced od Cash Flow v DOM. */
@@ -27,7 +29,7 @@ interface InProgressTeamPanelProps {
  */
 export function InProgressTeamPanel({
   state, roleConfig, maxWork, activePresetId,
-  handleAssignRole, handleRemoveRole, handleRenameMember, handleRemoveMember, handleAddMember,
+  handleAssignRole, handleRemoveRole, handleRenameMember, handleSetAiMultiplier, handleRemoveMember, handleAddMember,
   tutorialTargetPrefix = 'experiment', showCoordination = false,
 }: InProgressTeamPanelProps) {
   return (
@@ -76,7 +78,8 @@ export function InProgressTeamPanel({
             return (
               <MemberCard key={m.id} member={m} currentFeature={cf} currentTask={ct}
                 roleConfig={roleConfig} onAddRole={handleAssignRole} onRemoveRole={handleRemoveRole}
-                onRename={handleRenameMember} onRemove={handleRemoveMember} isWaiting={isWaiting} />
+                onRename={handleRenameMember} onRemove={handleRemoveMember}
+                onSetAiMultiplier={handleSetAiMultiplier} isWaiting={isWaiting} />
             )
           })}
         </div>

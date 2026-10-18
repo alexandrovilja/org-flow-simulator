@@ -48,7 +48,7 @@ Jako agilní kouč chci přidávat a odebírat členy týmu a měnit jejich spec
 - Then: Karta člena zobrazuje status "no roles"; člen nepřebírá žádné úkoly
 
 ## Out of Scope
-- Nastavení capacity nebo WIP limitu pro jednotlivce
+- Nastavení capacity nebo WIP limitu pro jednotlivce (rychlost práce jednotky přes AI multiplikátor 2× / 5× řeší feat-019)
 - Přiřazení úkolu ručně (assignment je automatický)
 - Perzistence týmové konfigurace (localStorage nebo server)
 
@@ -62,3 +62,6 @@ Jako agilní kouč chci přidávat a odebírat členy týmu a měnit jejich spec
 
 ## Open Questions
 —
+
+## Related Features
+- **feat-019-ai-multiplikator-vykonu:** `MemberCard` dostává v horním řádku vedle křížku malé tlačítko „AI“ s menu 2× / 5× / off a jednotka novou vlastnost `aiMultiplier` (chybějící = 1×). Jednotka s AI odvede za 1 s simulace 2 nebo 5 s práce.
