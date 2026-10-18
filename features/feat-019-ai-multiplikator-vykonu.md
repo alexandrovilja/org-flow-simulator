@@ -1,7 +1,7 @@
 # Feature: AI multiplikátor výkonu
 
 ## Status
-in-progress
+done
 
 ## Problem
 Manažeři dnes často věří, že nasazení AI automaticky zrychlí dodávku: „dáme lidem AI a budeme 5× rychlejší“. Kouč teď v simulátoru nemá jak ukázat, co se stane, když AI zrychlí jen některé jednotky. Většinu Lead Time totiž často netvoří samotná práce, ale čekání, předávky a úzká hrdla. Zrychlení jedné jednotky se pak do celkového Lead Time ani Cash Flow nepromítne úměrně, nebo vůbec. Bez této možnosti zůstává argument jen v teoretické rovině.
