@@ -28,14 +28,15 @@ Jako agilní kouč chci v Cash Flow módu ukázat manažerům, že když více t
 - Then: featura B dostane svůj první tick (+€150, celkem €150, protože 4,5 − 1,5 = 3,0 s od jejího dokončení), featura A stále čeká na druhý tick (od jejího posledního ticku uplynulo jen 1,5 s) — metrika Total Revenue v panelu metrik po obou přechodech odráží součet obou features
 
 **Příklad 2: Generování výnosů podle Gaussova rozdělení**
-- Given: nová Cash Flow simulace se seeduje s 20 features v backlogu (výchozí `initialBacklog`)
+- Given: nová Cash Flow simulace se seeduje se 100 features v backlogu (výchozí `initialBacklog`, stejně jako Advanced mód)
 - When: engine vygeneruje výnos/tick pro každou featuru vzorkováním z Gaussova rozdělení (mean=140, stddev=100, ořezáno na minimum 15) a seřadí hodnoty sestupně podle priority
-- Then: feature #1 (nejvyšší priorita) má revenue ≈ €400/tick, features uprostřed pořadí (#8–#13) mají revenue mezi €80–150/tick, poslední features (#18–#20) mají revenue €15–30/tick
+- Then: feature #1 (nejvyšší priorita) má revenue ≈ €400/tick, features uprostřed pořadí (#45–#55) mají revenue zhruba €125–155/tick, posledních ~10 features má revenue na minimu €15/tick (ořez spodního konce rozdělení)
+- Note (revize 2026-10-13): výchozí velikost backlogu Cash Flow byla původně 20 features. Změněno na 100, aby Cash Flow začínal se stejně velkým backlogem jako Advanced a běh byl dost dlouhý na to, aby se rozdíl ve výnosu mezi strukturami týmů projevil. Slider „Backlog size“ (10–1000) dál funguje beze změny.
 
 **Příklad 3: Přepnutí do Cash Flow módu**
 - Given: uživatel je v libovolném jiném módu (Compare nebo Advanced)
 - When: uživatel klikne na tab "💰 Cash Flow"
-- Then: zobrazí se nová, nezávislá simulace se svým vlastním backlogem (20 features s přiřazeným revenue/tick podle Gaussova rozdělení), karty v backlogu zobrazí revenue badge, Done tab zobrazí u každé položky kumulovaný výnos a poslední tick, panel metrik ukáže 4 dlaždice včetně Total Revenue
+- Then: zobrazí se nová, nezávislá simulace se svým vlastním backlogem (100 features s přiřazeným revenue/tick podle Gaussova rozdělení), karty v backlogu zobrazí revenue badge, Done tab zobrazí u každé položky kumulovaný výnos a poslední tick, panel metrik ukáže 4 dlaždice včetně Total Revenue
 
 **Příklad 4: Výnosy se sbírají jen za běhu simulace**
 - Given: Cash Flow simulace je zapauzovaná, existuje alespoň jedna Done feature
@@ -106,6 +107,9 @@ Jako agilní kouč chci v Cash Flow módu ukázat manažerům, že když více t
 
 ### UI (`src/components/`, `src/hooks/`)
 - `Simulator.tsx`: `AppMode` rozšířit o `'cashflow'`, nový tab "💰 Cash Flow" za Advanced tab
+- `Simulator.tsx`: `CASHFLOW_SETTINGS` přebírá `initialBacklog: 100` z `DEFAULT_SETTINGS` (revize 2026-10-13, dříve přepsáno na 20). Pojmenovaná konstanta `CASHFLOW_SETTINGS = { ...DEFAULT_SETTINGS }` zůstává jako místo pro případné budoucí výchozí hodnoty specifické pro Cash Flow; přepis `initialBacklog: 20` a komentář, který ho zdůvodňuje, se odstraní.
+- Test: `tests/unit/simulation/feat-015-cash-flow-default-backlog.test.tsx` renderuje `Simulator` a ověřuje, co vidí uživatel: po přepnutí do Cash Flow ukazuje panel Backlog 100 featur, slider „Backlog size“ ukazuje „100 items“ a „Generate new backlog“ znovu vygeneruje 100 featur. `CASHFLOW_SETTINGS` se kvůli testu neexportuje.
+- Integrační testy feat-017 a feat-018 (`feat-01[78]-simulator-integration.test.tsx`) si v pomocné funkci `openCashFlowSettings()` nastaví backlog na 20 featur. Se 100 featurami by jeden běh do konce trval v testu zhruba 3 s místo 0,4 s a testy se dvěma běhy by nestihly výchozí 5s limit Vitestu. Tyto testy ověřují dlaždici výnosu a přepínač křivky, ne velikost backlogu.
 - **`src/hooks/useCashFlowSimSetup.ts`** — hook zrcadlící veškerou Advanced-módovou stavovou logiku (settings, roleConfig, aktivní preset, confirm-preset dialog, show/hide toggly, XLS import, RAF-safe refs, forceUpdate) a handlery (`handleAssignRole`, `handleRemoveRole`, `handleXlsImport`, `handleRegenerate`, `handlePresetClick`, `handleConfirmPreset`, `handleRenameMember`, `handleRemoveMember`, `handleAddMember`, `handleRoleChange`, `handleAddRole`, `handleDeleteRole`) jako **zcela nezávislou instanci** — Cash Flow volá `useCashFlowSimSetup(CASHFLOW_SETTINGS)` jednou v `Simulator.tsx`, čímž dostane vlastní `SimState`/`rngRef`/tým/backlog oddělený od Advanced. Preset (`activePresetId`) se u Cash Flow drží jen v paměti (výchozí `'teams'`), nepersistuje se do sdíleného `localStorage` klíče jako u Advanced.
 - **`src/components/BacklogSettingsPanel.tsx`** (levý sloupec, sdílený Advanced + Cash Flow) — Backlog list + Settings sekce (preset tlačítka, confirm dialog, XLS import, "Generate new backlog", slidery velikosti/variability backlogu, `RoleSettings` editor specializací, `SegmentedControl` pro WipMode). Volitelný prop `getRevenueBadge?: (feature: Feature) => string` — použije jen Cash Flow (`€400/tick` badge na kartách backlogu); Advanced ho nepředává, takže badge se tam nezobrazí. `tutorialTargetPrefix` prop odlišuje `data-tutorial-target` atributy mezi módy (`experiment` vs. `cashflow`).
 - **`src/components/InProgressTeamPanel.tsx`** (střední sloupec, sdílený Advanced + Cash Flow) — In Progress karty (bez revenue badge, viz UI/Design) + Units grid s `MemberCard` (add/remove role, rename, remove, add member/team/unit dle presetu). Stejný `tutorialTargetPrefix` mechanismus.

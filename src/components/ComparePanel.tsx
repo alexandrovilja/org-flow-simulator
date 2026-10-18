@@ -1,6 +1,6 @@
 'use client'
 
-import { ROLE_META } from '@/simulation/engine'
+import { ROLE_META, doneCount } from '@/simulation/engine'
 import { calcCompareDelta } from '@/simulation/compareMode'
 import type { TeamType } from '@/simulation/compareMode'
 import { formatTime } from '@/lib/formatTime'
@@ -151,9 +151,10 @@ export function ComparePanel({
         </KanbanColumn>
 
         {/* Done — green tint */}
+        {/* Počet všech hotových features, ne jen zobrazených karet (feat-001, Příklad 6) */}
         <KanbanColumn
           title="Done"
-          count={state.done.length}
+          count={doneCount(state)}
           headerBg="oklch(95% 0.03 150)"
         >
           {state.done.map(f => {

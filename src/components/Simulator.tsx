@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import { flushSync } from 'react-dom'
 import {
   ROLE_META, MEMBER_NAMES, TEAM_NAMES, PRESETS, mulberry32,
-  makeInitialState, resetFromSnapshot, regenerate, tick, computeStats, applyPreset, plateauRevenuePerTick,
+  makeInitialState, resetFromSnapshot, regenerate, tick, computeStats, applyPreset, plateauRevenuePerTick, doneCount,
 } from '@/simulation/engine'
 import type { SimSettings, SimState, Feature, Role, RoleMeta, FocusMode, WipMode, UnitPreset, ActivePresetId, RevenueProfile } from '@/types/simulation'
 import { StatTile } from '@/components/StatTile'
@@ -47,11 +47,10 @@ const DEFAULT_SETTINGS: SimSettings = {
 }
 
 // ── Cash Flow mode settings (feat-015) ──────────────────────────────────────
-// Odvozeno z DEFAULT_SETTINGS, aby se obě konfigurace neodchýlily při budoucí úpravě
-// (wipLimit, sizeVar, roleVar, minSpecializations) — liší se jen initialBacklog: 20
-// odpovídá Příkladu 2 v features/feat-015-cash-flow-mod.md, dost velký na to, aby bylo
-// Gaussovo rozdělení revenuePerTick vizuálně patrné.
-const CASHFLOW_SETTINGS: SimSettings = { ...DEFAULT_SETTINGS, initialBacklog: 20 }
+// Cash Flow startuje se stejným nastavením jako Advanced, včetně backlogu o 100 featurách
+// (feat-015, Příklad 2). Vlastní konstanta zůstává jako místo pro budoucí výchozí hodnoty,
+// které by se týkaly jen Cash Flow.
+const CASHFLOW_SETTINGS: SimSettings = { ...DEFAULT_SETTINGS }
 
 // ── Simulator component ───────────────────────────────────────────────────────
 
@@ -1117,7 +1116,8 @@ export function Simulator() {
 
         {/* data-tutorial-target lets the spotlight cover the done list only */}
         <div data-tutorial-target="experiment-done" style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
-          <PanelHeader title="Done" count={s.done.length} />
+          {/* Počet všech hotových features, ne jen zobrazených karet (feat-001, Příklad 6) */}
+          <PanelHeader title="Done" count={doneCount(s)} />
           <div style={{ flex: 1, overflow: 'auto', padding: '6px 14px 14px', display: 'flex', flexDirection: 'column', gap: 6 }}>
             {s.done.length === 0 && (
               <div style={{ fontSize: 11, color: 'var(--ink-3)', fontStyle: 'italic', padding: '8px 0' }}>No completed features yet.</div>

@@ -7,7 +7,7 @@ import { markTutorialCompleted, markModeSeen, resetTutorial } from '@/lib/storag
 // zavření dialogu při Resetu). Tuto logiku nejde otestovat na úrovni hooku, protože předchozí běh a
 // RAF smyčka žijí v Simulator.tsx. Simulaci pohání falešný čas (requestAnimationFrame + performance).
 
-/** Falešné hodiny pro RAF smyčku Simulatoru. Rychlost 10× dohraje celý backlog (~25 s simulace) za ~2,5 s. */
+/** Falešné hodiny pro RAF smyčku Simulatoru. Rychlost 10× dohraje backlog o 20 featurách (~25 s simulace) za ~2,5 s. */
 beforeEach(() => {
   vi.useFakeTimers({ toFake: ['requestAnimationFrame', 'cancelAnimationFrame', 'performance'] })
   resetTutorial()
@@ -27,22 +27,33 @@ async function advance(ms: number): Promise<void> {
 
 const click = (name: string | RegExp) => fireEvent.click(screen.getByRole('button', { name }))
 
-/** Otevře Cash Flow, rozbalí „♻ Backlog“ a nastaví rychlost 10×. */
+// Velikost backlogu pro tyto testy. Výchozích 100 featur (feat-015) by běh do konce v testu
+// protáhlo zhruba na 3 s a testy se dvěma běhy by nestihly výchozí 5s limit Vitestu.
+const TEST_BACKLOG_SIZE = 20
+
+/** Nastaví slider „Backlog size“ (najde ho podle přístupného jména, viz feat-003). */
+function setBacklogSize(size: number): void {
+  fireEvent.change(screen.getByRole('slider', { name: 'Backlog size' }), { target: { value: String(size) } })
+}
+
+/** Otevře Cash Flow, rozbalí „♻ Backlog“, vygeneruje backlog o TEST_BACKLOG_SIZE featurách a nastaví rychlost 10×. */
 function openCashFlowSettings(): void {
   render(<Simulator />)
   click(/Cash Flow/)
   click('♻ Backlog')
+  setBacklogSize(TEST_BACKLOG_SIZE)
+  click(/Generate new backlog/)
   click('10×')
 }
 
 /** Krok falešného času při čekání na doběhnutí běhu. */
 const WAIT_STEP_MS = 500
-/** Horní mez čekání na doběhnutí (falešný čas) — o řád víc, než kolik výchozí běh na 10× potřebuje. */
+/** Horní mez čekání na doběhnutí (falešný čas) — o řád víc, než kolik běh s TEST_BACKLOG_SIZE featurami na 10× potřebuje. */
 const WAIT_LIMIT_MS = 60_000
 
 /**
  * Posouvá falešný čas, dokud tlačítko nezobrazí „✓ Done“ (celý backlog zpracovaný). Test tak nezávisí
- * na tom, jak dlouho výchozí běh trvá (tým, seed, velikost backlogu), jen na tom, že doběhne.
+ * na tom, jak dlouho běh trvá (tým, seed), jen na tom, že doběhne.
  */
 async function advanceUntilDone(): Promise<void> {
   for (let waited = 0; waited < WAIT_LIMIT_MS; waited += WAIT_STEP_MS) {
