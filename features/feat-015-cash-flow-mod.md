@@ -1,7 +1,7 @@
 # Feature: Cash Flow mód
 
 ## Status
-draft
+done
 
 ## Problem
 Manažeři nevidí přímou souvislost mezi tím, jak dlouho trvá dokončit feature (cycle time) a kolik WIP mají rozpracovaného, a mezi reálným finančním dopadem — penězi, které firma ztrácí tím, že hodnotné featury leží v backlogu nebo se zpomalí kvůli přetíženému týmu. Existující módy ukazují cycle time a WIP jako abstraktní čísla, ne v penězích.
