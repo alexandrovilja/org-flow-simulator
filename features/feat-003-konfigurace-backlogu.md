@@ -57,6 +57,8 @@ Jako agilní kouč chci nastavit velikost backlogu a míru variability (velikost
 - Seedable RNG: `mulberry32` — seed se mění při každém "Generate"
 - Typy: `Feature`, `Task`, `SimSettings` v `src/types/simulation.ts`
 - Slider komponenta: `src/components/Slider.tsx` — má volitelný prop `tooltip?: string`; zobrazí `?` badge s `title` atributem
+- **Přístupné jméno slideru (revize 2026-10-13):** `<input type="range">` dostane `aria-label={label}`, takže čtečka obrazovky přečte např. „Backlog size“ a testy najdou slider přes `getByRole('slider', { name: 'Backlog size' })`. Vzhled se nemění. Pomocná funkce `setBacklogSize` v integračních testech feat-017 a feat-018 se tím zjednoduší na jeden dotaz místo procházení DOM struktury.
+- Test: `tests/unit/simulation/feat-003-slider-aria-label.test.tsx` — vykreslený `Slider` s `label="Backlog size"` jde najít přes roli `slider` a jméno „Backlog size“.
 - 30 předpřipravených jmen features (Login flow, Search filters, Dark mode…)
 - Počet úkolů na feature: 1–5 (závisí na `sizeVar`)
 - Role na feature: 1–6 různých (závisí na `roleVar`); povinné role (required z feat-005) jsou vždy zahrnuty bez ohledu na `roleVar`; min. počet rolí je vždy alespoň `settings.minSpecializations`

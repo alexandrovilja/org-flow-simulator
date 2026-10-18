@@ -46,6 +46,12 @@ Jako agilní kouč chci spustit animovanou simulaci průtoku backlogu týmem, ab
 - When: Poslední feature přejde do Done
 - Then: Simulace se automaticky zastaví; tlačítko Play se deaktivuje; kouč nemůže simulaci znovu spustit bez resetu nebo generování nového backlogu
 
+**Příklad 6: Počet v panelu Done odpovídá všem hotovým features (revize 2026-10-13)**
+- Given: backlog má 100 features (výchozí velikost v Compare, Advanced i Cash Flow)
+- When: simulace doběhne do konce (všech 100 features je hotových)
+- Then: hlavička panelu Done ukazuje 100 — ve všech třech módech a v Compare u obou týmů. Seznam karet pod hlavičkou dál ukazuje jen 40 nejnovějších, starší se z displaye vytěsňují.
+- Note: dřív hlavička ukazovala počet zobrazených karet, takže se zastavila na 40 a kouč viděl „Backlog 0, In Progress 0, Done 40“ u backlogu o 100 features.
+
 ## Out of Scope
 - Krokové přehrávání (frame-by-frame)
 - Uložení a načtení rozběhnuté simulace
@@ -61,6 +67,8 @@ Jako agilní kouč chci spustit animovanou simulaci průtoku backlogu týmem, ab
 - **Přiřazování úkolů — priorita:** každá feature má pole `priority: number` přiřazené při vzniku (nižší číslo = vyšší priorita). Člen týmu vždy vezme úkol z dostupné feature s nejnižším číslem priority, bez ohledu na to, jestli je v backlogu nebo inProgress. Feature se přesouvá z backlogu do inProgress až ve chvíli, kdy na ni někdo začne pracovat.
 - **Přiřazování úkolů — úrovně (level):** v rámci jedné feature musí být dokončeny všechny úkoly nižší úrovně (nižší číslo = dřívější fáze) dříve, než lze zahájit úkoly vyšší úrovně. Úkoly na stejné úrovni mohou probíhat paralelně. Konfigurace úrovní viz feat-005.
 - Dotčené soubory: `src/simulation/engine.ts` (`tick`, `makeInitialState`), `src/types/simulation.ts` (`Feature.priority`)
+- **Počet hotových features (Příklad 6):** `tick()` drží v `state.done` nejvýš 40 karet pro zobrazení a starší přesouvá do `state.doneOverflow` (viz feat-015). Nová exportovaná čistá funkce `doneCount(state)` v `src/simulation/engine.ts` vrací `state.done.length + state.doneOverflow.length`. Hlavičky panelu Done ji používají místo `done.length`: `ComparePanel.tsx` (Compare, oba týmy), `Simulator.tsx` (Advanced) a `CashFlowPanel.tsx` (Cash Flow). Prázdný stav („No completed features yet.“ / „None yet“) se dál řídí tím, jestli je seznam karet prázdný. Jedno místo výpočtu zaručí, že se módy nerozejdou.
+- Test: `tests/unit/simulation/feat-001-done-count.test.ts` — `doneCount` po doběhnutí backlogu o 100 features vrátí 100 (zatímco `state.done` má 40); pro backlog pod 40 features se rovná `state.done.length`; pro nový stav vrátí 0.
 
 ## Open Questions
 —

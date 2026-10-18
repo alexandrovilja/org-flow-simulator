@@ -29,8 +29,11 @@ export function Slider({ label, value, min, max, step, onChange, format, tooltip
           {format ? format(value) : value}
         </span>
       </div>
+      {/* aria-label dá slideru přístupné jméno podle popisku — čtečka obrazovky ho přečte
+          a testy ho najdou přes getByRole('slider', { name }) (feat-003) */}
       <input
         type="range"
+        aria-label={label}
         value={value}
         min={min} max={max} step={step}
         onChange={e => onChange(parseFloat(e.target.value))}

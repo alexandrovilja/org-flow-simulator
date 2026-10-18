@@ -1142,6 +1142,19 @@ export function tick(
 }
 
 /**
+ * Počet všech hotových features v běhu (feat-001, Příklad 6).
+ * `tick()` drží v `state.done` nejvýš 40 karet pro zobrazení a starší přesouvá do `state.doneOverflow`,
+ * takže `state.done.length` se u backlogu nad 40 features zastaví na 40. Hlavičky panelu Done ve všech
+ * módech proto čtou počet odsud — jedno místo výpočtu zaručí, že se módy nerozejdou.
+ *
+ * @param state - Stav simulace (stačí seznamy `done` a `doneOverflow`)
+ * @returns Počet zobrazených i vytěsněných hotových features
+ */
+export function doneCount(state: Pick<SimState, 'done' | 'doneOverflow'>): number {
+  return state.done.length + state.doneOverflow.length
+}
+
+/**
  * Spočítá statistiky z historie Lead Time.
  * Výsledek se zobrazuje v StatTile komponentách a Lead Time grafu.
  *

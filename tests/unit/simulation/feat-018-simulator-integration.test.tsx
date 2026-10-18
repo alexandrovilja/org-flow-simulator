@@ -9,7 +9,7 @@ import { markTutorialCompleted, markModeSeen, resetTutorial } from '@/lib/storag
 
 const TILE_ID = 'stat-tile-Revenue (time-matched)'
 
-/** Falešné hodiny pro RAF smyčku Simulatoru. Rychlost 10× dohraje celý backlog (~25 s simulace) za ~2,5 s. */
+/** Falešné hodiny pro RAF smyčku Simulatoru. Rychlost 10× dohraje backlog o 20 featurách (~25 s simulace) za ~2,5 s. */
 beforeEach(() => {
   vi.useFakeTimers({ toFake: ['requestAnimationFrame', 'cancelAnimationFrame', 'performance'] })
   resetTutorial()
@@ -29,18 +29,35 @@ async function advance(ms: number): Promise<void> {
 
 const click = (name: string | RegExp) => fireEvent.click(screen.getByRole('button', { name }))
 
-/** Otevře Cash Flow, rozbalí „♻ Backlog“ (kvůli přepínači křivky) a nastaví rychlost 10×. */
+// Velikost backlogu pro tyto testy. Výchozích 100 featur (feat-015) by běh do konce v testu
+// protáhlo zhruba na 3 s a testy se dvěma běhy by nestihly výchozí 5s limit Vitestu.
+const TEST_BACKLOG_SIZE = 20
+
+/** Nastaví slider „Backlog size“ (najde ho podle přístupného jména, viz feat-003). */
+function setBacklogSize(size: number): void {
+  fireEvent.change(screen.getByRole('slider', { name: 'Backlog size' }), { target: { value: String(size) } })
+}
+
+/**
+ * Otevře Cash Flow, rozbalí „♻ Backlog“ (kvůli přepínači křivky), vygeneruje backlog
+ * o TEST_BACKLOG_SIZE featurách a nastaví rychlost 10×.
+ */
 function openCashFlowSettings(): void {
   render(<Simulator />)
   click(/Cash Flow/)
   click('♻ Backlog')
+  setBacklogSize(TEST_BACKLOG_SIZE)
+  click(/Generate new backlog/)
   click('10×')
 }
 
 /** Krok falešného času při čekání na doběhnutí běhu. */
 const WAIT_STEP_MS = 500
-/** Horní mez čekání na doběhnutí (falešný čas) — o řád víc, než kolik výchozí běh na 10× potřebuje. */
+/** Horní mez čekání na doběhnutí (falešný čas) — o řád víc, než kolik běh s TEST_BACKLOG_SIZE featurami na 10× potřebuje. */
 const WAIT_LIMIT_MS = 60_000
+/** Časový limit (reálný čas) testů, které nechávají doběhnout celý běh. Lokálně trvají 1–2 s, ale CI
+ *  runner je 3–4× pomalejší a výchozích 5 s Vitestu nestačí (PR #14: timeouty 5,1–5,6 s). */
+const SIM_RUN_TIMEOUT_MS = 20_000
 
 /** Posouvá falešný čas, dokud tlačítko nezobrazí „✓ Done“ (celý backlog zpracovaný). */
 async function advanceUntilDone(): Promise<void> {
@@ -61,7 +78,7 @@ async function runToEnd(): Promise<void> {
 const revenueTile = () => screen.getByTestId(TILE_ID)
 const detailsButton = () => within(revenueTile()).getByRole('button', { name: /details/i })
 
-describe('feat-018: dlaždice „Revenue (time-matched)“ v Simulatoru', () => {
+describe('feat-018: dlaždice „Revenue (time-matched)“ v Simulatoru', { timeout: SIM_RUN_TIMEOUT_MS }, () => {
   it('první běh bez předchozího: za běhu „live total“, po doběhnutí bez hintu a bez delty', async () => {
     openCashFlowSettings()
     click(/Start/)

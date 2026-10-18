@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { REVENUE_TICK_INTERVAL_SEC, plateauRevenuePerTick } from '@/simulation/engine'
+import { REVENUE_TICK_INTERVAL_SEC, doneCount, plateauRevenuePerTick } from '@/simulation/engine'
 import { StatTile } from '@/components/StatTile'
 import { PanelHeader } from '@/components/PanelHeader'
 import { CoordinationChips } from '@/components/CoordinationChips'
@@ -136,7 +136,8 @@ export function CashFlowPanel({
       </div>
 
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
-        <PanelHeader title="Done" count={done.length} />
+        {/* Počet všech hotových features, ne jen zobrazených karet (feat-001, Příklad 6) */}
+        <PanelHeader title="Done" count={doneCount(state)} />
         <div style={{ flex: 1, overflow: 'auto', padding: '6px 14px 14px', display: 'flex', flexDirection: 'column', gap: 6 }}>
           {done.length === 0 && (
             <div style={{ fontSize: 11, color: 'var(--ink-3)', fontStyle: 'italic', padding: '8px 0' }}>No completed features yet.</div>
