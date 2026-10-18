@@ -141,6 +141,7 @@ export function parseXlsFile(buffer: ArrayBuffer): ImportResult
 - Import do Compare módu.
 - CSV podpora (možné rozšíření v budoucnu).
 - Serverová validace nebo ukládání souborů.
+- AI multiplikátor jednotek (feat-019) — importovaný tým má vždy 1× (pole `aiMultiplier` chybí); sloupec pro AI je možné budoucí rozšíření.
 
 ## Otevřené otázky
 _Žádné — všechna rozhodnutí uzavřena._

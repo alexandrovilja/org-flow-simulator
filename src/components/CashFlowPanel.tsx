@@ -111,7 +111,7 @@ export function CashFlowPanel({
               label="Coordination overhead"
               value={stats.count ? formatPercent(stats.coordinationPct) : '—'}
               unit={stats.count ? '% of cycle time' : undefined}
-              tooltip="Extra work caused by coordination, relative to feature cycle time: handoff tax (extra work each additional unit pays when it joins a feature) plus rework (progress lost when units understood the feature differently). It is counted in work-seconds across all units, so highly parallel teams can show high values."
+              tooltip="Extra work caused by coordination, relative to feature cycle time: handoff tax (extra work each additional unit pays when it joins a feature) plus rework (progress lost when units understood the feature differently). It is counted in work-seconds across all units, so highly parallel teams can show high values. Units using AI process this extra work faster, so the share can be higher than the time it actually took."
               delta={coordinationDelta}
             >
               {stats.count > 0 && (

@@ -134,6 +134,11 @@ export interface Feature {
   pendingDivergence: number[]
 }
 
+/** AI multiplikátor výkonu jednotky (feat-019): kolik sekund práce jednotka odvede za jednu
+ *  sekundu simulačního času. 1 = bez AI (výchozí), 2 a 5 = jednotka pracuje s AI 2× / 5× rychleji.
+ *  Pevné hodnoty — workshop porovnává jen tyto tři úrovně, žádný vlastní multiplikátor. */
+export type AiMultiplier = 1 | 2 | 5
+
 /** Jeden člen vývojového týmu.
  *  Člen může mít více specializací (rolí) a v každém okamžiku
  *  zpracovává nejvýše jeden úkol. */
@@ -151,6 +156,10 @@ export interface Member {
    * Člen bez rolí idle čas neakumuluje — nemůže pracovat ze strukturálních důvodů.
    */
   idleSec: number
+  /** AI multiplikátor výkonu (feat-019) — násobí rychlost, jakou jednotka postupuje na svém úkolu.
+   *  Chybějící hodnota = 1× (bez AI), takže presety, XLS import i starší kód fungují beze změny.
+   *  Patří k týmu, ne ke stavu běhu: Reset ho zachová, nový tým z presetu ho nemá. */
+  aiMultiplier?: AiMultiplier
 }
 
 /** Jeden záznam o Cycle Time dokončené feature.

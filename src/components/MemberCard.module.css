@@ -1,0 +1,78 @@
+/* Tlačítko AI na kartě jednotky (feat-019).
+   Bez AI průhledný čtverec 16 × 16 px — stejná velikost a rámeček jako křížek pro odebrání jednotky. */
+.aiButton {
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  padding: 0;
+  background: transparent;
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  color: var(--ink-3);
+  font-family: inherit;
+  font-size: 9px;
+  font-weight: 600;
+  line-height: 1;
+  cursor: pointer;
+}
+
+/* Zapnuté AI (2× / 5×): plně modrý odznak s bílým bleskem a hodnotou.
+   Stejná výška jako v klidu, šířka podle obsahu. Musí být za .aiButton, aby ji přebila. */
+.aiButtonOn {
+  width: auto;
+  padding: 0 4px 0 3px;
+  background: var(--accent);
+  border-color: var(--accent);
+  color: white;
+}
+
+/* Ikona blesku v odznaku — barvu bere z textu tlačítka (currentColor) */
+.boltIcon {
+  display: block;
+  flex-shrink: 0;
+}
+
+/* Menu voleb pod horním řádkem karty, zarovnané doprava. Žádné absolutní pozicování:
+   karta má overflow: hidden, plovoucí bublina by se usekla (stejně jako picker specializací). */
+.aiMenu {
+  display: flex;
+  justify-content: flex-end;
+  gap: 4px;
+}
+
+/* Jedna volba menu (2× / 5× / off) — malý čtvereček stejné výšky jako tlačítko AI */
+.aiOption {
+  height: 16px;
+  min-width: 16px;
+  padding: 0 3px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: 1px solid var(--line-2);
+  border-radius: 3px;
+  color: var(--ink-2);
+  font-family: inherit;
+  font-size: 9px;
+  font-weight: 600;
+  line-height: 1;
+  cursor: pointer;
+}
+
+/* „off“ je slovo, potřebuje víc místa; tlumenější než volby zrychlení */
+.aiOptionOff {
+  padding: 0 4px;
+  color: var(--ink-3);
+  font-weight: 500;
+}
+
+/* Aktuálně vybraná volba — stejná modrá jako odznak */
+.aiOptionSelected {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: white;
+}
