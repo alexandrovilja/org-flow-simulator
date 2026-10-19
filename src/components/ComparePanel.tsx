@@ -129,7 +129,7 @@ export function ComparePanel({
           title="To Do"
           count={state.backlog.length}
           borderRight
-          headerBg="var(--bg)"
+          headerBg="var(--surface-page)"
         >
           {state.backlog.map(f => (
             <FeatureCard key={f.id} feature={f} compact neutral maxWork={maxWork} />
@@ -226,7 +226,7 @@ export function ComparePanel({
 
             return (
               <div key={m.id} style={{
-                background: 'var(--panel)', border: '1px solid var(--line)',
+                background: 'var(--surface-panel)', border: '1px solid var(--line)',
                 borderRadius: 6, padding: '6px 8px',
                 display: 'flex', flexDirection: 'column', gap: 4,
               }}>
@@ -321,7 +321,7 @@ function MetricTile({ label, value, delta, vsLabel, tooltip, deltaLabel, bothFin
 
   const isBetter = bothFinished && delta !== undefined && delta < 0
 
-  const tileBg     = isBetter ? 'oklch(94% 0.04 150)' : 'var(--bg)'
+  const tileBg     = isBetter ? 'oklch(94% 0.04 150)' : 'var(--surface-page)'
   const tileBorder = isBetter ? 'oklch(82% 0.09 150)' : 'var(--line)'
   const valueColor = isBetter ? 'var(--done)' : 'var(--ink)'
 
@@ -370,7 +370,7 @@ function KanbanColumn({ title, count, borderRight, headerBg, children }: KanbanC
     }}>
       <div style={{
         padding: '6px 10px', borderTop: '1px solid var(--line)',
-        background: headerBg ?? 'var(--bg)', flexShrink: 0,
+        background: headerBg ?? 'var(--surface-page)', flexShrink: 0,
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
       }}>
         <span style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5, color: 'var(--ink-3)' }}>

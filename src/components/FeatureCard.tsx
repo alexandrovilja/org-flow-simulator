@@ -47,7 +47,7 @@ export function FeatureCard({ feature, team = [], compact = false, neutral = fal
   // Pokud maxWork není zadáno nebo je 0, bar vyplní celou šířku (zachování starého chování).
   const barWidthPct = maxWork > 0 ? Math.min(100, (totalWork / maxWork) * 100) : 100
 
-  const bg = neutral ? 'var(--panel)' : `oklch(96% 0.03 ${feature.hue})`
+  const bg = neutral ? 'var(--surface-panel)' : `oklch(96% 0.03 ${feature.hue})`
   const border = neutral ? 'var(--line)' : `oklch(80% 0.08 ${feature.hue})`
   const barH = compact ? 6 : 22
 
@@ -135,7 +135,7 @@ export function FeatureCard({ feature, team = [], compact = false, neutral = fal
                     po remountu (přepnutí módu) staré probliknutí nepřehrálo. */}
                 {showCoordination && t.status === 'todo' && t.progress > 0 && feature.reworkCount > mountReworks && (
                   <div key={feature.reworkCount} style={{
-                    position: 'absolute', inset: 0, background: 'var(--rework-ink)',
+                    position: 'absolute', inset: 0, background: 'var(--rework)',
                     opacity: 0, animation: 'rework-flash 1.2s ease-out',
                     pointerEvents: 'none',
                   }} />

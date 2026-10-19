@@ -50,7 +50,7 @@ export function LeadTimeChart({ leadTimes, stats }: LeadTimeChartProps) {
         <div style={{
           position: 'absolute',
           left: padLeft, right: padRight, top: padTop, bottom: padBottom,
-          background: 'var(--bg)',
+          background: 'var(--surface-page)',
           border: '1px solid var(--line)',
           borderRadius: 4, overflow: 'hidden',
         }}>
@@ -58,14 +58,14 @@ export function LeadTimeChart({ leadTimes, stats }: LeadTimeChartProps) {
             <div key={p} style={{ position: 'absolute', left: 0, right: 0, top: `${p * 100}%`, height: 1, background: 'var(--line)' }} />
           ))}
 
-          <div style={{ position: 'absolute', left: 0, right: 0, top: yLineFor(stats.p85), height: 1, background: 'var(--warn)', opacity: 0.8 }}>
-            <span className="mono" style={{ position: 'absolute', right: 4, top: -11, fontSize: 9, color: 'var(--warn)', fontWeight: 600, background: 'var(--bg)', padding: '0 3px' }}>
+          <div style={{ position: 'absolute', left: 0, right: 0, top: yLineFor(stats.p85), height: 1, background: 'var(--wait)', opacity: 0.8 }}>
+            <span className="mono" style={{ position: 'absolute', right: 4, top: -11, fontSize: 9, color: 'var(--wait)', fontWeight: 600, background: 'var(--surface-page)', padding: '0 3px' }}>
               p85 {stats.p85.toFixed(1)}s
             </span>
           </div>
 
           <div style={{ position: 'absolute', left: 0, right: 0, top: yLineFor(stats.avg), height: 1, background: 'var(--ink)', opacity: 0.6, borderTop: '1px dashed var(--ink)' }}>
-            <span className="mono" style={{ position: 'absolute', left: 4, top: -11, fontSize: 9, color: 'var(--ink)', fontWeight: 600, background: 'var(--bg)', padding: '0 3px' }}>
+            <span className="mono" style={{ position: 'absolute', left: 4, top: -11, fontSize: 9, color: 'var(--ink)', fontWeight: 600, background: 'var(--surface-page)', padding: '0 3px' }}>
               avg {stats.avg.toFixed(1)}s
             </span>
           </div>
@@ -77,7 +77,7 @@ export function LeadTimeChart({ leadTimes, stats }: LeadTimeChartProps) {
               width: 6, height: 6, borderRadius: '50%',
               background: 'var(--accent)',
               transform: 'translate(-50%, -50%)',
-              boxShadow: '0 0 0 1.5px var(--bg)',
+              boxShadow: '0 0 0 1.5px var(--surface-page)',
             }} />
           ))}
         </div>

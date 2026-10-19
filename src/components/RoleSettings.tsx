@@ -153,7 +153,7 @@ export function RoleSettings({ roleConfig, onChange, onAdd, onDelete }: RoleSett
                 {pickerOpen && (
                   <div style={{
                     position: 'absolute', top: 26, left: 0, zIndex: 100,
-                    background: 'var(--panel)',
+                    background: 'var(--surface-panel)',
                     border: '1px solid var(--line)',
                     borderRadius: 6,
                     padding: 8,
@@ -197,7 +197,7 @@ export function RoleSettings({ roleConfig, onChange, onAdd, onDelete }: RoleSett
                   fontSize: 11, fontFamily: 'inherit',
                   border: '1px solid var(--line)',
                   borderRadius: 3, padding: '2px 5px',
-                  background: 'var(--bg)', color: 'var(--ink)',
+                  background: 'var(--surface-page)', color: 'var(--ink)',
                   width: '100%', minWidth: 0,
                 }}
               />
@@ -307,7 +307,7 @@ export function RoleSettings({ roleConfig, onChange, onAdd, onDelete }: RoleSett
             {openPickerId === NEW_ROLE_PICKER_ID && (
               <div style={{
                 position: 'absolute', top: 34, left: 0, zIndex: 100,
-                background: 'var(--panel)',
+                background: 'var(--surface-panel)',
                 border: '1px solid var(--line)',
                 borderRadius: 6, padding: 8,
                 display: 'grid', gridTemplateColumns: 'repeat(8, 1fr)', gap: 5,
@@ -349,7 +349,7 @@ export function RoleSettings({ roleConfig, onChange, onAdd, onDelete }: RoleSett
               fontSize: 11, fontFamily: 'inherit',
               border: `1px solid ${addError ? 'oklch(60% 0.18 25)' : 'var(--line)'}`,
               borderRadius: 3, padding: '3px 6px',
-              background: 'var(--bg)', color: 'var(--ink)',
+              background: 'var(--surface-page)', color: 'var(--ink)',
             }}
           />
           <button
@@ -380,7 +380,7 @@ const stepperBtn: React.CSSProperties = {
   width: 18, height: 18,
   display: 'flex', alignItems: 'center', justifyContent: 'center',
   border: '1px solid var(--line)', borderRadius: 3,
-  background: 'var(--bg)', color: 'var(--ink-2)',
+  background: 'var(--surface-page)', color: 'var(--ink-2)',
   fontSize: 13, lineHeight: 1, cursor: 'pointer',
   padding: 0,
 }

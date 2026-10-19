@@ -1,22 +1,202 @@
+/*
+ * Design system Org Flow (feat-021) — paleta Antracit a elektrická modř.
+ * Zdroj pravdy: artefakt https://claude.ai/artifact/EvHZ56JjHa9D9etc85fy3Q (project/tokens.json).
+ * Hodnoty a jejich použití (na jakém podkladu se který text čte) popisuje brand book v artefaktu;
+ * kontrast všech párů hlídá tests/unit/simulation/feat-021-design-tokens.test.ts.
+ * Komponenty berou barvy jen přes tyto proměnné — žádné natvrdo zapsané barvy.
+ */
+
+/* Světlé téma (výchozí) */
 :root {
-  --bg: #f6f5f2;
-  --panel: #ffffff;
-  --ink: #16161a;
-  --ink-2: #4a4a52;
-  --ink-3: #8a8a92;
-  --line: #e6e4de;
-  --line-2: #d8d6cf;
-  --accent: oklch(58% 0.13 240);
-  --accent-soft: oklch(95% 0.02 240);
-  --done: oklch(62% 0.10 155);
-  --warn: oklch(70% 0.13 60);
-  --shadow: 0 1px 0 rgba(20,20,30,0.04), 0 8px 24px -16px rgba(20,20,30,0.12);
-  --radius: 8px;
+  /* Plochy: pozadí aplikace, panely, vyskakovací prvky, papír pro poznámky kouče, antracitová lišta */
+  --surface-page: #f3f3f3;
+  --surface-panel: #ffffff;
+  --surface-subtle: #f9f9f9;
+  --surface-raised: #ffffff;
+  --surface-paper: #f4efe3;
+  --surface-highlight: #f7f1d3;
+  --surface-bar: #121212;
+
+  /* Text: hlavní, sekundární, tlumený (popisky), vypnutý; text na liště a na plných výplních */
+  --ink: #121212;
+  --ink-2: #484848;
+  --ink-3: #696969;
+  --ink-4: #989898;
+  --ink-on-bar: #dedede;
+  --ink-inverse: #ffffff;
+
+  /* Linky: okraje karet, oddělovače, obrysy ovládacích prvků (3:1), inkoustový rám, dráha progress baru */
+  --line: #dbdbdb;
+  --line-2: #e8e8e8;
+  --line-control: #898989;
+  --line-ink: #121212;
+  --line-on-bar: #ffffff2e;
+  --track: #1212120f;
+
+  /* Značka a interakce: Run (elektrická modř), výběr a In progress (fialová), zvýraznění na liště (žlutá), fokus */
+  --action: #2b59ff;
+  --action-hover: #1d43ea;
+  --on-action: #ffffff;
+  --accent: #7a3bf0;
+  --accent-soft: #f3f1ff;
+  --on-accent: #ffffff;
+  --highlight: #ffe14d;
+  --highlight-ink: #7a6400;
+  --focus: #7a3bf0;
+  --focus-on-bar: #ffe14d;
+
+  /* Stavy toku: hotovo, čekání na předání, rework */
+  --done: #097f43;
+  --done-soft: #ebf6e6;
+  --on-done: #ffffff;
+  --wait: #8d672b;
+  --wait-soft: #fcf1d2;
+  --rework: #b3261e;
+  --rework-soft: #fceceb;
+  --rework-line: #eab0ab;
+
+  /* Role (specializace): výplně čipů a segmentů tasků podle slotů 1–8, vždy s bílým textem */
+  --role-rose: #bf406e;
+  --role-blue: #1075ac;
+  --role-brick: #a14a1c;
+  --role-green: #097f43;
+  --role-ochre: #8d672b;
+  --role-teal: #0b7a75;
+  --role-violet: #815ea9;
+  --role-slate: #4f5a6b;
+
+  /* Mapa týmu (TeamMap): kvadranty Directing, Driving, Doing, Delivering */
+  --map-directing: #1075ac;
+  --map-driving: #097f43;
+  --map-doing: #815ea9;
+  --map-delivering: #bf406e;
+  --map-field-directing: #eef6fc;
+  --map-field-driving: #eef7ef;
+  --map-field-doing: #f5f0fa;
+  --map-field-delivering: #fcf0f4;
+
+  /* Stíny: karty v klidu, plovoucí prvky, fokus tam, kde nejde outline */
+  --shadow-card: 0 1px 2px #12121214;
+  --shadow-pop: 0 12px 32px -8px #12121240, 0 2px 6px #1212121f;
+  --shadow-focus: 0 0 0 2px #ffffff, 0 0 0 4px #7a3bf0;
+}
+
+/* Tmavé téma Workshop dark: přepisuje jen to, co se liší. Zapíná ho data-theme="dark" na <html>. */
+[data-theme="dark"] {
+  /* Plochy: pozadí aplikace, panely, vyskakovací prvky, papír pro poznámky kouče, antracitová lišta */
+  --surface-page: #0f0f0f;
+  --surface-panel: #191919;
+  --surface-subtle: #141414;
+  --surface-raised: #252525;
+  --surface-paper: #2a2a26;
+  --surface-highlight: #332e15;
+  --surface-bar: #060606;
+
+  /* Text: hlavní, sekundární, tlumený (popisky), vypnutý; text na liště a na plných výplních */
+  --ink: #eeeeee;
+  --ink-2: #cacaca;
+  --ink-3: #9e9e9e;
+  --ink-4: #696969;
+  --ink-on-bar: #dedede;
+  --ink-inverse: #ffffff;
+
+  /* Linky: okraje karet, oddělovače, obrysy ovládacích prvků (3:1), inkoustový rám, dráha progress baru */
+  --line: #333333;
+  --line-2: #262626;
+  --line-control: #696969;
+  --line-ink: #dedede;
+  --line-on-bar: #ffffff2e;
+  --track: #ffffff14;
+
+  /* Značka a interakce: Run (elektrická modř), výběr a In progress (fialová), zvýraznění na liště (žlutá), fokus */
+  --action: #2b59ff;
+  --action-hover: #1d43ea;
+  --on-action: #ffffff;
+  --accent: #c0a3fa;
+  --accent-soft: #2e2849;
+  --on-accent: #0f0f0f;
+  --highlight: #ffe14d;
+  --highlight-ink: #ffe14d;
+  --focus: #c0a3fa;
+  --focus-on-bar: #ffe14d;
+
+  /* Stavy toku: hotovo, čekání na předání, rework */
+  --done: #5cc48a;
+  --done-soft: #163626;
+  --on-done: #0f0f0f;
+  --wait: #ddc97b;
+  --wait-soft: #352f1d;
+  --rework: #f08a80;
+  --rework-soft: #3a1f24;
+  --rework-line: #7a3a3a;
+
+  /* Mapa týmu (TeamMap): kvadranty Directing, Driving, Doing, Delivering */
+  --map-directing: #8ad0f2;
+  --map-driving: #8bd8ae;
+  --map-doing: #cdb0e8;
+  --map-delivering: #eba3bf;
+  --map-field-directing: #15304a;
+  --map-field-driving: #163426;
+  --map-field-doing: #2a2540;
+  --map-field-delivering: #3a2231;
+
+  /* Stíny: karty v klidu, plovoucí prvky, fokus tam, kde nejde outline */
+  --shadow-card: 0 1px 2px #00000066;
+  --shadow-pop: 0 18px 40px #00000080;
+  --shadow-focus: 0 0 0 2px #191919, 0 0 0 4px #c0a3fa;
+}
+
+/* Škály nezávislé na tématu */
+:root {
+  /* Mezery: mřížka 4 px s polokroky; číslo v názvu je hodnota v px */
+  --space-2: 2px;
+  --space-4: 4px;
+  --space-6: 6px;
+  --space-8: 8px;
+  --space-12: 12px;
+  --space-16: 16px;
+  --space-20: 20px;
+  --space-24: 24px;
+  --space-32: 32px;
+  --space-44: 44px;
+
+  /* Rádiusy: hranatá tlačítka (none), čipy (xs), ovládání (sm), karty (md), panely (lg), rám výsledku (xl) */
+  --radius-none: 0px;
+  --radius-xs: 2px;
+  --radius-sm: 4px;
+  --radius-md: 8px;
   --radius-lg: 12px;
-  /* Coordination overhead (feat-016) — barvy reworku: čip ↺, pruh v dlaždici */
-  --rework-ink: oklch(50% 0.17 30);
-  --rework-bg: oklch(95% 0.04 30);
-  --rework-line: oklch(82% 0.08 30);
+  --radius-xl: 24px;
+  --radius-pill: 999px;
+
+  /* Tloušťky čar */
+  --border-hair: 1px;
+  --border-pill: 1.5px;
+  --border-active: 2px;
+  --border-frame: 3px;
+
+  /* Rozměry: lišta, postranní panely, výšky ovládacích prvků */
+  --size-topbar: 56px;
+  --size-sidebar: 320px;
+  --size-aside: 280px;
+  --size-cta: 36px;
+  --size-control: 28px;
+  --size-control-sm: 18px;
+  --size-avatar: 20px;
+
+  /* Vrstvy: overlay < popover < tutoriál < tooltip */
+  --z-overlay: 10;
+  --z-popover: 100;
+  --z-tutorial-backdrop: 900;
+  --z-tutorial-ring: 905;
+  --z-tutorial-card: 910;
+  --z-tooltip: 1000;
+
+  /* Písma: proměnné --font-archivo, --font-jetbrains-mono a --font-kalam nastavuje next/font v layout.tsx */
+  --font-display: var(--font-archivo), system-ui, sans-serif;
+  --font-sans: var(--font-archivo), system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains-mono), ui-monospace, Menlo, monospace;
+  --font-hand: var(--font-kalam), "Comic Neue", cursive;
 }
 
 * {
@@ -27,9 +207,9 @@ html,
 body {
   margin: 0;
   padding: 0;
-  background: var(--bg);
+  background: var(--surface-page);
   color: var(--ink);
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  font-family: var(--font-sans);
   font-size: 14px;
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
@@ -38,7 +218,7 @@ body {
 }
 
 .mono {
-  font-family: 'JetBrains Mono', ui-monospace, Menlo, monospace;
+  font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
 }
 
@@ -52,8 +232,9 @@ button {
   cursor: pointer;
 }
 
+/* Posuvník: ink-4 je dekorativní šedá — dost výrazná na bílém panelu, ale nekonkuruje obsahu */
 ::-webkit-scrollbar { width: 8px; height: 8px; }
-::-webkit-scrollbar-thumb { background: var(--line-2); border-radius: 4px; }
+::-webkit-scrollbar-thumb { background: var(--ink-4); border-radius: var(--radius-sm); }
 ::-webkit-scrollbar-track { background: transparent; }
 
 @keyframes timer-pulse {

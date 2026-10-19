@@ -50,7 +50,7 @@ export function StatTile({ label, value, unit, hint, tooltip, variant, finished,
   const isUnchanged = delta !== undefined && deltaText === '0.0'
 
   const borderColor = isTimer && finished ? 'var(--done)' : 'var(--line)'
-  const bg = isTimer && finished ? 'oklch(97% 0.02 155)' : 'var(--panel)'
+  const bg = isTimer && finished ? 'oklch(97% 0.02 155)' : 'var(--surface-panel)'
 
   return (
     <div title={tooltip} data-testid={`stat-tile-${label}`} style={{

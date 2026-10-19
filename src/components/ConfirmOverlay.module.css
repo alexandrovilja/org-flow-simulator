@@ -7,13 +7,13 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: var(--radius);
+  border-radius: var(--radius-md);
   z-index: 10;
 }
 
 /* Šířka karty se předává inline (je to dynamická hodnota). */
 .card {
-  background: var(--panel);
+  background: var(--surface-panel);
   border: 1px solid var(--line);
   border-radius: 10px;
   padding: 16px;
