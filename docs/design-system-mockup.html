@@ -1,0 +1,1047 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Org Flow Simulator — design system mockup</title>
+<!--
+  Maketa aplikace v design systému Org Flow (paleta Antracit a elektrická modř) (https://claude.ai/artifact/EvHZ56JjHa9D9etc85fy3Q).
+  Samostatný soubor: tokeny a styly komponent jsou vložené níže. Simulace je zjednodušená hračka
+  jen pro předvedení pohybu — nepoužívá engine aplikace a její čísla nic netvrdí.
+-->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&family=Kalam:wght@700&display=swap" rel="stylesheet">
+<style>
+/* Org Flow tokens — generated from tokens.json */
+:root, [data-theme="light"] {
+  --surface-page: #f3f3f3;
+  --surface-panel: #ffffff;
+  --surface-subtle: #f9f9f9;
+  --surface-raised: #ffffff;
+  --surface-paper: #f4efe3;
+  --surface-highlight: #f7f1d3;
+  --surface-bar: #121212;
+  --ink: #121212;
+  --ink-2: #484848;
+  --ink-3: #696969;
+  --ink-4: #989898;
+  --ink-on-bar: #dedede;
+  --ink-inverse: #ffffff;
+  --line: #dbdbdb;
+  --line-2: #e8e8e8;
+  --line-control: #898989;
+  --line-ink: #121212;
+  --line-on-bar: #ffffff2e;
+  --track: #1212120f;
+  --action: #2b59ff;
+  --action-hover: #1d43ea;
+  --on-action: #ffffff;
+  --accent: #7a3bf0;
+  --accent-soft: #f3f1ff;
+  --on-accent: #ffffff;
+  --highlight: #ffe14d;
+  --highlight-ink: #7a6400;
+  --focus: #7a3bf0;
+  --focus-on-bar: #ffe14d;
+  --done: #097f43;
+  --done-soft: #ebf6e6;
+  --on-done: #ffffff;
+  --wait: #8d672b;
+  --wait-soft: #fcf1d2;
+  --rework: #b3261e;
+  --rework-soft: #fceceb;
+  --rework-line: #eab0ab;
+  --role-rose: #bf406e;
+  --role-blue: #1075ac;
+  --role-brick: #a14a1c;
+  --role-green: #097f43;
+  --role-ochre: #8d672b;
+  --role-teal: #0b7a75;
+  --role-violet: #815ea9;
+  --role-slate: #4f5a6b;
+  --map-directing: #1075ac;
+  --map-driving: #097f43;
+  --map-doing: #815ea9;
+  --map-delivering: #bf406e;
+  --map-field-directing: #eef6fc;
+  --map-field-driving: #eef7ef;
+  --map-field-doing: #f5f0fa;
+  --map-field-delivering: #fcf0f4;
+  --shadow-card: 0 1px 2px #12121214;
+  --shadow-pop: 0 12px 32px -8px #12121240, 0 2px 6px #1212121f;
+  --shadow-focus: 0 0 0 2px #ffffff, 0 0 0 4px #7a3bf0;
+}
+[data-theme="dark"] {
+  --surface-page: #0f0f0f;
+  --surface-panel: #191919;
+  --surface-subtle: #141414;
+  --surface-raised: #252525;
+  --surface-paper: #2a2a26;
+  --surface-highlight: #332e15;
+  --surface-bar: #060606;
+  --ink: #eeeeee;
+  --ink-2: #cacaca;
+  --ink-3: #9e9e9e;
+  --ink-4: #696969;
+  --ink-on-bar: #dedede;
+  --ink-inverse: #ffffff;
+  --line: #333333;
+  --line-2: #262626;
+  --line-control: #696969;
+  --line-ink: #dedede;
+  --line-on-bar: #ffffff2e;
+  --track: #ffffff14;
+  --action: #2b59ff;
+  --action-hover: #1d43ea;
+  --on-action: #ffffff;
+  --accent: #c0a3fa;
+  --accent-soft: #2e2849;
+  --on-accent: #0f0f0f;
+  --highlight: #ffe14d;
+  --highlight-ink: #ffe14d;
+  --focus: #c0a3fa;
+  --focus-on-bar: #ffe14d;
+  --done: #5cc48a;
+  --done-soft: #163626;
+  --on-done: #0f0f0f;
+  --wait: #ddc97b;
+  --wait-soft: #352f1d;
+  --rework: #f08a80;
+  --rework-soft: #3a1f24;
+  --rework-line: #7a3a3a;
+  --map-directing: #8ad0f2;
+  --map-driving: #8bd8ae;
+  --map-doing: #cdb0e8;
+  --map-delivering: #eba3bf;
+  --map-field-directing: #15304a;
+  --map-field-driving: #163426;
+  --map-field-doing: #2a2540;
+  --map-field-delivering: #3a2231;
+  --shadow-card: 0 1px 2px #00000066;
+  --shadow-pop: 0 18px 40px #00000080;
+  --shadow-focus: 0 0 0 2px #191919, 0 0 0 4px #c0a3fa;
+}
+:root {
+  --space-2: 2px;
+  --space-4: 4px;
+  --space-6: 6px;
+  --space-8: 8px;
+  --space-12: 12px;
+  --space-16: 16px;
+  --space-20: 20px;
+  --space-24: 24px;
+  --space-32: 32px;
+  --space-44: 44px;
+  --radius-none: 0px;
+  --radius-xs: 2px;
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 24px;
+  --radius-pill: 999px;
+  --border-hair: 1px;
+  --border-pill: 1.5px;
+  --border-active: 2px;
+  --border-frame: 3px;
+  --size-topbar: 56px;
+  --size-sidebar: 320px;
+  --size-aside: 280px;
+  --size-cta: 36px;
+  --size-control: 28px;
+  --size-control-sm: 18px;
+  --size-avatar: 20px;
+  --z-overlay: 10;
+  --z-popover: 100;
+  --z-tutorial-backdrop: 900;
+  --z-tutorial-ring: 905;
+  --z-tutorial-card: 910;
+  --z-tooltip: 1000;
+  --font-display: "Archivo", system-ui, sans-serif;
+  --font-sans: "Archivo", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, Menlo, monospace;
+  --font-hand: "Kalam", "Comic Neue", cursive;
+}
+</style>
+<style>
+/* Org Flow — styly komponent. Hodnoty barev, mezer, rádiusů a stínů bere z tokens.css
+   (var(--…)); velikosti písma kopírují typové styly z tokens.json (jméno stylu je v komentáři). */
+
+
+body {
+  margin: 0;
+  background: var(--surface-page);
+  color: var(--ink);
+  font: 400 13px/20px var(--font-sans); /* body */
+  -webkit-font-smoothing: antialiased;
+}
+
+.of-stage { padding: var(--space-16); display: flex; flex-wrap: wrap; gap: var(--space-12); align-items: flex-start; }
+.of-stack { display: flex; flex-direction: column; gap: var(--space-8); }
+.of-row { display: flex; align-items: center; gap: var(--space-6); flex-wrap: wrap; }
+.of-caption { font: 500 10px/12px var(--font-mono); letter-spacing: .8px; text-transform: uppercase; color: var(--ink-3); } /* label */
+
+:focus-visible { outline: var(--border-active) solid var(--focus); outline-offset: 2px; }
+.of-topbar :focus-visible, .of-tutorial :focus-visible { outline-color: var(--focus-on-bar); }
+
+/* ── Text helpers (zrcadlí typové styly) ─────────────────────────────────── */
+.of-eyebrow { font: 500 11px/16px var(--font-mono); letter-spacing: 1.1px; text-transform: uppercase; color: var(--ink-3); }
+.of-label   { font: 600 10px/12px var(--font-mono); letter-spacing: .8px;  text-transform: uppercase; color: var(--ink-3); }
+.of-code    { font: 500 11px/16px var(--font-mono); font-variant-numeric: tabular-nums; }
+.of-micro   { font: 600 10px/12px var(--font-mono); font-variant-numeric: tabular-nums; }
+.of-heading { font: 800 20px/22px var(--font-display); text-transform: uppercase; margin: 0; }
+.of-hand    { font: 700 20px/22px var(--font-hand); }
+
+/* ── Button ──────────────────────────────────────────────────────────────── */
+.of-btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: var(--space-6);
+  height: var(--size-control); padding: 0 var(--space-12);
+  border: var(--border-hair) solid var(--line-control); border-radius: var(--radius-none);
+  background: var(--surface-panel); color: var(--ink);
+  font: 800 13px/16px var(--font-sans); letter-spacing: .3px; text-transform: uppercase; /* button */
+  cursor: pointer; white-space: nowrap;
+  transition: background .15s, border-color .15s, color .15s;
+}
+/* :where() drží specificitu základního hoveru nízko, aby ho varianty (--done, --primary…) vždy přebily */
+.of-btn:where(:hover:not(:disabled)) { background: var(--surface-subtle); }
+.of-btn:disabled { opacity: .45; cursor: default; }
+.of-btn--primary { height: var(--size-cta); padding: 0 var(--space-20); background: var(--action); border-color: var(--action); color: var(--on-action); }
+.of-btn--primary:hover { background: var(--action-hover); border-color: var(--action-hover); }
+.of-btn--running { height: var(--size-cta); padding: 0 var(--space-20); background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+.of-btn--running:hover { background: var(--accent); }
+.of-btn--done { height: var(--size-cta); padding: 0 var(--space-20); background: var(--done); border-color: var(--done); color: var(--on-done); }
+.of-btn--done:disabled { opacity: 1; } /* Done je stav, ne vypnutá akce */
+.of-btn--strong { background: var(--ink); border-color: var(--ink); color: var(--surface-panel); }
+.of-btn--strong:hover { background: var(--ink-2); border-color: var(--ink-2); }
+.of-btn--ghost { background: transparent; border-color: transparent; color: var(--ink-2); }
+.of-btn--ghost:hover { background: var(--surface-subtle); }
+.of-btn--light { background: var(--ink-inverse); border-color: var(--ink-inverse); color: var(--surface-bar); }
+.of-btn--light:hover { background: var(--ink-on-bar); }
+.of-btn--on-bar { background: transparent; border-color: var(--line-on-bar); color: var(--ink-on-bar); }
+.of-btn--on-bar:hover { background: var(--line-on-bar); }
+.of-btn .of-glyph { font-size: 11px; line-height: 1; }
+
+.of-icon-btn {
+  width: var(--size-control); height: var(--size-control); padding: 0; flex-shrink: 0;
+  display: inline-flex; align-items: center; justify-content: center;
+  border: var(--border-hair) solid var(--line-control); border-radius: var(--radius-pill);
+  background: transparent; color: var(--ink-3);
+  font: 700 13px/1 var(--font-mono); cursor: pointer;
+}
+.of-icon-btn:hover { color: var(--ink); border-color: var(--ink-3); }
+.of-icon-btn--on-bar { border-color: var(--line-on-bar); color: var(--ink-on-bar); }
+
+/* ── Segmented control (typ týmu, preset, rychlost) ───────────────────────── */
+.of-seg {
+  display: inline-grid; grid-auto-flow: column; grid-auto-columns: 1fr;
+  padding: var(--space-2); gap: var(--space-2);
+  border: var(--border-hair) solid var(--line-control); border-radius: var(--radius-sm);
+  background: var(--surface-panel);
+}
+.of-seg button {
+  height: 22px; padding: 0 var(--space-12); border: 0; border-radius: var(--radius-none);
+  background: transparent; color: var(--ink-3);
+  font: 600 10px/12px var(--font-mono); letter-spacing: .8px; text-transform: uppercase; /* label */
+  cursor: pointer; white-space: nowrap; transition: background .2s, color .15s;
+}
+.of-seg button:hover { color: var(--ink); }
+.of-seg button[aria-pressed="true"] { background: var(--ink); color: var(--surface-panel); }
+.of-seg[aria-disabled="true"] { opacity: .45; pointer-events: none; }
+.of-seg--on-bar { background: transparent; border-color: var(--line-on-bar); }
+.of-seg--on-bar button { color: var(--ink-on-bar); }
+.of-seg--on-bar button:hover { color: var(--ink-inverse); }
+.of-seg--on-bar button[aria-pressed="true"] { background: var(--ink-on-bar); color: var(--surface-bar); }
+
+.of-hint {
+  position: absolute; z-index: var(--z-popover); top: calc(100% + 8px); left: 0;
+  width: max-content; max-width: 260px; padding: var(--space-6) var(--space-12);
+  background: var(--surface-bar); color: var(--ink-on-bar);
+  font: 400 12px/16px var(--font-sans); border-radius: var(--radius-sm); box-shadow: var(--shadow-pop);
+}
+
+/* ── Top bar ─────────────────────────────────────────────────────────────── */
+.of-topbar {
+  display: grid; grid-template-columns: 1fr auto 1fr; align-items: stretch;
+  height: var(--size-topbar); padding: 0 var(--space-20);
+  background: var(--surface-bar); color: var(--ink-on-bar);
+}
+.of-brand { display: flex; align-items: center; gap: var(--space-12); }
+.of-mark { width: 28px; height: 28px; flex-shrink: 0; display: block; }
+.of-wordmark { display: flex; flex-direction: column; gap: 3px; white-space: nowrap; }
+.of-wordmark b { font: 800 15px/18px var(--font-display); letter-spacing: .6px; text-transform: uppercase; color: var(--ink-inverse); } /* wordmark */
+.of-wordmark span { font: 600 10px/10px var(--font-mono); letter-spacing: 1.2px; text-transform: uppercase; color: var(--highlight); }
+.of-tabs { display: flex; align-items: stretch; }
+.of-tab {
+  display: flex; align-items: center; padding: 0 var(--space-20);
+  border: 0; border-bottom: 3px solid transparent; border-top: 3px solid transparent; background: transparent; white-space: nowrap;
+  color: var(--ink-on-bar); font: 800 13px/16px var(--font-sans); letter-spacing: .3px; text-transform: uppercase;
+  cursor: pointer;
+}
+.of-tab:hover { color: var(--ink-inverse); }
+.of-tab[aria-selected="true"] { color: var(--ink-inverse); border-bottom-color: var(--highlight); }
+.of-controls { display: flex; align-items: center; justify-content: flex-end; gap: var(--space-8); }
+
+/* ── Panel + hlavička sloupce ────────────────────────────────────────────── */
+.of-panel { background: var(--surface-panel); border: var(--border-hair) solid var(--line); border-radius: var(--radius-lg); overflow: hidden; }
+.of-panel-head {
+  display: flex; align-items: baseline; justify-content: space-between; gap: var(--space-8);
+  padding: var(--space-12) var(--space-16) var(--space-8);
+}
+.of-panel-head h3 { margin: 0; font: 500 11px/16px var(--font-mono); letter-spacing: 1.1px; text-transform: uppercase; color: var(--ink-2); } /* eyebrow */
+.of-panel-head .of-count { font: 500 11px/16px var(--font-mono); color: var(--ink-3); }
+.of-panel-head .of-aside { font: 400 12px/16px var(--font-sans); color: var(--ink-3); }
+
+.of-col { display: flex; flex-direction: column; min-width: 0; background: var(--surface-subtle); }
+.of-col + .of-col { border-left: var(--border-hair) solid var(--line-2); }
+.of-col-head {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: var(--space-6) var(--space-12);
+  font: 500 11px/16px var(--font-mono); letter-spacing: 1.1px; text-transform: uppercase; /* eyebrow */
+  color: var(--ink-2); background: var(--surface-panel); border-bottom: var(--border-hair) solid var(--line-2);
+}
+.of-col-head--doing { background: var(--accent-soft); color: var(--accent); }
+.of-col-head--done  { background: var(--done-soft);   color: var(--done); }
+.of-col-head .of-count { color: var(--ink-3); }
+.of-col-body { padding: var(--space-8); display: flex; flex-direction: column; gap: var(--space-6); }
+.of-empty { font: 400 12px/16px var(--font-sans); color: var(--ink-3); }
+
+/* ── Feature card ────────────────────────────────────────────────────────── */
+.of-feature {
+  --hue: 215;
+  display: flex; flex-direction: column; gap: var(--space-6);
+  padding: var(--space-8) 10px; border-radius: var(--radius-md);
+  background: oklch(97.5% 0.02 var(--hue)); border: var(--border-hair) solid oklch(86% 0.05 var(--hue));
+}
+[data-theme="dark"] .of-feature { background: oklch(28% 0.03 var(--hue)); border-color: oklch(42% 0.05 var(--hue)); }
+.of-feature--neutral, [data-theme="dark"] .of-feature--neutral { background: var(--surface-panel); border-color: var(--line); }
+.of-feature[data-active="true"] { box-shadow: 0 0 0 var(--border-active) var(--ink); }
+.of-feature-top { display: flex; justify-content: space-between; align-items: center; gap: var(--space-6); }
+.of-feature-name { font: 500 11px/16px var(--font-mono); color: var(--ink-2); flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.of-feature-meta { display: flex; align-items: center; gap: var(--space-4); flex-shrink: 0; }
+.of-tasks-count { font: 600 10px/12px var(--font-mono); color: var(--ink-3); }
+.of-revenue { font: 700 10px/12px var(--font-mono); color: var(--done); }
+.of-bar { height: 20px; display: flex; gap: var(--space-2); border-radius: var(--radius-xs); overflow: hidden; background: var(--track); }
+.of-bar--compact { height: 6px; }
+.of-seg-task { position: relative; overflow: hidden; background: var(--track); display: flex; align-items: center; justify-content: center; }
+.of-seg-task i { position: absolute; inset: 0 auto 0 0; background: var(--role); }
+.of-seg-task[data-status="todo"] i { inset: 0; opacity: .25; }
+.of-seg-task[data-status="rework"] { box-shadow: inset 0 0 0 1.5px var(--rework); }
+.of-seg-task--flash::after { content: ''; position: absolute; inset: 0; background: var(--rework); opacity: 0; animation: of-flash 1.2s ease-out; }
+@keyframes of-flash { 0% { opacity: .85; } 100% { opacity: 0; } }
+.of-seg-task b { position: relative; font: 700 11px/1 var(--font-sans); color: var(--ink-inverse); text-shadow: 0 0 2px #00000059; }
+
+/* ── Chips ───────────────────────────────────────────────────────────────── */
+.of-role {
+  display: inline-flex; align-items: center; gap: var(--space-4);
+  height: var(--size-control-sm); padding: 0 var(--space-6);
+  background: var(--role, var(--role-slate)); color: var(--ink-inverse); border: 0; border-radius: var(--radius-xs);
+  font: 600 11px/1 var(--font-sans); letter-spacing: .2px; white-space: nowrap;
+}
+button.of-role { cursor: pointer; }
+.of-role-x {
+  width: 12px; height: 12px; padding: 0; border: 0; border-radius: var(--radius-xs);
+  display: inline-flex; align-items: center; justify-content: center;
+  background: #ffffff40; color: var(--ink-inverse); font: 600 10px/1 var(--font-sans); cursor: pointer;
+}
+.of-role-add {
+  height: var(--size-control-sm); min-width: var(--size-control-sm); padding: 0 var(--space-4);
+  border: var(--border-hair) dashed var(--line-control); border-radius: var(--radius-xs);
+  background: transparent; color: var(--ink-3); font: 600 10px/1 var(--font-mono); cursor: pointer;
+}
+.of-chip {
+  display: inline-flex; align-items: center; gap: var(--space-2);
+  padding: var(--space-2) 5px; border: var(--border-hair) solid; border-radius: var(--radius-xs);
+  font: 600 10px/12px var(--font-mono); white-space: nowrap; /* micro */
+}
+.of-chip--handoff { color: var(--ink-2); background: var(--surface-subtle); border-color: var(--line); }
+.of-chip--rework  { color: var(--rework); background: var(--rework-soft); border-color: var(--rework-line); }
+.of-chip--pulse { animation: of-chip-pulse 1.4s ease-out; }
+@keyframes of-chip-pulse { 0% { transform: scale(1); } 15% { transform: scale(1.22); } 100% { transform: scale(1); } }
+.of-pill {
+  display: inline-flex; align-items: center; padding: var(--space-2) 10px;
+  border: var(--border-pill) solid var(--line-ink); border-radius: var(--radius-pill);
+  background: var(--surface-highlight); color: var(--ink); font: 700 11px/16px var(--font-mono);
+}
+
+/* ── Member card ─────────────────────────────────────────────────────────── */
+.of-member {
+  display: flex; flex-direction: column; gap: var(--space-6); min-width: 0;
+  padding: var(--space-8) 10px; background: var(--surface-panel);
+  border: var(--border-hair) solid var(--line); border-radius: var(--radius-md);
+}
+.of-member[data-state="waiting"] { background: var(--wait-soft); border-color: var(--wait); }
+.of-member-top { display: flex; align-items: center; gap: var(--space-6); }
+.of-avatar {
+  width: var(--size-avatar); height: var(--size-avatar); flex-shrink: 0; border-radius: var(--radius-pill);
+  display: flex; align-items: center; justify-content: center;
+  background: var(--ink); color: var(--surface-panel); font: 700 10px/1 var(--font-mono);
+}
+.of-member-name { flex: 1; min-width: 0; font: 600 13px/20px var(--font-sans); color: var(--ink); } /* body-strong */
+.of-mini {
+  height: var(--size-control-sm); min-width: var(--size-control-sm); padding: 0 var(--space-4);
+  display: inline-flex; align-items: center; justify-content: center; gap: var(--space-2);
+  border: var(--border-hair) solid var(--line-control); border-radius: var(--radius-xs);
+  background: transparent; color: var(--ink-3); font: 600 10px/1 var(--font-mono); cursor: pointer;
+}
+.of-mini[aria-pressed="true"], .of-mini--ai-on { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+.of-member-task { display: flex; flex-direction: column; gap: var(--space-4); min-height: 32px; justify-content: flex-end; }
+.of-member-line { display: flex; align-items: center; gap: var(--space-4); font: 500 11px/16px var(--font-mono); color: var(--ink-2); white-space: nowrap; overflow: hidden; }
+.of-member-line .of-swatch { width: 8px; height: 8px; border-radius: var(--radius-xs); flex-shrink: 0; background: oklch(68% 0.13 var(--hue, 215)); }
+.of-member-line .of-feature-name { flex: 1; }
+.of-progress { height: 6px; border-radius: var(--radius-xs); background: var(--track); overflow: hidden; }
+.of-progress i { display: block; height: 100%; background: var(--role, var(--ink-3)); }
+.of-state { font: 600 10px/12px var(--font-mono); letter-spacing: .8px; text-transform: uppercase; color: var(--ink-3); }
+.of-member[data-state="waiting"] .of-state { color: var(--wait); }
+
+/* ── Stat tile ───────────────────────────────────────────────────────────── */
+.of-stat {
+  display: flex; flex-direction: column; gap: var(--space-4); min-width: 0;
+  padding: 10px var(--space-12); background: var(--surface-panel);
+  border: var(--border-hair) solid var(--line); border-radius: var(--radius-md);
+  transition: background .3s, border-color .3s;
+}
+.of-stat-head { display: flex; align-items: center; justify-content: space-between; gap: var(--space-6); }
+.of-stat-label { font: 600 10px/12px var(--font-mono); letter-spacing: .8px; text-transform: uppercase; color: var(--ink-3); display: inline-flex; align-items: center; gap: var(--space-4); }
+.of-stat-value { font: 600 20px/24px var(--font-mono); font-variant-numeric: tabular-nums; color: var(--ink); } /* metric */
+.of-stat-value small { font: 500 11px/16px var(--font-mono); color: var(--ink-3); margin-left: var(--space-2); }
+.of-stat--timer .of-stat-value { font-size: 28px; line-height: 30px; letter-spacing: -.6px; } /* metric-xl */
+.of-stat--done { background: var(--done-soft); border-color: var(--done); }
+.of-stat--done .of-stat-value, .of-stat--done .of-stat-flag { color: var(--done); }
+.of-stat-flag { font: 600 10px/12px var(--font-mono); letter-spacing: .8px; text-transform: uppercase; }
+.of-live { width: 6px; height: 6px; border-radius: var(--radius-pill); background: var(--accent); animation: of-live 1.2s ease-in-out infinite; }
+@keyframes of-live { 0%, 100% { opacity: 1; } 50% { opacity: .25; } }
+.of-delta { font: 600 10px/12px var(--font-mono); }
+.of-delta--good { color: var(--done); }
+.of-delta--bad { color: var(--rework); }
+.of-delta--flat { color: var(--ink-3); }
+.of-delta span { font-weight: 400; color: var(--ink-3); }
+.of-stat-hint { font: 400 12px/16px var(--font-sans); color: var(--ink-3); }
+.of-split { display: flex; height: 6px; gap: var(--space-2); border-radius: var(--radius-xs); overflow: hidden; }
+
+/* ── Help icon + tooltip ─────────────────────────────────────────────────── */
+.of-help { position: relative; display: inline-flex; }
+.of-help-btn {
+  width: 16px; height: 16px; padding: 0; border-radius: var(--radius-pill);
+  border: var(--border-hair) solid var(--line-control); background: var(--surface-panel);
+  color: var(--ink-3); font: 700 10px/1 var(--font-mono); cursor: help;
+  display: flex; align-items: center; justify-content: center;
+}
+.of-help-btn:hover { color: var(--ink); border-color: var(--ink-3); }
+.of-tooltip {
+  position: absolute; z-index: var(--z-tooltip); bottom: calc(100% + 8px); left: 50%; transform: translateX(-50%);
+  width: 220px; padding: var(--space-8) 10px; border-radius: var(--radius-sm);
+  background: var(--surface-bar); color: var(--ink-on-bar); box-shadow: var(--shadow-pop);
+  font: 400 12px/16px var(--font-sans); /* body-sm */
+  text-transform: none; letter-spacing: normal; text-align: left;
+}
+.of-tooltip::after { content: ''; position: absolute; top: 100%; left: 50%; transform: translateX(-50%); border: 5px solid transparent; border-top-color: var(--surface-bar); }
+.of-tooltip b { color: var(--ink-inverse); font-weight: 700; }
+
+/* ── Slider ──────────────────────────────────────────────────────────────── */
+.of-slider { display: flex; flex-direction: column; gap: var(--space-4); width: 100%; }
+.of-slider-head { display: flex; justify-content: space-between; align-items: center; gap: var(--space-8); }
+.of-slider-label { font: 500 12px/16px var(--font-sans); color: var(--ink-2); display: inline-flex; gap: var(--space-4); align-items: center; }
+.of-slider-value { font: 600 11px/16px var(--font-mono); color: var(--ink); font-variant-numeric: tabular-nums; }
+.of-range { -webkit-appearance: none; appearance: none; width: 100%; height: 16px; background: transparent; margin: 0; cursor: pointer; }
+.of-range::-webkit-slider-runnable-track { height: 4px; background: var(--line-control); border-radius: var(--radius-pill); }
+.of-range::-moz-range-track { height: 4px; background: var(--line-control); border-radius: var(--radius-pill); }
+.of-range::-webkit-slider-thumb { -webkit-appearance: none; width: 14px; height: 14px; margin-top: -5px; border-radius: var(--radius-pill); background: var(--ink); box-shadow: 0 0 0 2px var(--surface-panel); }
+.of-range::-moz-range-thumb { width: 14px; height: 14px; border: 0; border-radius: var(--radius-pill); background: var(--ink); box-shadow: 0 0 0 2px var(--surface-panel); }
+
+/* ── Confirm overlay ─────────────────────────────────────────────────────── */
+.of-overlay {
+  position: absolute; inset: 0; z-index: var(--z-overlay);
+  display: flex; align-items: center; justify-content: center;
+  background: color-mix(in srgb, var(--surface-page) 84%, transparent); backdrop-filter: blur(2px); border-radius: var(--radius-lg);
+}
+/* závoj bere barvu z surface-page, takže sedí v obou tématech */
+.of-dialog {
+  width: 280px; padding: var(--space-16); display: flex; flex-direction: column; gap: var(--space-8);
+  background: var(--surface-raised); border: var(--border-hair) solid var(--line); border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-pop);
+}
+.of-dialog h4 { margin: 0; font: 700 15px/20px var(--font-sans); color: var(--ink); } /* title */
+.of-dialog p { margin: 0 0 var(--space-6); font: 400 12px/16px var(--font-sans); color: var(--ink-2); } /* body-sm */
+.of-dialog .of-row { gap: var(--space-6); }
+.of-dialog .of-btn { flex: 1; }
+
+/* ── Result frame (WinnerBanner) ─────────────────────────────────────────── */
+.of-result {
+  display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: var(--space-20);
+  padding: var(--space-20) var(--space-24); background: var(--surface-panel);
+  border: var(--border-frame) solid var(--line-ink); border-radius: var(--radius-xl);
+}
+.of-team-badge {
+  width: 44px; height: 44px; display: flex; align-items: center; justify-content: center;
+  background: var(--ink); color: var(--surface-panel); font: 800 24px/1 var(--font-display);
+}
+.of-result .of-eyebrow { color: var(--highlight-ink); }
+.of-result h2 { margin: var(--space-2) 0 var(--space-4); font: 800 36px/36px var(--font-display); letter-spacing: -.4px; text-transform: uppercase; color: var(--ink); } /* display-lg */
+.of-result h2 em { font-style: normal; color: var(--done); }
+.of-result p { margin: 0; font: 400 13px/20px var(--font-sans); color: var(--ink-2); }
+.of-note {
+  max-width: 220px; padding: var(--space-8) var(--space-12); background: var(--surface-paper);
+  font: 700 20px/22px var(--font-hand); color: var(--ink-2); transform: rotate(-1.5deg); /* annotation */
+}
+
+/* ── Tutorial ────────────────────────────────────────────────────────────── */
+.of-tutorial {
+  width: 400px; max-width: 100%; padding: 18px var(--space-20) var(--space-16);
+  display: flex; flex-direction: column; gap: var(--space-12);
+  background: var(--surface-bar); color: var(--ink-on-bar);
+  border: var(--border-hair) solid var(--line-on-bar); border-radius: var(--radius-lg); box-shadow: var(--shadow-pop);
+}
+.of-tutorial-top { display: flex; justify-content: space-between; align-items: center; }
+.of-tutorial-step { font: 600 10px/12px var(--font-mono); letter-spacing: 1.2px; text-transform: uppercase; color: var(--highlight); }
+.of-tutorial-skip { padding: 0; border: 0; background: none; color: var(--ink-on-bar); font: 400 12px/16px var(--font-sans); text-decoration: underline; text-underline-offset: 2px; cursor: pointer; }
+.of-tutorial h4 { margin: 0; font: 800 20px/22px var(--font-display); text-transform: uppercase; color: var(--ink-inverse); }
+.of-tutorial p { margin: 0; font: 400 13px/20px var(--font-sans); color: var(--ink-on-bar); }
+.of-tutorial-actions { display: flex; justify-content: flex-end; }
+.of-ring { border: var(--border-active) solid #ffffffbf; border-radius: 15px; animation: of-ring 2.2s ease-in-out infinite; }
+@keyframes of-ring { 0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 55%, transparent); } 50% { box-shadow: 0 0 0 6px color-mix(in srgb, var(--accent) 0%, transparent); } }
+
+/* ── Lead time chart ─────────────────────────────────────────────────────── */
+.of-chart { position: relative; height: 130px; padding: 6px var(--space-8) 16px 32px; }
+.of-plot { position: absolute; left: 32px; right: var(--space-8); top: 6px; bottom: 16px; background: var(--surface-subtle); border: var(--border-hair) solid var(--line); border-radius: var(--radius-sm); overflow: hidden; }
+.of-grid { position: absolute; left: 0; right: 0; height: 1px; background: var(--line-2); }
+.of-ref { position: absolute; left: 0; right: 0; height: 0; }
+.of-ref--avg { border-top: var(--border-hair) dashed var(--ink); }
+.of-ref--p85 { border-top: var(--border-hair) solid var(--wait); }
+.of-ref span { z-index: 1; position: absolute; top: -13px; padding: 0 var(--space-4); background: var(--surface-subtle); font: 600 10px/12px var(--font-mono); }
+.of-ref--avg span { left: var(--space-4); color: var(--ink); }
+.of-ref--p85 span { right: var(--space-4); color: var(--wait); }
+.of-dot { position: absolute; width: 6px; height: 6px; border-radius: var(--radius-pill); background: var(--accent); transform: translate(-50%, -50%); box-shadow: 0 0 0 1.5px var(--surface-subtle); }
+.of-axis-y { position: absolute; left: 0; top: 6px; bottom: 16px; width: 28px; display: flex; flex-direction: column; justify-content: space-between; text-align: right; font: 500 10px/12px var(--font-mono); color: var(--ink-3); }
+.of-axis-x { position: absolute; left: 32px; right: var(--space-8); bottom: 0; display: flex; justify-content: space-between; font: 500 10px/12px var(--font-mono); color: var(--ink-3); }
+.of-chart-empty { height: 130px; display: flex; align-items: center; justify-content: center; border: var(--border-hair) dashed var(--line-control); border-radius: var(--radius-sm); font: 400 12px/16px var(--font-sans); color: var(--ink-3); }
+
+/* ── Revenue curve preview ───────────────────────────────────────────────── */
+.of-curve svg { display: block; width: 100%; max-width: 250px; height: 46px; overflow: visible; }
+.of-curve .flat { stroke: var(--ink-3); stroke-width: .8; stroke-dasharray: 2 2; }
+.of-curve .flat-label { font: 500 10px var(--font-mono); fill: var(--ink-3); }
+.of-curve .curve { fill: none; stroke: var(--done); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+.of-curve figcaption { margin-top: var(--space-2); font: 400 12px/16px var(--font-sans); color: var(--ink-3); }
+
+/* ── Team map (záměrné rozšíření) ────────────────────────────────────────── */
+.of-map { display: grid; grid-template-columns: 22px 1fr; grid-template-rows: 1fr 22px; gap: var(--space-6); }
+.of-map-y { writing-mode: vertical-rl; transform: rotate(180deg); text-align: center; }
+.of-map-x { grid-column: 2; text-align: center; }
+.of-map-y, .of-map-x { font: 500 10px/12px var(--font-mono); letter-spacing: 1.1px; text-transform: uppercase; color: var(--ink-3); }
+.of-map-y b, .of-map-x b { color: var(--ink); font-weight: 700; }
+.of-map-field { position: relative; display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; gap: var(--space-4); }
+.of-quad { position: relative; padding: var(--space-8) 10px; border-radius: var(--radius-xs); }
+.of-quad span { font: 600 10px/12px var(--font-mono); letter-spacing: 1.1px; text-transform: uppercase; }
+.of-quad--directing  { background: var(--map-field-directing); }
+.of-quad--directing span  { color: var(--map-directing); }
+.of-quad--driving    { background: var(--map-field-driving); }
+.of-quad--driving span    { color: var(--map-driving); }
+.of-quad--doing      { background: var(--map-field-doing); }
+.of-quad--doing span      { color: var(--map-doing); }
+.of-quad--delivering { background: var(--map-field-delivering); }
+.of-quad--delivering span { color: var(--map-delivering); }
+.of-map-svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; }
+.of-map-svg .unit { fill: var(--surface-panel); stroke: var(--ink); stroke-width: 2; }
+.of-map-svg .unit-dot { fill: var(--ink); }
+.of-map-svg .move { fill: none; stroke: var(--ink-2); stroke-width: 1.5; stroke-dasharray: 4 3; }
+.of-map-svg .head { fill: var(--ink-2); }
+.of-map-svg text { font: 700 15px var(--font-hand); fill: var(--ink); } /* annotation-sm */
+
+</style>
+<style>
+  html, body { height: 100%; }
+  body { overflow: auto; }
+  .app { height: 100vh; min-height: 720px; min-width: 1240px; display: flex; flex-direction: column; }
+  .view { flex: 1; min-height: 0; display: none; }
+  .view.on { display: flex; }
+  .glyph-box { width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border: 1px solid var(--line-on-bar); }
+  .of-tab:focus-visible { outline-offset: -4px; }
+
+  @keyframes run-pulse { 0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--action) 45%, transparent); } 60% { box-shadow: 0 0 0 7px color-mix(in srgb, var(--action) 0%, transparent); } }
+  .pulse { animation: run-pulse 2s ease-out infinite; }
+  @media (prefers-reduced-motion: reduce) { .pulse, .of-live, .of-chip--pulse, .of-seg-task--flash::after { animation: none !important; } }
+
+  /* Compare */
+  .cmp { flex-direction: column; gap: var(--space-12); padding: var(--space-16); overflow: auto; }
+  .cmp-cols { flex: 1; display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-12); min-height: 0; }
+  .team { display: flex; flex-direction: column; min-height: 0; }
+  .team-head { display: flex; align-items: center; justify-content: space-between; gap: var(--space-12); padding: var(--space-12) var(--space-16); border-bottom: 1px solid var(--line-2); }
+  .team-head .of-heading { font-size: 16px; line-height: 20px; }
+  .board { display: grid; grid-template-columns: 1fr 1fr 1fr; height: 262px; border-bottom: 1px solid var(--line-2); }
+  .board .of-col { min-height: 0; overflow: hidden; }
+  .board .of-col-body { overflow: hidden; flex: 1; min-height: 0; }
+  .more { font: 500 10px/12px var(--font-mono); color: var(--ink-3); padding: var(--space-2) var(--space-4); }
+  .stats3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--space-8); padding: var(--space-12) var(--space-16); border-bottom: 1px solid var(--line-2); }
+  .members { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: var(--space-8); padding: var(--space-8) var(--space-16) var(--space-16); }
+  .members .of-member { padding: var(--space-6) var(--space-8); gap: var(--space-4); }
+  .members .of-member-task { min-height: 26px; }
+
+  /* Advanced / Cash Flow */
+  .adv { display: none; }
+  .adv.on { display: grid; grid-template-columns: var(--size-sidebar) 1fr var(--size-aside); }
+  .side { background: var(--surface-panel); border-right: 1px solid var(--line); display: flex; flex-direction: column; min-height: 0; }
+  .side-list { flex: 1; overflow: auto; padding: 0 var(--space-12) var(--space-12); display: flex; flex-direction: column; gap: var(--space-6); }
+  .settings { border-top: 1px solid var(--line); padding: var(--space-12) var(--space-16) var(--space-16); display: flex; flex-direction: column; gap: var(--space-8); }
+  .acc { border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--surface-subtle); overflow: hidden; }
+  .acc-head { display: flex; width: 100%; justify-content: space-between; align-items: center; padding: var(--space-8) 10px; border: 0; background: none; cursor: pointer;
+              font: 500 11px/16px var(--font-mono); letter-spacing: 1.1px; text-transform: uppercase; color: var(--ink-2); }
+  .acc-body { display: none; padding: var(--space-12) 10px; flex-direction: column; gap: var(--space-12); border-top: 1px solid var(--line-2); background: var(--surface-panel); }
+  .acc.open .acc-body { display: flex; }
+  .center { display: flex; flex-direction: column; min-height: 0; min-width: 0; }
+  .inprog { flex: 1; overflow: auto; padding: 0 var(--space-16) var(--space-16); display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-8); align-content: start; }
+  .units { border-top: 1px solid var(--line); background: var(--surface-subtle); padding-bottom: var(--space-12); }
+  .units-grid { padding: 0 var(--space-16); display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--space-8); }
+  .add-unit { margin: var(--space-8) var(--space-16) 0; width: calc(100% - 32px); border-style: dashed; background: transparent; color: var(--ink-3); }
+  .aside { border-left: 1px solid var(--line); background: var(--surface-panel); display: flex; flex-direction: column; min-height: 0; }
+  .metrics { padding: 0 14px 14px; display: grid; gap: var(--space-6); border-bottom: 1px solid var(--line); }
+  .done-list { flex: 1; overflow: auto; padding: 0 14px 14px; display: flex; flex-direction: column; gap: var(--space-4); }
+  .done-row { --hue: 215; display: flex; align-items: center; gap: var(--space-6); padding: 5px var(--space-8); border-radius: var(--radius-sm);
+              background: oklch(97.5% 0.02 var(--hue)); border: 1px solid oklch(86% 0.05 var(--hue)); font: 500 11px/16px var(--font-mono); color: var(--ink-2); }
+  [data-theme="dark"] .done-row { background: oklch(28% 0.03 var(--hue)); border-color: oklch(42% 0.05 var(--hue)); }
+  .done-row .of-swatch { width: 8px; height: 8px; border-radius: var(--radius-xs); background: oklch(68% 0.13 var(--hue)); flex-shrink: 0; }
+  .done-row .name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .done-row .val { color: var(--ink-3); }
+  .done-row .rev { color: var(--done); font-weight: 700; }
+  .of-help .of-tooltip { display: none; }
+  .of-help:hover .of-tooltip, .of-help:focus-within .of-tooltip { display: block; }
+  .of-help .of-tooltip { left: 0; transform: none; }
+  .of-help .of-tooltip::after { left: 8px; transform: none; }
+  .split-legend { display: flex; gap: var(--space-8); font: 500 10px/12px var(--font-mono); color: var(--ink-3); }
+
+  /* Toolbar makety */
+  .m-select { height: var(--size-control); padding: 0 var(--space-8); border: 1px solid var(--line-control); border-radius: var(--radius-sm); background: var(--surface-panel); color: var(--ink); font: 600 11px/1 var(--font-mono); }
+  .m-toolbar { position: fixed; right: 16px; bottom: 16px; z-index: 2000; display: flex; align-items: center; gap: var(--space-8);
+               padding: var(--space-6) var(--space-6) var(--space-6) var(--space-12); background: var(--surface-raised);
+               border: 1px solid var(--line); box-shadow: var(--shadow-pop); }
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="of-topbar">
+    <div class="of-brand">
+      <span class="glyph-box"><svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true"><circle cx="3" cy="3" r="1.6" fill="white"/><circle cx="11" cy="3" r="1.6" fill="white"/><circle cx="7" cy="11" r="1.6" fill="white"/><path d="M3 3 L11 3 M3 3 L7 11 M11 3 L7 11" stroke="white" stroke-width="0.7"/></svg></span>
+      <span class="of-wordmark"><b>Org Flow Simulator</b><span>Same backlog · different team</span></span>
+    </div>
+    <nav class="of-tabs" role="tablist" aria-label="Mode">
+      <button class="of-tab" role="tab" data-mode="compare" aria-selected="true">Compare</button>
+      <button class="of-tab" role="tab" data-mode="advanced" aria-selected="false">Advanced</button>
+      <button class="of-tab" role="tab" data-mode="cashflow" aria-selected="false">Cash Flow</button>
+    </nav>
+    <div class="of-controls" id="controls"></div>
+  </header>
+
+  <main class="view cmp on" id="view-compare">
+    <div id="winner"></div>
+    <div class="cmp-cols"><section class="of-panel team" id="team-A"></section><section class="of-panel team" id="team-B"></section></div>
+  </main>
+  <main class="view adv" id="view-advanced"></main>
+  <main class="view adv" id="view-cashflow"></main>
+</div>
+
+<div class="m-toolbar" aria-label="Mockup controls">
+  <span class="of-label">Theme</span>
+  <div class="of-seg" role="group" aria-label="Theme" id="theme">
+    <button aria-pressed="true" data-theme-id="light">Light</button><button aria-pressed="false" data-theme-id="dark">Workshop dark</button>
+  </div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  // ── Data ─────────────────────────────────────────────────────────────────
+  var ROLE = {
+    DSGN: ['Design', 'rose'], FE: ['Frontend', 'blue'], BE: ['Backend', 'brick'], QA: ['Testing', 'green'],
+    OPS: ['DevOps', 'ochre'], DATA: ['Data', 'teal'],
+    ACQ: ['Client Acquisition', 'teal'], PAY: ['Payments', 'blue'], PLAT: ['Platform', 'brick'],
+    CRM: ['CRM', 'ochre'], ITST: ['Integration Testing', 'green']
+  };
+  var COMPARE_ROLES = ['DSGN', 'FE', 'BE', 'DATA', 'QA', 'OPS'];
+  var TEAMS_ROLES = ['DSGN', 'ACQ', 'PAY', 'PLAT', 'CRM', 'ITST'];
+  var MEMBER_NAMES = ['Ada', 'Ben', 'Chen', 'Dani', 'Eli', 'Fae'];
+  var FEATURE_NAMES = ['Login flow', 'Search filters', 'Export CSV', 'Dark mode', 'Onboarding', 'Notifications', 'API rate limits',
+    'Audit log', 'Billing portal', 'SSO', 'Bulk actions', 'Webhooks', 'Mobile nav', 'Empty states', 'Settings page',
+    'Activity feed', 'Permissions', 'Inline editing', 'Drag & drop', 'Comments', 'Reactions', '2FA', 'Profile page',
+    'Charts', 'Keyboard shortcuts', 'File upload', 'Sharing', 'Tags', 'Saved views', 'Reports'];
+  var FEATURE_HUES = [12, 45, 90, 140, 180, 215, 260, 300, 335];
+  var TYPE_LABEL = { single: 'Single-skill specialists', double: 'Double-skill specialists', multi: 'Multi-skill specialists' };
+  var ROLES_PER_TYPE = { single: 1, double: 2, multi: 3 };
+  var SIM_PER_REAL = 3;   // simulované sekundy za reálnou sekundu při 1×
+  var WIP_LIMIT = 4;
+
+  function rng(seed) { return function () { seed |= 0; seed = seed + 0x6D2B79F5 | 0; var t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+  // Iniciála člena; u jednotek „Team C“ písmeno týmu, jinak by všechny měly „T“
+  function initial(n) { return /^Team /.test(n) ? n.slice(5, 6) : n[0]; }
+  function esc(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;'); }
+  function pad(n) { return (n < 10 ? '0' : '') + n; }
+  function fmtTime(s) { var m = Math.floor(s / 60); return pad(m) + ':' + pad(Math.floor(s % 60)) + '.' + Math.floor((s * 10) % 10); }
+  function fmtEur(n) { return '€' + Math.round(n).toLocaleString('en-US'); }
+
+  function makeBacklog(count, roles, seed) {
+    var r = rng(seed), list = [];
+    for (var i = 0; i < count; i++) {
+      var n = 3 + Math.floor(r() * 3), pool = roles.slice(), picked = [];
+      while (picked.length < n) picked.push(pool.splice(Math.floor(r() * pool.length), 1)[0]);
+      picked.sort(function (a, b) { return roles.indexOf(a) - roles.indexOf(b); });
+      list.push({
+        id: i + 1, name: 'F-' + String(i + 1).padStart(3, '0') + ' ' + FEATURE_NAMES[i % FEATURE_NAMES.length],
+        hue: FEATURE_HUES[i % FEATURE_HUES.length], revenue: Math.round(260 + r() * 180),
+        tasks: picked.map(function (role, k) { return { id: k, role: role, work: 2 + r() * 4, progress: 0, status: 'todo', who: null }; }),
+        handoffs: 0, reworks: 0, lastWho: null
+      });
+    }
+    return list;
+  }
+  function cloneBacklog(b) { return b.map(function (f) { var c = Object.assign({}, f); c.tasks = f.tasks.map(function (t) { return Object.assign({}, t); }); return c; }); }
+
+  function makeTeam(names, rolesFor, backlog, seed) {
+    return {
+      members: names.map(function (n, i) { return { name: n, roles: rolesFor(i), task: null, feature: null, ai: 1 }; }),
+      backlog: backlog, inProgress: [], done: [], t: 0, wipArea: 0, wait: 0, revenue: 0,
+      finished: false, started: false, r: rng(seed)
+    };
+  }
+
+  // ── Zjednodušená simulace (jen pro maketu) ───────────────────────────────
+  function step(team, dt) {
+    if (team.finished) return;
+    team.t += dt;
+    team.wipArea += team.inProgress.length * dt;
+    team.done.forEach(function (f) { team.revenue += f.revenue * dt / 3; });
+    team.members.forEach(function (m) {
+      if (!m.task) return;
+      m.task.progress += dt * m.ai;
+      if (m.task.progress < m.task.work) return;
+      var f = m.feature, t = m.task;
+      t.progress = t.work; t.status = 'done'; m.task = null; m.feature = null;
+      // Rework: test občas vrátí předchozí task (zbylý progres zůstává)
+      if ((t.role === 'QA' || t.role === 'ITST') && t.id > 0 && team.r() < 0.12) {
+        var prev = f.tasks[t.id - 1]; prev.status = 'todo'; prev.progress = prev.work * 0.5; prev.who = null;
+        t.status = 'todo'; t.progress = 0; t.who = null; f.reworks++; f.flash = true;
+        return;
+      }
+      if (f.tasks.every(function (x) { return x.status === 'done'; })) {
+        f.doneAt = team.t; f.lead = team.t - f.startedAt;
+        team.inProgress.splice(team.inProgress.indexOf(f), 1); team.done.push(f);
+      }
+    });
+    team.members.forEach(function (m) {
+      if (m.task) return;
+      var pick = null;
+      for (var i = 0; i < team.inProgress.length && !pick; i++) {
+        var f = team.inProgress[i], next = f.tasks.filter(function (x) { return x.status !== 'done'; })[0];
+        if (next && next.status === 'todo' && m.roles.indexOf(next.role) >= 0) pick = [f, next];
+      }
+      if (!pick && team.inProgress.length < WIP_LIMIT) {
+        for (var j = 0; j < team.backlog.length && !pick; j++) {
+          if (m.roles.indexOf(team.backlog[j].tasks[0].role) >= 0) {
+            var nf = team.backlog.splice(j, 1)[0]; nf.startedAt = team.t; team.inProgress.push(nf); pick = [nf, nf.tasks[0]];
+          }
+        }
+      }
+      if (pick) {
+        if (pick[0].lastWho && pick[0].lastWho !== m.name) pick[0].handoffs++;
+        pick[0].lastWho = m.name; pick[1].status = 'doing'; pick[1].who = m.name; m.task = pick[1]; m.feature = pick[0];
+      } else if (team.backlog.length || team.inProgress.length) { m.waiting = true; team.wait += dt; return; }
+      m.waiting = false;
+    });
+    if (!team.backlog.length && !team.inProgress.length) team.finished = true;
+  }
+  function advance(team, dt) { while (dt > 0) { var d = Math.min(0.1, dt); step(team, d); dt -= d; } }
+  function stats(team) {
+    var n = team.done.length, sum = 0, ho = 0;
+    team.done.forEach(function (f) { sum += f.lead; ho += f.handoffs; });
+    var leads = team.done.map(function (f) { return f.lead; }).sort(function (a, b) { return a - b; });
+    return { count: n, avg: n ? sum / n : 0, wip: team.t ? team.wipArea / team.t : 0, handoffs: n ? ho / n : 0,
+             p85: n ? leads[Math.min(n - 1, Math.floor(n * 0.85))] : 0, max: n ? leads[n - 1] : 0 };
+  }
+
+  // ── Stavební kameny UI (třídy z bundle.css) ──────────────────────────────
+  function roleChip(role, removable) {
+    var r = ROLE[role];
+    return '<span class="of-role" style="--role:var(--role-' + r[1] + ')">' + r[0] + (removable ? ' <button class="of-role-x" aria-label="Remove ' + r[0] + '">×</button>' : '') + '</span>';
+  }
+  function bar(f, compact, coord) {
+    var total = f.tasks.reduce(function (s, t) { return s + t.work; }, 0);
+    return '<div class="of-bar' + (compact ? ' of-bar--compact' : '') + '">' + f.tasks.map(function (t) {
+      var st = t.status === 'todo' && t.progress > 0 ? 'rework' : t.status;
+      var w = t.status === 'done' ? 100 : (t.progress / t.work) * 100;
+      var label = compact ? '' : t.status === 'doing' ? '<b>' + initial(t.who) + '</b>' : t.status === 'done' ? '<b>✓</b>' : '';
+      return '<div class="of-seg-task' + (coord && st === 'rework' && f.flash ? ' of-seg-task--flash' : '') + '" data-status="' + st + '" style="width:' + (t.work / total * 100).toFixed(1) + '%; --role:var(--role-' + ROLE[t.role][1] + ')"><i' + (st === 'todo' ? '' : ' style="width:' + w.toFixed(0) + '%"') + '></i>' + label + '</div>';
+    }).join('') + '</div>';
+  }
+  function featureCard(f, opts) {
+    opts = opts || {};
+    var active = f.tasks.some(function (t) { return t.status === 'doing'; });
+    var meta = '';
+    if (opts.coord) {
+      if (f.handoffs) meta += '<span class="of-chip of-chip--handoff">⇄ ' + f.handoffs + '</span>';
+      if (f.reworks) meta += '<span class="of-chip of-chip--rework">↺ ' + f.reworks + '</span>';
+    }
+    if (opts.revenue) meta += '<span class="of-revenue">€' + f.revenue + '/tick</span>';
+    if (!opts.compact) meta += '<span class="of-tasks-count">' + f.tasks.length + 't</span>';
+    return '<div class="of-feature' + (opts.neutral ? ' of-feature--neutral' : '') + '" style="--hue:' + f.hue + '"' + (opts.activeRing && active ? ' data-active="true"' : '') + '>' +
+      '<div class="of-feature-top"><span class="of-feature-name">' + esc(f.name) + '</span><span class="of-feature-meta">' + meta + '</span></div>' + bar(f, opts.compact, opts.coord) + '</div>';
+  }
+  function memberCard(m, team, opts) {
+    var body;
+    if (m.task) {
+      body = '<div class="of-member-line"><span class="of-swatch" style="--hue:' + m.feature.hue + '"></span><span class="of-feature-name">' + esc(m.feature.name) + '</span></div>' +
+             '<div class="of-progress" style="--role:var(--role-' + ROLE[m.task.role][1] + ')"><i style="width:' + (m.task.progress / m.task.work * 100).toFixed(0) + '%"></i></div>';
+    } else body = '<span class="of-state">' + (team.started && m.waiting && !team.finished ? 'Waiting…' : 'Idle') + '</span>';
+    var waiting = team.started && !m.task && m.waiting && !team.finished;
+    var tools = '';
+    if (opts.tools) {
+      tools = m.ai > 1
+        ? '<button class="of-mini of-mini--ai-on" data-ai="' + m.name + '" aria-label="AI speed-up ' + m.ai + '×"><svg width="8" height="10" viewBox="0 0 8 10" aria-hidden="true"><path d="M5 0 L0 6 H3.5 L2.5 10 L8 3.5 H4.5 Z" fill="currentColor"/></svg>' + m.ai + '×</button>'
+        : '<button class="of-mini" data-ai="' + m.name + '" aria-label="AI speed-up off">AI</button>';
+      tools += '<button class="of-mini" aria-label="Remove unit">×</button>';
+    }
+    return '<div class="of-member"' + (waiting ? ' data-state="waiting"' : '') + '>' +
+      '<div class="of-member-top"><span class="of-avatar">' + initial(m.name) + '</span><span class="of-member-name">' + esc(m.name) + '</span>' + tools + '</div>' +
+      '<div class="of-row" style="gap:var(--space-4)">' + m.roles.map(function (r) { return roleChip(r, opts.tools); }).join('') + (opts.tools ? '<button class="of-role-add" aria-label="Add specialization">+</button>' : '') + '</div>' +
+      '<div class="of-member-task">' + body + '</div></div>';
+  }
+  function helpLabel(label, tip) {
+    return '<span class="of-stat-label">' + label + (tip ? ' <span class="of-help"><button class="of-help-btn" aria-label="About ' + label + '">?</button><span class="of-tooltip" role="tooltip">' + tip + '</span></span>' : '') + '</span>';
+  }
+  function delta(cur, prev, higherIsBetter) {
+    if (prev === undefined || prev === null || !prev) return '';
+    var d = (cur - prev) / prev * 100, txt = Math.abs(d).toFixed(1);
+    if (txt === '0.0') return '<span class="of-delta of-delta--flat">→ 0.0% <span>vs prev run</span></span>';
+    var good = higherIsBetter ? d > 0 : d < 0;
+    return '<span class="of-delta of-delta--' + (good ? 'good' : 'bad') + '">' + (d < 0 ? '↓ ' : '↑ ') + txt + '% <span>vs prev run</span></span>';
+  }
+  function tile(label, value, unit, opts) {
+    opts = opts || {};
+    return '<div class="of-stat' + (opts.cls || '') + '"><div class="of-stat-head">' + helpLabel(label, opts.tip) + (opts.flag || '') + '</div>' +
+      '<span class="of-stat-value"' + (opts.color ? ' style="color:' + opts.color + '"' : '') + '>' + value + (unit ? '<small>' + unit + '</small>' : '') + '</span>' + (opts.extra || '') + '</div>';
+  }
+  function timerTile(team) {
+    if (team.finished) return tile('Total time', fmtTime(team.t), '', { cls: ' of-stat--timer of-stat--done', flag: '<span class="of-stat-flag">✓ Complete</span>' });
+    return tile('Total time', fmtTime(team.t), '', { cls: ' of-stat--timer', flag: team.started ? '<span class="of-live" aria-label="Running"></span>' : '' });
+  }
+  function chart(team) {
+    var s = stats(team);
+    if (!s.count) return '<div class="of-chart-empty">Waiting for first completed feature…</div>';
+    var maxY = Math.max(s.max * 1.1, 5), n = team.done.length;
+    var dots = team.done.map(function (f, i) {
+      return '<div class="of-dot" style="left:' + (n === 1 ? 50 : i / (n - 1) * 96 + 2).toFixed(1) + '%; top:' + ((1 - f.lead / maxY) * 100).toFixed(1) + '%" title="' + esc(f.name) + ' · ' + f.lead.toFixed(1) + 's"></div>';
+    }).join('');
+    return '<div class="of-chart"><div class="of-axis-y"><span>' + maxY.toFixed(0) + 's</span><span>' + (maxY / 2).toFixed(0) + 's</span><span>0s</span></div>' +
+      '<div class="of-plot"><div class="of-grid" style="top:25%"></div><div class="of-grid" style="top:50%"></div><div class="of-grid" style="top:75%"></div>' +
+      '<div class="of-ref of-ref--p85" style="top:' + ((1 - s.p85 / maxY) * 100).toFixed(1) + '%"><span>p85 ' + s.p85.toFixed(1) + 's</span></div>' +
+      '<div class="of-ref of-ref--avg" style="top:' + ((1 - s.avg / maxY) * 100).toFixed(1) + '%"><span>avg ' + s.avg.toFixed(1) + 's</span></div>' + dots + '</div>' +
+      '<div class="of-axis-x"><span>oldest</span><span>completion order →</span><span>newest</span></div></div>';
+  }
+  function seg(label, options, value, attr) {
+    return '<div class="of-seg" role="group" aria-label="' + label + '">' + options.map(function (o) {
+      return '<button ' + attr + '="' + o[0] + '" aria-pressed="' + (o[0] === value) + '">' + o[1] + '</button>';
+    }).join('') + '</div>';
+  }
+
+  // ── Stav makety ──────────────────────────────────────────────────────────
+  var mode = 'compare';
+  var cmp = { types: { A: 'single', B: 'double' }, speed: 1, paused: true, teams: {} };
+  var lab = {
+    advanced: { speed: 1, paused: true, prev: null, curve: 'flat', open: { backlog: true } },
+    cashflow: { speed: 1, paused: true, prev: null, curve: 'j-curve', open: { backlog: true } }
+  };
+
+  function resetCompare() {
+    var backlog = makeBacklog(20, COMPARE_ROLES, 7);
+    ['A', 'B'].forEach(function (k, i) {
+      var per = ROLES_PER_TYPE[cmp.types[k]];
+      cmp.teams[k] = makeTeam(MEMBER_NAMES, function (m) { var r = []; for (var x = 0; x < per; x++) r.push(COMPARE_ROLES[(m + x) % 6]); return r; }, cloneBacklog(backlog), 11 + i);
+    });
+    cmp.paused = true;
+  }
+  function resetLab(key, warm) {
+    var L = lab[key];
+    var backlog = makeBacklog(key === 'cashflow' ? 100 : 40, TEAMS_ROLES, key === 'cashflow' ? 23 : 19);
+    if (key === 'cashflow') backlog.sort(function (a, b) { return b.revenue - a.revenue; });
+    L.team = makeTeam(['Team A', 'Team B', 'Team C', 'Team D', 'Team E', 'Team F'], function (i) { return [TEAMS_ROLES[i]]; }, backlog, 31);
+    if (warm) { L.team.members[2].ai = 5; L.team.started = true; advance(L.team, warm); }
+    L.paused = true;
+  }
+
+  // ── Render ───────────────────────────────────────────────────────────────
+  function renderControls() {
+    var el = document.getElementById('controls');
+    if (mode === 'compare') {
+      var A = cmp.teams.A, B = cmp.teams.B, both = A.finished && B.finished, started = A.started;
+      var run = both ? '<button class="of-btn of-btn--done" disabled><span class="of-glyph">✓</span>Done</button>'
+        : cmp.paused ? '<button class="of-btn of-btn--primary' + (started ? '' : ' pulse') + '" data-act="run"><span class="of-glyph">▶</span>Run</button>'
+        : '<button class="of-btn of-btn--running" data-act="run"><span class="of-glyph">❙❙</span>Pause</button>';
+      el.innerHTML = '<button class="of-icon-btn of-icon-btn--on-bar" aria-label="Restart tutorial">?</button>' +
+        '<button class="of-btn of-btn--on-bar" data-act="reset"><span class="of-glyph">↺</span>Reset</button>' +
+        seg('Speed', [[0.5, '0.5×'], [1, '1×'], [10, '10×']].map(function (o) { return [String(o[0]), o[1]]; }), String(cmp.speed), 'data-speed').replace('class="of-seg"', 'class="of-seg of-seg--on-bar"') + run;
+    } else {
+      var L = lab[mode], T = L.team;
+      var btn = T.finished ? '<button class="of-btn of-btn--done" disabled><span class="of-glyph">✓</span>Done</button>'
+        : L.paused ? '<button class="of-btn of-btn--primary' + (T.started ? '' : ' pulse') + '" data-act="run"><span class="of-glyph">▶</span>' + (T.started ? 'Resume' : 'Start') + '</button>'
+        : '<button class="of-btn of-btn--running" data-act="run"><span class="of-glyph">❙❙</span>Pause</button>';
+      el.innerHTML = '<button class="of-icon-btn of-icon-btn--on-bar" aria-label="Restart tutorial">?</button>' + btn +
+        seg('Speed', [['0.5', '0.5×'], ['1', '1×'], ['2', '2×'], ['10', '10×']], String(L.speed), 'data-speed').replace('class="of-seg"', 'class="of-seg of-seg--on-bar"') +
+        '<button class="of-btn of-btn--on-bar" data-act="reset"><span class="of-glyph">↺</span>Reset backlog</button>';
+    }
+  }
+
+  function renderCompareTeam(k) {
+    var T = cmp.teams[k], s = stats(T);
+    var todo = T.backlog.slice(0, 4).map(function (f) { return featureCard(f, { compact: true, neutral: true }); }).join('') +
+      (T.backlog.length > 4 ? '<div class="more">+ ' + (T.backlog.length - 4) + ' more</div>' : '') + (T.backlog.length ? '' : '<div class="of-empty">Backlog empty</div>');
+    var doing = T.inProgress.map(function (f) { return featureCard(f, { compact: true, activeRing: true }); }).join('') || '<div class="of-empty">Nothing in flight</div>';
+    var done = T.done.slice(-4).reverse().map(function (f) { return featureCard(f, { compact: true, neutral: true }); }).join('') || '<div class="of-empty">None yet</div>';
+    document.getElementById('team-' + k).innerHTML =
+      '<div class="team-head"><h3 class="of-heading">' + k + ' · ' + TYPE_LABEL[cmp.types[k]] + '</h3>' +
+        seg('Single / Double / Multi', [['single', 'Single'], ['double', 'Double'], ['multi', 'Multi']], cmp.types[k], 'data-type-' + k) + '</div>' +
+      '<div class="board">' +
+        '<div class="of-col"><div class="of-col-head">To do <span class="of-count">' + T.backlog.length + '</span></div><div class="of-col-body">' + todo + '</div></div>' +
+        '<div class="of-col"><div class="of-col-head of-col-head--doing">In progress <span class="of-count">' + T.inProgress.length + '</span></div><div class="of-col-body">' + doing + '</div></div>' +
+        '<div class="of-col"><div class="of-col-head of-col-head--done">Done <span class="of-count">' + T.done.length + '</span></div><div class="of-col-body">' + done + '</div></div>' +
+      '</div>' +
+      '<div class="stats3">' + timerTile(T) +
+        tile('Avg cycle time', s.count ? s.avg.toFixed(1) : '—', s.count ? 's' : '', { tip: '<b>Cycle time.</b> Average time from start to done for completed features.' }) +
+        tile('Avg WIP', T.t ? s.wip.toFixed(1) : '—', '', { tip: '<b>Work in progress.</b> Average number of features started but not finished.' }) + '</div>' +
+      '<div class="of-panel-head" style="padding-bottom:0"><h3>Team composition</h3></div>' +
+      '<div class="members">' + T.members.map(function (m) { return memberCard(m, T, {}); }).join('') + '</div>';
+  }
+  function renderWinner() {
+    var A = cmp.teams.A, B = cmp.teams.B, el = document.getElementById('winner');
+    if (!A.finished || !B.finished) { el.innerHTML = ''; return; }
+    var a = stats(A).avg, b = stats(B).avg, d = (b - a) / a * 100, bWins = d < 0, w = bWins ? 'B' : 'A';
+    el.innerHTML = '<div class="of-result" role="status"><span class="of-team-badge" aria-hidden="true">' + w + '</span><div>' +
+      '<div class="of-eyebrow">Result · avg lead time</div><h2>Team ' + w + ' was <em>' + Math.abs(d).toFixed(0) + '% faster</em></h2>' +
+      '<p>' + TYPE_LABEL[cmp.types[w]] + '. ' + (bWins ? 'Broader skills meant less waiting between stages.' : 'Deep specialisation meant each person stayed fully loaded.') + '</p></div>' +
+      '<div class="of-note">same backlog!</div></div>';
+  }
+
+  function renderLab(key) {
+    var L = lab[key], T = L.team, s = stats(T), cash = key === 'cashflow', prev = L.prev || {};
+    var backlogCards = T.backlog.slice(0, 30).map(function (f) { return featureCard(f, { revenue: cash }); }).join('');
+    var curveSeg = seg('Flat / J-curve / S-curve', [['flat', 'Flat'], ['j-curve', 'J-curve'], ['s-curve', 'S-curve']], L.curve, 'data-curve');
+    var curves = { 'flat': '3,23 247,23', 'j-curve': '3,43 18,42 33,40 48,37 63,33 78,28 94,23 109,18 124,13 140,9 155,6 170,4 186,3 201,3 216,3 232,3 247,3', 's-curve': '3,43 18,43 33,42 48,41 63,39 78,36 94,32 109,29 124,26 140,25 155,24 170,23 186,23 201,23 216,23 232,23 247,23' };
+    var plateau = { 'flat': '1×', 'j-curve': '2×', 's-curve': '1×' };
+    function accHead(id, label) { var on = !!L.open[id]; return '<div class="acc' + (on ? ' open' : '') + '"><button class="acc-head" data-acc="' + id + '" aria-expanded="' + on + '">' + label + ' <span>' + (on ? '▾' : '▸') + '</span></button>'; }
+    var accBacklog = accHead('backlog', 'Backlog') + '<div class="acc-body">' +
+      '<label class="of-slider"><span class="of-slider-head"><span class="of-slider-label">Backlog size</span><span class="of-slider-value">' + (cash ? 100 : 40) + '</span></span><input class="of-range" type="range" min="10" max="200" step="10" value="' + (cash ? 100 : 40) + '" aria-label="Backlog size"></label>' +
+      '<label class="of-slider"><span class="of-slider-head"><span class="of-slider-label">Tasks per feature</span><span class="of-slider-value">3–5</span></span><input class="of-range" type="range" min="1" max="8" value="4" aria-label="Tasks per feature"></label>' +
+      (cash ? '<div class="of-stack" style="gap:var(--space-6)"><span class="of-label">Revenue curve</span>' + curveSeg +
+        '<figure class="of-curve" style="margin:0"><svg viewBox="0 0 250 46" role="img" aria-label="Revenue curve preview"><line class="flat" x1="0" x2="250" y1="23" y2="23"/><text class="flat-label" x="2" y="20">Flat level</text><polyline class="curve" points="' + curves[L.curve] + '"/></svg>' +
+        '<figcaption>Revenue per tick after delivery · 0–16 ticks · plateau ' + plateau[L.curve] + ' Flat</figcaption></figure></div>' : '') +
+      '</div></div>';
+    var html =
+      '<aside class="side">' +
+        '<div class="of-panel-head"><h3>Backlog <span class="of-count">' + T.backlog.length + '</span></h3>' + (cash ? '<span class="of-aside">sorted by revenue</span>' : '') + '</div>' +
+        '<div class="side-list">' + backlogCards + (T.backlog.length > 30 ? '<div class="more">+ ' + (T.backlog.length - 30) + ' more</div>' : '') + '</div>' +
+        '<div class="settings"><span class="of-eyebrow">Settings</span><span class="of-slider-label">Unit preset</span>' +
+          seg('Teams / People', [['teams', 'Teams'], ['people', 'People']], 'teams', 'data-preset') + accBacklog +
+          accHead('spec', 'Specializations') + '<div class="acc-body"><div class="of-row" style="gap:var(--space-4)">' + TEAMS_ROLES.map(function (r) { return roleChip(r, false); }).join('') + '<button class="of-role-add" aria-label="Add specialization">+</button></div><span class="of-stat-hint">Each slot keeps its colour across presets.</span></div></div>' +
+          accHead('team', 'Team') + '<div class="acc-body"><label class="of-slider"><span class="of-slider-head"><span class="of-slider-label">Units</span><span class="of-slider-value">' + T.members.length + '</span></span><input class="of-range" type="range" min="1" max="8" value="' + T.members.length + '" aria-label="Units"></label></div></div>' +
+        '</div>' +
+      '</aside>' +
+      '<section class="center">' +
+        '<div class="of-panel-head"><h3>In progress <span class="of-count">' + T.inProgress.length + '</span></h3><span class="of-aside">auto-scaled</span></div>' +
+        '<div class="inprog">' + (T.inProgress.map(function (f) { return featureCard(f, { activeRing: true, revenue: cash, coord: cash }); }).join('') || '<div class="of-empty">Nothing in flight.</div>') + '</div>' +
+        '<div class="units"><div class="of-panel-head"><h3>Units <span class="of-count">' + T.members.length + '</span></h3><span class="of-aside">Click + to add a specialty</span></div>' +
+          '<div class="units-grid">' + T.members.map(function (m) { return memberCard(m, T, { tools: true }); }).join('') + '</div>' +
+          '<button class="of-btn add-unit">+ Add ' + (cash ? 'team' : 'unit') + '</button></div>' +
+      '</section>' +
+      '<aside class="aside">' +
+        '<div class="of-panel-head"><h3>Metrics</h3><span class="of-aside">' + s.count + ' features sampled</span></div>' +
+        '<div class="metrics">' + timerTile(T) +
+          tile('Avg cycle time', s.count ? s.avg.toFixed(1) : '—', s.count ? 's' : '', { tip: '<b>Cycle time.</b> Average time from start to done.', extra: delta(s.avg, prev.avg) }) +
+          tile('Avg WIP', T.t ? s.wip.toFixed(1) : '—', '', { tip: '<b>Work in progress.</b> Average number of features started but not finished.', extra: delta(s.wip, prev.wip) }) +
+          (cash ? tile('Revenue (time-matched)', fmtEur(T.revenue), '', { color: 'var(--done)', tip: '<b>Revenue in shared time.</b> Earned by delivered features up to now.', extra: delta(T.revenue, prev.revenue, true) + '<span class="of-stat-hint">Details ▾</span>' })
+                : tile('Total wait', T.wait.toFixed(1), 's', { tip: '<b>Waiting.</b> Time units spent idle while work remained.', extra: delta(T.wait, prev.wait) }) +
+                  tile('Avg handoffs', s.count ? s.handoffs.toFixed(1) : '—', '', { tip: '<b>Hand-offs.</b> How often a feature changed hands.', extra: delta(s.handoffs, prev.handoffs) })) +
+          (cash ? '' : chart(T)) +
+        '</div>' +
+        '<div class="of-panel-head"><h3>Done <span class="of-count">' + T.done.length + '</span></h3></div>' +
+        '<div class="done-list">' + (T.done.slice().reverse().map(function (f) {
+          return '<div class="done-row" style="--hue:' + f.hue + '"><span class="of-swatch"></span><span class="name">' + esc(f.name) + '</span>' +
+            (cash ? '<span class="rev">€' + f.revenue + '/tick</span>' : '<span class="val">' + f.lead.toFixed(1) + 's</span>') + '</div>';
+        }).join('') || '<div class="of-empty">No completed features yet.</div>') + '</div>' +
+      '</aside>';
+    // Překreslení nesmí uživateli shodit pozici scrollu v seznamech
+    var view = document.getElementById('view-' + key), keep = {};
+    ['.side-list', '.inprog', '.done-list'].forEach(function (sel) { var n = view.querySelector(sel); if (n) keep[sel] = n.scrollTop; });
+    view.innerHTML = html;
+    Object.keys(keep).forEach(function (sel) { view.querySelector(sel).scrollTop = keep[sel]; });
+  }
+
+  function render() {
+    renderControls();
+    if (mode === 'compare') { renderWinner(); renderCompareTeam('A'); renderCompareTeam('B'); }
+    else renderLab(mode);
+  }
+
+  // ── Události ─────────────────────────────────────────────────────────────
+  // Během běhu se UI překresluje 10× za sekundu, takže klik (mousedown → mouseup) by mohl trefit
+  // už vyměněný prvek. Myš proto obsluhujeme na pointerdown, klávesnici přes click (detail === 0).
+  document.addEventListener('pointerdown', function (e) { if (e.button === 0) handle(e); });
+  document.addEventListener('click', function (e) { if (e.detail === 0) handle(e); });
+  function handle(e) {
+    var b = e.target.closest('button'); if (!b) return;
+    if (b.dataset.mode) {
+      mode = b.dataset.mode;
+      document.querySelectorAll('.of-tab').forEach(function (t) { t.setAttribute('aria-selected', String(t === b)); });
+      document.querySelectorAll('.view').forEach(function (v) { v.classList.toggle('on', v.id === 'view-' + mode); });
+      render(); return;
+    }
+    if (b.dataset.themeId) {
+      document.documentElement.setAttribute('data-theme', b.dataset.themeId);
+      document.querySelectorAll('#theme button').forEach(function (x) { x.setAttribute('aria-pressed', String(x === b)); });
+      return;
+    }
+    if (b.dataset.act === 'run') {
+      if (mode === 'compare') { cmp.paused = !cmp.paused; cmp.teams.A.started = cmp.teams.B.started = true; }
+      else { lab[mode].paused = !lab[mode].paused; lab[mode].team.started = true; }
+      render(); return;
+    }
+    if (b.dataset.act === 'reset') {
+      if (mode === 'compare') resetCompare();
+      else { var T = lab[mode].team; if (T.finished || T.started) { var s = stats(T); lab[mode].prev = { avg: s.avg, wip: s.wip, wait: T.wait, handoffs: s.handoffs, revenue: T.revenue }; } resetLab(mode, 0); }
+      render(); return;
+    }
+    if (b.dataset.speed) { if (mode === 'compare') cmp.speed = +b.dataset.speed; else lab[mode].speed = +b.dataset.speed; render(); return; }
+    if (b.dataset.typeA || b.dataset.typeB) { if (b.dataset.typeA) cmp.types.A = b.dataset.typeA; else cmp.types.B = b.dataset.typeB; resetCompare(); render(); return; }
+    if (b.dataset.curve) { lab[mode].curve = b.dataset.curve; render(); return; }
+    if (b.dataset.ai) {
+      lab[mode].team.members.forEach(function (m) { if (m.name === b.dataset.ai) m.ai = m.ai === 1 ? 2 : m.ai === 2 ? 5 : 1; });
+      render(); return;
+    }
+    if (b.dataset.acc) { var o = lab[mode].open; o[b.dataset.acc] = !o[b.dataset.acc]; render(); }
+  }
+
+  // ── Smyčka ───────────────────────────────────────────────────────────────
+  // setInterval místo requestAnimationFrame: běží (zpomaleně) i ve skryté záložce
+  var last = performance.now(), acc = 0;
+  function loop() {
+    var now = performance.now(), dt = Math.min(1, (now - last) / 1000); last = now;
+    var moved = false;
+    if (mode === 'compare' && !cmp.paused) {
+      advance(cmp.teams.A, dt * SIM_PER_REAL * cmp.speed); advance(cmp.teams.B, dt * SIM_PER_REAL * cmp.speed); moved = true;
+      if (cmp.teams.A.finished && cmp.teams.B.finished) cmp.paused = true;
+    } else if (mode !== 'compare' && !lab[mode].paused) {
+      advance(lab[mode].team, dt * SIM_PER_REAL * lab[mode].speed); moved = true;
+      if (lab[mode].team.finished) lab[mode].paused = true;
+    }
+    acc += dt;
+    if (moved && acc > 0.1) {
+      acc = 0;
+      // Probliknutí reworku jen jednou
+      render();
+      [cmp.teams.A, cmp.teams.B, lab.advanced.team, lab.cashflow.team].forEach(function (T) { T.inProgress.forEach(function (f) { f.flash = false; }); });
+    }
+  }
+
+  resetCompare();
+  resetLab('advanced', 26);
+  resetLab('cashflow', 22);
+  render();
+  setInterval(loop, 50);
+})();
+</script>
+</body>
+</html>

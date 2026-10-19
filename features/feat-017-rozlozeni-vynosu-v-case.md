@@ -207,3 +207,6 @@ Model je **pedagogický, ne prediktivní**. Tvar křivek vychází z literatury,
 - **Konstanty** (p = 0.05, q = 0.6; J: start 0.2, plató 2.0, střed 6.5, strmost 0.9) jsou ilustrativní výchozí hodnoty; doladit po vyzkoušení v prohlížeči.
 - ~~Mini‑graf na kartě~~ → rozhodnuto ve fázi 3: tvar se ukazuje jen jedním náhledem pod přepínačem v nastavení, na kartách není.
 - **Chování po dokončení:** přepnutí po doběhnutém běhu proběhne bez dialogu a uloží běh jako předchozí; potvrdit, že tato asymetrie (dialog jen během běhu) je žádoucí.
+
+## Related Features
+- **feat-021-prevod-design-system-org-flow:** přepínač křivky a náhled tvaru se přestylují podle design systému; tokeny `--done` a `--ink-3` zůstávají, popisek „Flat level“ bude mít 10 px.

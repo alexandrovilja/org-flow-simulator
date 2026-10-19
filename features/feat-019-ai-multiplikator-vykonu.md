@@ -133,3 +133,4 @@ Změna se týká jen karty jednotky (`MemberCard`) v Team panelu v režimech **E
 - **feat-014-unit-mode-preset:** změna AI přepne preset na „custom“; aplikace presetu vrací AI na 1×.
 - **feat-015-cash-flow-mod:** AI je dostupné i v Cash Flow (sdílený `InProgressTeamPanel`); výpočet výnosu se nemění.
 - **feat-016-coordination-overhead:** AI zrychluje i join tax (varianta A); rework jednotka s AI dohání zrychleně.
+- **feat-021-prevod-design-system-org-flow:** AI odznak zůstává ve výplni `--accent`, ta je ale nově fialová (`#7a3bf0`) s textem `on-accent`; „modrý odznak“ výše je historický.

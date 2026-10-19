@@ -36,3 +36,6 @@ barva aplikuje a panel se zavře. Klik mimo panel (nebo Escape) panel zavře bez
 - Animace otevření panelu
 - Vlastní barva přes HSL/hex input
 - Více než 8 předvoleb
+
+## Related Features
+- **feat-021-prevod-design-system-org-flow:** `COLOR_PRESETS` se mění na 8 role tokenů design systému; panel a interakce zůstávají.

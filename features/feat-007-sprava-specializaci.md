@@ -117,3 +117,6 @@ Výsledek: simulace zůstane konzistentní, žádné osiřelé reference.
 
 ## Open Questions
 — Má se barva nové role nabízet jako oklch předvolba, nebo lze zadat libovolný hue číslem? MVP = předvolby.
+
+## Related Features
+- **feat-021-prevod-design-system-org-flow:** sada předvoleb barev pro specializace se zužuje na 8 role tokenů design systému (`role-rose` … `role-slate`), aby bílý text na čipu držel kontrast 4,5:1; oklch předvolby výše jsou historické.

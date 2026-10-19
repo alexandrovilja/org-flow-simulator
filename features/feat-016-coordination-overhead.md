@@ -200,3 +200,6 @@ Model je **pedagogický, ne prediktivní**. Konstanty (25 % / 20 % / 50 %) jsou 
 - ~~XLS import: odkud bere seed pro `coordSeed`~~ → `parseRows` už používal pevný seed 42 pro výnos; `coordSeed` se generuje ze stejného deterministického proudu až po výnosu, takže stejný soubor dává vždy stejný backlog i běh.
 - **Pozorování z implementace:** Min units u silo týmů zvyšuje WIP (jednotka s jedinou rolí na své featuře zůstat nemůže, bere si novou) — Avg WIP při 100 featurách ~40 (Reduce WIP ~7), u multiskill ~6. Je to důsledek pravidla „feature bez jiných jednotek“, ne chyba; v Advanced může vysoké WIP u silo týmu překvapit.
 - ~~Řetězení reworku~~ → ano, omezeno pravděpodobností. ~~Tax jako práce navíc, nebo čekání?~~ → práce navíc.
+
+## Related Features
+- **feat-021-prevod-design-system-org-flow:** tokeny reworku se přejmenují (`--rework-ink` → `--rework`, `--rework-bg` → `--rework-soft`); čipy ⇄/↺ se přestylují podle design systému, chování beze změny.

@@ -146,3 +146,6 @@ candidates.sort((a, b) => {
 
 ## Open Questions
 —
+
+## Related Features
+- **feat-021-prevod-design-system-org-flow:** pill-toggle přechází na jednotný `SegmentedControl` design systému (aktivní segment ve výplni `ink`, text `surface-panel`); chování beze změny.
