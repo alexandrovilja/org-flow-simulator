@@ -93,8 +93,8 @@ export function MemberCard({ member, currentFeature, currentTask, roleConfig, on
 
   return (
     <div style={{
-      background: isWaiting ? 'oklch(98.5% 0.015 60)' : 'var(--panel)',
-      border: isWaiting ? '1px solid var(--warn)' : '1px solid var(--line)',
+      background: isWaiting ? 'oklch(98.5% 0.015 60)' : 'var(--surface-panel)',
+      border: isWaiting ? '1px solid var(--wait)' : '1px solid var(--line)',
       borderRadius: 6,
       padding: '6px 8px',
       display: 'flex', flexDirection: 'column', gap: 4,
@@ -212,7 +212,7 @@ export function MemberCard({ member, currentFeature, currentTask, roleConfig, on
         <div style={{
           display: 'flex', gap: 4, flexWrap: 'wrap', alignItems: 'center',
           padding: '4px 6px',
-          background: 'var(--bg)',
+          background: 'var(--surface-page)',
           border: '1px solid var(--line-2)', borderRadius: 5,
         }}>
           {availableRoles.map(r => (
@@ -268,7 +268,7 @@ export function MemberCard({ member, currentFeature, currentTask, roleConfig, on
         ) : (
           <div style={{
             fontSize: 10,
-            color: member.roles.length === 0 ? 'var(--ink-3)' : isWaiting ? 'var(--warn)' : 'var(--ink-3)',
+            color: member.roles.length === 0 ? 'var(--ink-3)' : isWaiting ? 'var(--wait)' : 'var(--ink-3)',
             fontStyle: isWaiting ? 'normal' : 'italic',
             fontWeight: isWaiting ? 600 : 400,
             display: 'flex', alignItems: 'center', gap: 4,
@@ -276,7 +276,7 @@ export function MemberCard({ member, currentFeature, currentTask, roleConfig, on
             {/* Dot: amber + pulsing border when waiting, static gray when idle */}
             <span style={{
               width: 5, height: 5, borderRadius: '50%',
-              background: isWaiting && member.roles.length > 0 ? 'var(--warn)' : 'var(--line-2)',
+              background: isWaiting && member.roles.length > 0 ? 'var(--wait)' : 'var(--line-2)',
               boxShadow: isWaiting && member.roles.length > 0 ? '0 0 0 2px oklch(85% 0.10 60)' : 'none',
             }} />
             {member.roles.length === 0 ? 'no roles' : isWaiting ? 'waiting…' : 'idle'}

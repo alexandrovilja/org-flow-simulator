@@ -76,7 +76,7 @@ export function CashFlowPanel({
     : (!state.finished && state.simTime > 0 ? 'live total' : undefined)
 
   return (
-    <aside style={{ borderLeft: '1px solid var(--line)', background: 'var(--panel)', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+    <aside style={{ borderLeft: '1px solid var(--line)', background: 'var(--surface-panel)', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
       <div style={{ padding: '12px 14px 14px', borderBottom: '1px solid var(--line)', display: 'flex', flexDirection: 'column', gap: 10 }}>
         <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 8 }}>
           <h3 style={{ margin: 0, fontSize: 12, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5, color: 'var(--ink-2)' }}>Metrics</h3>
@@ -119,13 +119,13 @@ export function CashFlowPanel({
                   {/* Rozpadový pruh handoff / rework — barvy shodné s čipy na kartách */}
                   <div style={{ display: 'flex', height: 4, borderRadius: 2, overflow: 'hidden', background: 'var(--line)', margin: '4px 0 2px' }}>
                     <div style={{ width: `${joinTaxShare}%`, background: 'var(--ink-3)' }} />
-                    <div style={{ flex: 1, background: stats.reworkPct > 0 ? 'var(--rework-ink)' : 'transparent' }} />
+                    <div style={{ flex: 1, background: stats.reworkPct > 0 ? 'var(--rework)' : 'transparent' }} />
                   </div>
                   <span style={{ fontSize: 10, color: 'var(--ink-3)', display: 'flex', alignItems: 'center', gap: 3 }}>
                     <span style={{ width: 6, height: 6, borderRadius: 2, background: 'var(--ink-3)' }} />
                     handoff {formatPercent(stats.joinTaxPct)} %
                     <span style={{ margin: '0 2px' }}>·</span>
-                    <span style={{ width: 6, height: 6, borderRadius: 2, background: 'var(--rework-ink)' }} />
+                    <span style={{ width: 6, height: 6, borderRadius: 2, background: 'var(--rework)' }} />
                     rework {formatPercent(stats.reworkPct)} %
                   </span>
                 </>

@@ -36,7 +36,7 @@ export function SpeedControl({ speed, paused, hasStarted, finished, onSpeedChang
       <div style={{ display: 'flex', border: '1px solid var(--line)', borderRadius: 4, overflow: 'hidden' }}>
         {SPEEDS.map(s => (
           <button key={s} onClick={() => onSpeedChange(s)} style={{
-            background: speed === s ? 'var(--ink)' : 'var(--panel)',
+            background: speed === s ? 'var(--ink)' : 'var(--surface-panel)',
             color: speed === s ? 'white' : 'var(--ink-2)',
             border: 'none',
             padding: '6px 10px',
@@ -49,7 +49,7 @@ export function SpeedControl({ speed, paused, hasStarted, finished, onSpeedChang
         ))}
       </div>
       <button onClick={onReset} title="Restore the initial backlog and clear in-progress / done" style={{
-        background: 'var(--panel)',
+        background: 'var(--surface-panel)',
         border: '1px solid var(--line)', borderRadius: 4,
         padding: '6px 10px', fontSize: 11, color: 'var(--ink-2)', cursor: 'pointer',
       }}>↺ Reset backlog</button>

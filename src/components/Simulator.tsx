@@ -724,7 +724,7 @@ export function Simulator() {
       display: 'flex', alignItems: 'center', justifyContent: 'space-between',
       padding: '0 20px',
       borderBottom: '1px solid var(--line)',
-      background: 'var(--panel)',
+      background: 'var(--surface-panel)',
       height: 52,
     }}>
       {/* Logo */}
@@ -917,7 +917,7 @@ export function Simulator() {
 
   if (mode === 'compare') {
     return (
-      <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', background: 'var(--bg)' }}>
+      <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', background: 'var(--surface-page)' }}>
         {header}
 
         {/* Two-column comparison — each team in its own bordered card */}
@@ -932,7 +932,7 @@ export function Simulator() {
           {/* data-tutorial-target lets the spotlight overlay frame the entire Team A column */}
           <div
             data-tutorial-target="compare-team-a-panel"
-            style={{ borderRadius: 12, overflow: 'hidden', border: '1px solid var(--line)', background: 'var(--panel)' }}
+            style={{ borderRadius: 12, overflow: 'hidden', border: '1px solid var(--line)', background: 'var(--surface-panel)' }}
           >
             <ComparePanel
               teamType={compareTypeA}
@@ -948,7 +948,7 @@ export function Simulator() {
           {/* data-tutorial-target lets the spotlight overlay frame the entire Team B column */}
           <div
             data-tutorial-target="compare-team-b-panel"
-            style={{ borderRadius: 12, overflow: 'hidden', border: '1px solid var(--line)', background: 'var(--panel)' }}
+            style={{ borderRadius: 12, overflow: 'hidden', border: '1px solid var(--line)', background: 'var(--surface-panel)' }}
           >
             <ComparePanel
               teamType={compareTypeB}
@@ -982,7 +982,7 @@ export function Simulator() {
         gridTemplateColumns: '320px 1fr 280px',
         gridTemplateRows: 'auto 1fr',
         gap: 0,
-        background: 'var(--bg)',
+        background: 'var(--surface-page)',
       }}>
         {header}
 
@@ -1065,7 +1065,7 @@ export function Simulator() {
       gridTemplateColumns: '320px 1fr 280px',
       gridTemplateRows: 'auto 1fr',
       gap: 0,
-      background: 'var(--bg)',
+      background: 'var(--surface-page)',
     }}>
       {header}
 
@@ -1116,7 +1116,7 @@ export function Simulator() {
 
       {/* RIGHT: LEAD TIME + DONE */}
       {/* data-tutorial-target lets the tutorial spotlight the metrics and chart area */}
-      <aside data-tutorial-target="experiment-chart" style={{ borderLeft: '1px solid var(--line)', background: 'var(--panel)', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+      <aside data-tutorial-target="experiment-chart" style={{ borderLeft: '1px solid var(--line)', background: 'var(--surface-panel)', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
         {/* data-tutorial-target lets the spotlight cover the stats/metrics tiles only */}
         <div data-tutorial-target="experiment-results" style={{ padding: '12px 14px 14px', borderBottom: '1px solid var(--line)', display: 'flex', flexDirection: 'column', gap: 10 }}>
           <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 8 }}>

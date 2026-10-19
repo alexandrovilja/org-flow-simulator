@@ -22,8 +22,8 @@
 
 /* ↺ rework — výraznější teplá červená, rework je dražší událost. */
 .rework {
-  color: var(--rework-ink);
-  background: var(--rework-bg);
+  color: var(--rework);
+  background: var(--rework-soft);
   border-color: var(--rework-line);
 }
 
@@ -44,7 +44,7 @@
 
 /* Výraznější pulse při reworku — navíc krátce ztmavne pozadí. */
 @keyframes chip-pulse-rework {
-  0%   { transform: scale(1);    box-shadow: 0 0 0 0 oklch(55% 0.18 30 / 0.5); background: var(--rework-bg); }
+  0%   { transform: scale(1);    box-shadow: 0 0 0 0 oklch(55% 0.18 30 / 0.5); background: var(--rework-soft); }
   15%  { transform: scale(1.22); box-shadow: 0 0 0 0 oklch(55% 0.18 30 / 0.5); background: oklch(88% 0.08 30); }
-  100% { transform: scale(1);    box-shadow: 0 0 0 7px oklch(55% 0.18 30 / 0); background: var(--rework-bg); }
+  100% { transform: scale(1);    box-shadow: 0 0 0 7px oklch(55% 0.18 30 / 0); background: var(--rework-soft); }
 }

@@ -154,3 +154,6 @@ _Žádné — všechna rozhodnutí uzavřena._
 - [ ] Všechny chybové stavy zobrazují správnou hlášku inline.
 - [ ] Přidání `xlsx` závislosti nerozbije build ani testy.
 - [ ] `parseXlsFile` je pokryta unit testy (happy path + každý chybový stav).
+
+## Related Features
+- **feat-021-prevod-design-system-org-flow:** role z importu dostanou barvy slotů 1–8 (`role-rose` … `role-slate`) v pořadí výskytu a pak znovu od 1, místo `ROLE_HUES`.

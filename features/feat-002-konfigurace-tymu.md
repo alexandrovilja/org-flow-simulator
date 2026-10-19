@@ -65,3 +65,4 @@ Jako agilní kouč chci přidávat a odebírat členy týmu a měnit jejich spec
 
 ## Related Features
 - **feat-019-ai-multiplikator-vykonu:** `MemberCard` dostává v horním řádku vedle křížku malé tlačítko „AI“ s menu 2× / 5× / off a jednotka novou vlastnost `aiMultiplier` (chybějící = 1×). Jednotka s AI odvede za 1 s simulace 2 nebo 5 s práce.
+- **feat-021-prevod-design-system-org-flow:** barvy rolí se mění na role tokeny design systému podle slotů (Design `role-rose`, Frontend `role-blue`, QA `role-green`…); názvy barev v tabulce výše jsou historické.

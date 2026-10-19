@@ -223,3 +223,6 @@ Tests in `feat-013-zprehledneni-aplikace.test.ts` must be updated to assert `toH
   is visible above it. Interaction with elements outside the overlay is blocked (pointer-events none).
 - **Skip tutorial persistence:** clicking „Skip tutorial" saves `tutorial-completed` permanently
   to localStorage — identical behaviour to completing the tutorial.
+
+## Related Features
+- **feat-021-prevod-design-system-org-flow:** tooltip `HelpIcon` a karta tutoriálu se přestylují podle design systému (antracit `surface-bar`, číslo kroku v `highlight`); obsah a chování beze změny.

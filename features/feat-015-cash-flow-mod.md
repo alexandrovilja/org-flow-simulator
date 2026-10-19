@@ -163,3 +163,6 @@ Jako agilní kouč chci v Cash Flow módu ukázat manažerům, že když více t
 
 ## Open Questions
 —
+
+## Related Features
+- **feat-021-prevod-design-system-org-flow:** tab „💰 Cash Flow“ ztrácí emoji („Cash Flow“); barva výnosu (`--done`) zůstává.

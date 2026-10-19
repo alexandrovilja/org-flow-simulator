@@ -199,3 +199,6 @@ Název presetu v textu dialogu je dynamický: *Apply "[preset.label]" preset?*
 10. Přepínání mezi presetami bez custom úprav negeneruje nový backlog
 11. Zvolený preset přežije reload stránky
 12. Stávající editace specializací (panel Specializations) funguje nezměněně i po aplikaci presetu
+
+## Related Features
+- **feat-021-prevod-design-system-org-flow:** barvy presetů v tabulkách výše nahradí role tokeny podle slotů (Design `role-rose`, Payments/Frontend `role-blue`, Platform/Backend `role-brick` místo fialové, Integration Testing/Testing `role-green`, CRM/DevOps `role-ochre`, Client Acquisition/Data `role-teal`).

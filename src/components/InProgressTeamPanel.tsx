@@ -34,8 +34,8 @@ export function InProgressTeamPanel({
   tutorialTargetPrefix = 'experiment', showCoordination = false,
 }: InProgressTeamPanelProps) {
   return (
-    <section data-tutorial-target={`${tutorialTargetPrefix}-team`} style={{ display: 'flex', flexDirection: 'column', minHeight: 0, minWidth: 0, background: 'var(--bg)' }}>
-      <div data-tutorial-target={`${tutorialTargetPrefix}-in-progress`} style={{ borderBottom: '1px solid var(--line)', background: 'var(--panel)', flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
+    <section data-tutorial-target={`${tutorialTargetPrefix}-team`} style={{ display: 'flex', flexDirection: 'column', minHeight: 0, minWidth: 0, background: 'var(--surface-page)' }}>
+      <div data-tutorial-target={`${tutorialTargetPrefix}-in-progress`} style={{ borderBottom: '1px solid var(--line)', background: 'var(--surface-panel)', flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
         <PanelHeader title="In Progress" count={state.inProgress.length} hint="auto-scaled" />
         <div style={{
           padding: '8px 16px 14px 16px',
@@ -50,7 +50,7 @@ export function InProgressTeamPanel({
         </div>
       </div>
 
-      <div data-tutorial-target={`${tutorialTargetPrefix}-team-composition`} style={{ flex: '0 0 auto', padding: '10px 16px 12px', background: 'var(--panel)', display: 'flex', flexDirection: 'column', gap: 6 }}>
+      <div data-tutorial-target={`${tutorialTargetPrefix}-team-composition`} style={{ flex: '0 0 auto', padding: '10px 16px 12px', background: 'var(--surface-panel)', display: 'flex', flexDirection: 'column', gap: 6 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0, flexWrap: 'nowrap', overflow: 'hidden' }}>
           <h3 style={{ margin: 0, fontSize: 12, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5, color: 'var(--ink-2)', flexShrink: 0 }}>
             Units <span className="mono" style={{ color: 'var(--ink-3)', fontWeight: 500 }}>{state.team.length}</span>

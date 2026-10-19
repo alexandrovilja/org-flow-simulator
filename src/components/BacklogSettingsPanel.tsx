@@ -81,7 +81,7 @@ export function BacklogSettingsPanel({
   onConfirmRevenueProfile, onCancelRevenueProfile,
 }: BacklogSettingsPanelProps) {
   return (
-    <section data-tutorial-target={`${tutorialTargetPrefix}-backlog`} style={{ borderRight: '1px solid var(--line)', background: 'var(--panel)', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+    <section data-tutorial-target={`${tutorialTargetPrefix}-backlog`} style={{ borderRight: '1px solid var(--line)', background: 'var(--surface-panel)', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
       <div data-tutorial-target={`${tutorialTargetPrefix}-backlog-list`} style={{ flex: '1 1 50%', minHeight: 0, display: 'flex', flexDirection: 'column', borderBottom: '1px solid var(--line)' }}>
         <PanelHeader title="Backlog" count={state.backlog.length} hint={getRevenueBadge ? 'sorted by revenue' : undefined} />
         <div style={{ flex: 1, overflow: 'auto', padding: '8px 12px 12px 12px', display: 'flex', flexDirection: 'column', gap: 6 }}>
@@ -95,7 +95,7 @@ export function BacklogSettingsPanel({
         </div>
       </div>
 
-      <div data-tutorial-target={`${tutorialTargetPrefix}-settings`} style={{ flex: '0 0 auto', padding: '12px 14px 14px', display: 'flex', flexDirection: 'column', gap: 12, background: 'var(--panel)', position: 'relative' }}>
+      <div data-tutorial-target={`${tutorialTargetPrefix}-settings`} style={{ flex: '0 0 auto', padding: '12px 14px 14px', display: 'flex', flexDirection: 'column', gap: 12, background: 'var(--surface-panel)', position: 'relative' }}>
         <h3 style={{ margin: 0, fontSize: 12, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5, color: 'var(--ink-2)' }}>Settings</h3>
 
         <div style={{ paddingBottom: 10, borderBottom: '1px solid var(--line)', marginBottom: -4 }}>
@@ -125,7 +125,7 @@ export function BacklogSettingsPanel({
               <span style={{
                 marginLeft: 'auto',
                 fontSize: 9, fontWeight: 500, letterSpacing: 0.3,
-                color: 'var(--ink-3)', background: 'var(--bg)',
+                color: 'var(--ink-3)', background: 'var(--surface-page)',
                 border: '1px solid var(--line-2)',
                 padding: '1px 6px', borderRadius: 3,
               }}>
@@ -177,7 +177,7 @@ export function BacklogSettingsPanel({
               fontSize: 11, fontFamily: 'inherit', cursor: 'pointer',
               border: '1px solid var(--line)', borderRadius: 4,
               padding: '4px 8px',
-              background: showBacklogControls ? 'var(--line)' : 'var(--bg)',
+              background: showBacklogControls ? 'var(--line)' : 'var(--surface-page)',
               color: showBacklogControls ? 'var(--ink)' : 'var(--ink-2)',
               fontWeight: showBacklogControls ? 600 : 400,
             }}
@@ -192,7 +192,7 @@ export function BacklogSettingsPanel({
                   style={{
                     flex: 1, border: '1px solid var(--ink-2)', borderRadius: 4,
                     padding: '6px 0', fontSize: 11, fontWeight: 600,
-                    background: 'var(--bg)', color: 'var(--ink)',
+                    background: 'var(--surface-page)', color: 'var(--ink)',
                     cursor: 'pointer', letterSpacing: 0.2,
                   }}
                 >
@@ -203,7 +203,7 @@ export function BacklogSettingsPanel({
                   style={{
                     flex: 1, border: '1px solid var(--line)', borderRadius: 4,
                     padding: '6px 0', fontSize: 11, fontWeight: 400,
-                    background: 'var(--bg)', color: 'var(--ink-2)',
+                    background: 'var(--surface-page)', color: 'var(--ink-2)',
                     cursor: 'pointer', letterSpacing: 0.2,
                   }}
                 >
@@ -276,7 +276,7 @@ export function BacklogSettingsPanel({
               fontSize: 11, fontFamily: 'inherit', cursor: 'pointer',
               border: '1px solid var(--line)', borderRadius: 4,
               padding: '4px 8px',
-              background: showRoleSettings ? 'var(--line)' : 'var(--bg)',
+              background: showRoleSettings ? 'var(--line)' : 'var(--surface-page)',
               color: showRoleSettings ? 'var(--ink)' : 'var(--ink-2)',
               fontWeight: showRoleSettings ? 600 : 400,
             }}
@@ -297,7 +297,7 @@ export function BacklogSettingsPanel({
               fontSize: 11, fontFamily: 'inherit', cursor: 'pointer',
               border: '1px solid var(--line)', borderRadius: 4,
               padding: '4px 8px',
-              background: showTeamSettings ? 'var(--line)' : 'var(--bg)',
+              background: showTeamSettings ? 'var(--line)' : 'var(--surface-page)',
               color: showTeamSettings ? 'var(--ink)' : 'var(--ink-2)',
               fontWeight: showTeamSettings ? 600 : 400,
             }}
