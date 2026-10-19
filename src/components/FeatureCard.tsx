@@ -30,9 +30,14 @@ interface FeatureCardProps {
    * segmentu vráceného tasku. Jen Cash Flow mód se zapnutým přepínačem (feat-016).
    */
   showCoordination?: boolean
+  /**
+   * Na feature se právě pracuje (má task ve stavu 'doing') — karta dostane výrazný rámeček.
+   * Rámeček je přes box-shadow, takže se rozměry karty (a mřížka okolo) nemění. Výchozí false.
+   */
+  active?: boolean
 }
 
-export function FeatureCard({ feature, team = [], compact = false, neutral = false, maxWork = 0, roleConfig, revenue, showCoordination = false }: FeatureCardProps) {
+export function FeatureCard({ feature, team = [], compact = false, neutral = false, maxWork = 0, roleConfig, revenue, showCoordination = false, active = false }: FeatureCardProps) {
   const totalWork = featureTotalWork(feature.tasks)
   // Počet reworků při připojení karty (feat-016) — probliknutí vráceného tasku jen pro nové reworky
   const [mountReworks] = useState(feature.reworkCount)
@@ -53,9 +58,12 @@ export function FeatureCard({ feature, team = [], compact = false, neutral = fal
   }
 
   return (
-    <div style={{
+    <div data-active={active} style={{
       background: bg,
       border: `1px solid ${border}`,
+      // Zvýraznění aktivní karty: 2px prstenec v barvě --ink vně borderu. Border zůstává stejný,
+      // takže se rozměry karty ani mřížka okolo nehýbou (box-shadow nezabírá místo v layoutu).
+      boxShadow: active ? '0 0 0 2px var(--ink)' : undefined,
       borderRadius: 6,
       padding: compact ? '6px 8px' : '8px 10px',
       display: 'flex', flexDirection: 'column', gap: 6,

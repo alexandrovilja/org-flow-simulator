@@ -12,7 +12,6 @@ import type { Feature, SimState, SimSettings, Role, RoleMeta, WipMode, UnitPrese
 
 /** Hover hint pro každý WIP mód — popisuje, jak jednotky vybírají další práci (feat-016: Min units). */
 const WIP_HINTS: Record<WipMode, string> = {
-  'priority': 'WIP: units can start new features freely based on priority.',
   'reduce-wip': 'WIP: units finish in-progress features before pulling new ones.',
   'min-units': 'WIP: units stay on features they already know and avoid features others are working on.',
 }
@@ -309,7 +308,6 @@ export function BacklogSettingsPanel({
             <div style={{ marginTop: 8 }}>
               <SegmentedControl
                 options={[
-                  { value: 'priority' as WipMode, label: 'Priority' },
                   { value: 'reduce-wip' as WipMode, label: 'Reduce WIP' },
                   { value: 'min-units' as WipMode, label: 'Min units' },
                 ]}

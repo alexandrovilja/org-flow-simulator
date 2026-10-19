@@ -3,15 +3,14 @@ import { render, screen, fireEvent } from '@testing-library/react'
 import { SegmentedControl } from '@/components/SegmentedControl'
 import type { WipMode } from '@/types/simulation'
 
-// feat-016 (revize 2): sdílený přepínač WIP módu má tři volby — Priority | Reduce WIP | Min units.
-// SegmentedControl byl dvouhodnotový, proto se zobecňuje na 2–3 volby.
+// feat-016 (revize 2): sdílený přepínač WIP módu má dvě volby — Reduce WIP | Min units
+// (mód Priority byl odstraněn jako zavádějící). SegmentedControl se zobecňuje na 2–3 volby.
 
-describe('feat-016 Příklad 17: SegmentedControl se třemi volbami', () => {
-  it('zobrazí všechny tři volby jako tlačítka', () => {
+describe('feat-016 Příklad 17: SegmentedControl s WIP volbami', () => {
+  it('zobrazí obě WIP volby jako tlačítka a nenabízí Priority', () => {
     render(
       <SegmentedControl<WipMode>
         options={[
-          { value: 'priority', label: 'Priority' },
           { value: 'reduce-wip', label: 'Reduce WIP' },
           { value: 'min-units', label: 'Min units' },
         ]}
@@ -19,17 +18,16 @@ describe('feat-016 Příklad 17: SegmentedControl se třemi volbami', () => {
         onChange={() => {}}
       />,
     )
-    expect(screen.getByRole('button', { name: 'Priority' })).toBeTruthy()
+    expect(screen.queryByRole('button', { name: 'Priority' })).toBeNull()
     expect(screen.getByRole('button', { name: 'Reduce WIP' })).toBeTruthy()
     expect(screen.getByRole('button', { name: 'Min units' })).toBeTruthy()
   })
 
-  it('kliknutí na třetí volbu zavolá onChange s hodnotou "min-units"', () => {
+  it('kliknutí na volbu Min units zavolá onChange s hodnotou "min-units"', () => {
     const onChange = vi.fn()
     render(
       <SegmentedControl<WipMode>
         options={[
-          { value: 'priority', label: 'Priority' },
           { value: 'reduce-wip', label: 'Reduce WIP' },
           { value: 'min-units', label: 'Min units' },
         ]}
@@ -41,12 +39,11 @@ describe('feat-016 Příklad 17: SegmentedControl se třemi volbami', () => {
     expect(onChange).toHaveBeenCalledWith('min-units')
   })
 
-  it('kliknutí na první a druhou volbu funguje také (žádná volba není „mrtvá“)', () => {
+  it('kliknutí na Reduce WIP funguje také (žádná volba není „mrtvá“)', () => {
     const onChange = vi.fn()
     render(
       <SegmentedControl<WipMode>
         options={[
-          { value: 'priority', label: 'Priority' },
           { value: 'reduce-wip', label: 'Reduce WIP' },
           { value: 'min-units', label: 'Min units' },
         ]}
@@ -54,18 +51,15 @@ describe('feat-016 Příklad 17: SegmentedControl se třemi volbami', () => {
         onChange={onChange}
       />,
     )
-    fireEvent.click(screen.getByRole('button', { name: 'Priority' }))
     fireEvent.click(screen.getByRole('button', { name: 'Reduce WIP' }))
-    expect(onChange).toHaveBeenNthCalledWith(1, 'priority')
-    expect(onChange).toHaveBeenNthCalledWith(2, 'reduce-wip')
+    expect(onChange).toHaveBeenCalledWith('reduce-wip')
   })
 
-  it('disabled zablokuje všechny tři volby', () => {
+  it('disabled zablokuje obě volby', () => {
     const onChange = vi.fn()
     render(
       <SegmentedControl<WipMode>
         options={[
-          { value: 'priority', label: 'Priority' },
           { value: 'reduce-wip', label: 'Reduce WIP' },
           { value: 'min-units', label: 'Min units' },
         ]}
@@ -74,7 +68,7 @@ describe('feat-016 Příklad 17: SegmentedControl se třemi volbami', () => {
         disabled
       />,
     )
-    for (const name of ['Priority', 'Reduce WIP', 'Min units']) {
+    for (const name of ['Reduce WIP', 'Min units']) {
       fireEvent.click(screen.getByRole('button', { name }))
     }
     expect(onChange).not.toHaveBeenCalled()
@@ -85,7 +79,6 @@ describe('feat-016 Příklad 17: SegmentedControl se třemi volbami', () => {
     const { container } = render(
       <SegmentedControl<WipMode>
         options={[
-          { value: 'priority', label: 'Priority' },
           { value: 'reduce-wip', label: 'Reduce WIP' },
           { value: 'min-units', label: 'Min units' },
         ]}

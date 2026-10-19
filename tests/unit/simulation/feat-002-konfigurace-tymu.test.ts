@@ -36,43 +36,8 @@ describe('feat-002: konfigurace týmu', () => {
       expect(state.team[0].currentTask).toBeNull()
     })
 
-    it('člen pracuje na nejvíce prioritní feature bez ohledu na to, kde se nachází', () => {
-      const rng = mulberry32(42)
-      const state = makeInitialState(rng, SETTINGS)
-
-      // Omezíme tým na jediného FE člena — eliminujeme vliv ostatních členů
-      const feMember = state.team.find(m => m.roles.includes('FE'))!
-      state.team = [feMember]
-      feMember.currentTask = null
-
-      // Nastavíme přesný scénář: dvě features s FE úkolem, různá priorita.
-      //
-      // Feature A — priorita 2, je v inProgress (někdo ji začal dřív)
-      const featureA = state.backlog.shift()!
-      featureA.priority = 2
-      featureA.status = 'in-progress'
-      featureA.tasks = [{ id: 9001, role: 'FE', work: 5, progress: 0, status: 'todo', assignee: null }]
-      state.inProgress.push(featureA)
-
-      // Feature B — priorita 1 (vyšší!), stále v backlogu
-      state.backlog[0].priority = 1
-      state.backlog[0].tasks = [{ id: 9002, role: 'FE', work: 3, progress: 0, status: 'todo', assignee: null }]
-      const featureBId = state.backlog[0].id
-
-      // wipMode='priority' = backlog preferován → člen vybere F-B z backlogu (i přes to, že F-A je v inProgress)
-      tick(state, 0.01, SETTINGS, rng, undefined, 'priority', 'priority')
-
-      // Člen musí pracovat na feature B (priorita 1), i když je stále v backlogu.
-      // Přistupujeme přes state.team[0] — TypeScript by jinak narrowoval currentTask
-      // na null (kvůli přiřazení výše) a nedovolil přístup k featureId.
-      expect(state.team[0].currentTask?.featureId).toBe(featureBId)
-      // Feature A (priorita 2) zůstala nedotčená
-      expect(featureA.tasks[0].assignee).toBeNull()
-    })
-
     it('wipMode=reduce-wip: člen preferuje rozběhnutou feature i když má horší prioritní číslo', () => {
       // Verifikuje, že reduce-wip mode explicitně preferuje in-progress před backlogem.
-      // Pozn.: defaultní wipMode='priority' by naopak zvolil backlog (viz test níže).
       const rng = mulberry32(42)
       const state = makeInitialState(rng, SETTINGS)
 

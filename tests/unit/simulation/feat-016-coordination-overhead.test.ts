@@ -324,12 +324,13 @@ describe('feat-016 regrese: stávající backlogy a WIP režimy se nemění', ()
     return state
   }
 
-  // Referenční hodnoty spočítal původní engine (main, před revizí 2) i nový — shodují se
+  // Reduce WIP: referenční hodnoty spočítal původní engine (main, před revizí 2) i nový — shodují se
   it.each([
     ['reduce-wip', 'silo', '18.1500', '10600.00', 'fa3edff7'],
     ['reduce-wip', 3, '30.2000', '20580.00', '6627465f'],
-    ['priority', 'silo', '18.1500', '6350.00', 'fe90b5b8'],
-    ['priority', 3, '30.2500', '12160.00', '700519a8'],
+    // Min units vznikl až v revizi 2 — otisky níže jsou snímek aktuálního enginu (ochrana proti nechtěné změně řazení)
+    ['min-units', 'silo', '18.1500', '5980.00', 'd93f97bd'],
+    ['min-units', 3, '30.2000', '19480.00', '4a158625'],
   ] as const)('%s, tým %s: běh bez overheadu je shodný s referencí před revizí', (wipMode, units, simTime, revenue, leadTimes) => {
     const state = runManual(wipMode, units)
     expect(state.simTime.toFixed(4)).toBe(simTime)
@@ -864,11 +865,9 @@ describe('feat-016 Příklad 16: pravidlo režimu Min units', () => {
     expect(picked).toBe(ids.F)
   })
 
-  it('kontrast: Reduce WIP vezme rozpracovanou feature s nejvyšší prioritou (H) a Priority nový task z backlogu (G)', () => {
+  it('kontrast: Reduce WIP vezme rozpracovanou feature s nejvyšší prioritou (H), ne nový task z backlogu (G)', () => {
     const rw = pickedFeature('reduce-wip', true)
     expect(rw.picked).toBe(rw.ids.H)
-    const pr = pickedFeature('priority', true)
-    expect(pr.picked).toBe(pr.ids.G)
   })
 
   it('Min units: když na své featuře nic není, vybere feature, na které nepracuje žádná jiná jednotka (G), před rozpracovanou H', () => {

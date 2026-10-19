@@ -844,8 +844,9 @@ export function resetTaskProgress(f: Feature, t: Task): void {
  * @param settings   - Konfigurace simulace
  * @param rng        - Seeded RNG pro případné doplnění backlogu (coordination overhead ho nepoužívá)
  * @param roleConfig - Konfigurace specializací (level, required); výchozí = ROLE_META
- * @param focusMode  - Zda členové preferují vlastní feature ('continuity') nebo nejvyšší prioritu ('priority')
- * @param wipMode    - 'priority' = tahem z backlogu (vysoké WIP); 'reduce-wip' = dokončení rozběhnutých (nízké WIP);
+ * @param focusMode  - Zda členové preferují vlastní feature ('continuity') nebo nejvyšší prioritu ('priority');
+ *                     v obou případech mají rozběhnuté features přednost před backlogem (u 'reduce-wip')
+ * @param wipMode    - 'reduce-wip' = dokončení rozběhnutých před novými (nízké WIP; výchozí);
  *                     'min-units' = jednotka zůstává na featuře, kterou zná, a vyhýbá se featurám, na kterých pracují jiné (feat-016)
  * @returns Stejný objekt state po aktualizaci
  */
@@ -934,18 +935,10 @@ export function tick(
     if (candidates.length === 0) continue
 
     // Třístupňové řazení — každý stupeň se uplatní jen pokud je příslušný režim aktivní:
-    // 1. WIP preference: priority = backlog před inProgress (vysoké WIP),
-    //                    reduce-wip = inProgress před backlogem (nízké WIP),
+    // 1. WIP preference: reduce-wip = inProgress před backlogem (nízké WIP),
     //                    min-units = feature, kterou znám, pak feature bez jiných jednotek
     // 2. Continuity: features kde člen již pracoval (má done task) před ostatními
     // 3. Priorita: vždy jako finální tiebreaker
-    //
-    // Proč priority mode preferuje backlog:
-    //   Features dostávají sekvenční priority čísla (1, 2, 3 …) a startují v pořadí.
-    //   InProgress features proto VŽDY mají nižší číslo (vyšší prioritu) než backlogové.
-    //   Prosté třídění dle čísla by tedy inProgress vždy upřednostnilo — stejný výsledek
-    //   jako reduce-wip, bez viditelného kontrastu. Explicitní preference backlogu
-    //   zajistí, že člen tahem z backlogu zvyšuje WIP, což je pedagogicky klíčový rozdíl.
     //
     // workedFeatureIds se předpočítá jednou před sort() — predikát závisí jen na f.id
     // a m.id, ne na argumentech comparatoru, takže je zbytečné ho počítat O(N log N)×.
@@ -965,14 +958,14 @@ export function tick(
         if (knownDiff !== 0) return knownDiff
         const othersDiff = (touchedByOthers(a.f) ? 1 : 0) - (touchedByOthers(b.f) ? 1 : 0)
         if (othersDiff !== 0) return othersDiff
-      } else if (wipMode === 'priority') {
-        // Preference nové práce z backlogu — zvyšuje WIP
-        const wipDiff = (a.backlogIdx === -1 ? 1 : 0) - (b.backlogIdx === -1 ? 1 : 0)
-        if (wipDiff !== 0) return wipDiff
       } else if (wipMode === 'reduce-wip') {
-        // Preference rozběhnuté práce — snižuje WIP
+        // Reduce WIP: preference rozběhnuté práce — snižuje WIP
         const wipDiff = (a.backlogIdx === -1 ? 0 : 1) - (b.backlogIdx === -1 ? 0 : 1)
         if (wipDiff !== 0) return wipDiff
+      } else {
+        // Kontrola úplnosti: přibude-li nový WipMode, kompilátor tady selže (wipMode už není never)
+        const unhandled: never = wipMode
+        throw new Error(`Neošetřený WipMode: ${String(unhandled)}`)
       }
       if (workedFeatureIds) {
         const contDiff = (workedFeatureIds.has(a.f.id) ? 0 : 1) - (workedFeatureIds.has(b.f.id) ? 0 : 1)
