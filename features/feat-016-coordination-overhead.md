@@ -1,9 +1,9 @@
 # Feature: Coordination Overhead
 
 ## Status
-approved
+done
 
-*Revize 2026-10-09: (1) přidán **determinismus**, (2) **nová definice koordinace** — tax za každou další jednotku na featuře a rozpor odhalený při převzetí nebo při dokončení (původní „předání po hotové práci“ měřilo časování, ne počet lidí), (3) třetí WIP režim **Min units**, (4) sekce **Zdroje a oprávněnost konstant**. Původní rozsah (verze 1) je hotový a v produkci (PR #10); revize čeká na schválení.*
+*Revize 2026-10-09: (1) přidán **determinismus**, (2) **nová definice koordinace** — tax za každou další jednotku na featuře a rozpor odhalený při převzetí nebo při dokončení (původní „předání po hotové práci“ měřilo časování, ne počet lidí), (3) WIP režim **Min units**, (4) sekce **Zdroje a oprávněnost konstant**. Původní rozsah (verze 1) je v produkci (PR #10), revize 2 též (PR #11); WIP režim Priority byl později odstraněn (PR #17), zůstaly Reduce WIP a Min units.*
 
 ## Problem
 Koučové chtějí ukázat, jak různé mandáty lidí a týmů ovlivňují koordinaci. Dnes engine předání mezi jednotkami jen zpětně spočítá (`avgHandoffs`), ale nijak neovlivňují běh simulace — koordinace nic nestojí, a proto nelze ukázat, že úzce specializované (silo) týmy platí za předávání práce časem, opravami chyb a zpožděnými výnosy.
