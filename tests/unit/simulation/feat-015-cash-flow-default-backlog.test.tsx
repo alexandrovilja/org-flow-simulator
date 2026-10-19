@@ -19,6 +19,8 @@ beforeEach(() => {
 })
 
 const click = (name: string | RegExp) => fireEvent.click(screen.getByRole('button', { name }))
+// Záložky módů jsou od feat-021 role="tab" (dřív tlačítka)
+const tab = (name: RegExp) => fireEvent.click(screen.getByRole('tab', { name }))
 
 /**
  * Přečte číslo vedle nadpisu „Backlog“ v hlavičce panelu (PanelHeader vykresluje počet jako
@@ -32,20 +34,20 @@ function backlogHeaderCount(): number {
 describe('feat-015 Příklad 2 a 3: výchozí backlog Cash Flow má 100 featur', () => {
   it('po přepnutí do Cash Flow ukazuje panel Backlog 100 featur', () => {
     render(<Simulator />)
-    click(/Cash Flow/)
+    tab(/Cash Flow/)
     expect(backlogHeaderCount()).toBe(EXPECTED_BACKLOG_SIZE)
   })
 
   it('slider „Backlog size“ v Cash Flow ukazuje výchozí hodnotu „100 items“', () => {
     render(<Simulator />)
-    click(/Cash Flow/)
+    tab(/Cash Flow/)
     click('♻ Backlog')
     expect(screen.getByText(`${EXPECTED_BACKLOG_SIZE} items`)).toBeTruthy()
   })
 
   it('„Generate new backlog“ ve výchozím nastavení znovu vygeneruje 100 featur', () => {
     render(<Simulator />)
-    click(/Cash Flow/)
+    tab(/Cash Flow/)
     click('♻ Backlog')
     click(/Generate new backlog/)
     expect(backlogHeaderCount()).toBe(EXPECTED_BACKLOG_SIZE)

@@ -339,3 +339,8 @@ export interface UnitPreset {
    */
   members: Array<{ name: string; roles: Role[] }>
 }
+
+/** Mód aplikace: Compare porovná dva týmy vedle sebe, Experiment (v UI „Advanced“) je plný
+ *  sandbox, Cash Flow ukazuje finanční dopad cycle time a WIP. Sdílí ho Simulator a horní lišta
+ *  (TopBar), která podle něj zvýrazní aktivní záložku. */
+export type AppMode = 'compare' | 'experiment' | 'cashflow'

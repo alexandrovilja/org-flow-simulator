@@ -7,9 +7,12 @@ import {
   makeInitialState, resetFromSnapshot, regenerate, tick, computeStats, applyPreset, plateauRevenuePerTick, doneCount,
   setMemberAiMultiplier,
 } from '@/simulation/engine'
-import type { SimSettings, SimState, Feature, Role, RoleMeta, FocusMode, WipMode, UnitPreset, ActivePresetId, RevenueProfile, AiMultiplier } from '@/types/simulation'
+import type { AppMode, SimSettings, SimState, Feature, Role, RoleMeta, FocusMode, WipMode, UnitPreset, ActivePresetId, RevenueProfile, AiMultiplier } from '@/types/simulation'
 import { StatTile } from '@/components/StatTile'
 import { SpeedControl } from '@/components/SpeedControl'
+import { Button } from '@/components/Button'
+import { SegmentedControl } from '@/components/SegmentedControl'
+import { TopBar } from '@/components/TopBar'
 import { PanelHeader } from '@/components/PanelHeader'
 import { ComparePanel } from '@/components/ComparePanel'
 import { CashFlowPanel } from '@/components/CashFlowPanel'
@@ -32,9 +35,9 @@ import type { TutorialMode } from '@/types/tutorial'
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
-/** Application-level mode: Compare shows two teams side-by-side, Experiment is the full sandbox,
- *  Cash Flow is a standalone preview mode showing the financial impact of cycle time and WIP. */
-type AppMode = 'compare' | 'experiment' | 'cashflow'
+
+/** Rychlosti, které nabízí přepínač v Compare (násobek reálného času). */
+const COMPARE_SPEEDS = [0.5, 1, 10] as const
 
 // ── Experiment mode defaults ─────────────────────────────────────────────────
 
@@ -718,183 +721,77 @@ export function Simulator() {
 
   // ── Shared header ──────────────────────────────────────────────────────────
 
+  /** Přepne mód podle kliknuté záložky — každý mód má vlastní přípravu (Compare se resetuje). */
+  const handleSelectMode = (next: AppMode) => {
+    if (next === 'compare') handleSwitchToCompare()
+    else if (next === 'experiment') handleSwitchToExperiment()
+    else setMode('cashflow')
+  }
+
+  /** Run / Pause v Compare: první kliknutí spustí obě simulace, další je pozastaví a znovu rozběhne. */
+  const handleToggleCompareRun = () => {
+    setComparePaused(p => !p)
+    setCompareHasStarted(true)
+  }
+
+  // Tlačítko běhu v Compare: po doběhnutí obou běhů „✓ Done“, jinak Run (před startem pulzuje) / Pause
+  const compareRunButton = bothFinished && compareHasStarted ? (
+    <Button variant="done" disabled data-tutorial-target="compare-run-button">✓ Done</Button>
+  ) : comparePaused ? (
+    <Button variant="primary" pulse={!compareHasStarted} onClick={handleToggleCompareRun} data-tutorial-target="compare-run-button">
+      ▶ Run
+    </Button>
+  ) : (
+    <Button variant="running" onClick={handleToggleCompareRun} data-tutorial-target="compare-run-button">❙❙ Pause</Button>
+  )
+
   const header = (
-    <header style={{
-      gridColumn: '1 / -1',
-      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-      padding: '0 20px',
-      borderBottom: '1px solid var(--line)',
-      background: 'var(--surface-panel)',
-      height: 52,
-    }}>
-      {/* Logo */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-        <div style={{
-          width: 26, height: 26, borderRadius: 5,
-          background: 'var(--ink)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-        }}>
-          <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-            <circle cx="3" cy="3" r="1.6" fill="white" />
-            <circle cx="11" cy="3" r="1.6" fill="white" />
-            <circle cx="7" cy="11" r="1.6" fill="white" />
-            <path d="M3 3 L11 3 M3 3 L7 11 M11 3 L7 11" stroke="white" strokeWidth="0.7" />
-          </svg>
-        </div>
-        <span style={{ fontWeight: 700, fontSize: 14, letterSpacing: -0.2 }}>Org Flow Simulator</span>
-      </div>
-
-      {/* Mode tabs */}
-      <div style={{ display: 'flex', alignItems: 'stretch', height: '100%' }}>
-        <button
-          data-tutorial-target="mode-tab-compare"
-          onClick={handleSwitchToCompare}
-          style={{
-            padding: '0 20px', background: 'transparent', border: 'none',
-            borderBottom: mode === 'compare' ? '2px solid var(--ink)' : '2px solid transparent',
-            cursor: 'pointer', fontSize: 13,
-            fontWeight: mode === 'compare' ? 600 : 400,
-            color: mode === 'compare' ? 'var(--ink)' : 'var(--ink-3)',
-            display: 'flex', alignItems: 'center', gap: 7,
-          }}
-        >
-          ⚖️ Compare
-        </button>
-        <button
-          data-tutorial-target="mode-tab-advanced"
-          onClick={handleSwitchToExperiment}
-          style={{
-            padding: '0 20px', background: 'transparent', border: 'none',
-            borderBottom: mode === 'experiment' ? '2px solid var(--ink)' : '2px solid transparent',
-            cursor: 'pointer', fontSize: 13,
-            fontWeight: mode === 'experiment' ? 600 : 400,
-            color: mode === 'experiment' ? 'var(--ink)' : 'var(--ink-3)',
-            display: 'flex', alignItems: 'center', gap: 7,
-          }}
-        >
-          🔬 Advanced
-        </button>
-        <button
-          data-tutorial-target="mode-tab-cashflow"
-          onClick={() => setMode('cashflow')}
-          style={{
-            padding: '0 20px', background: 'transparent', border: 'none',
-            borderBottom: mode === 'cashflow' ? '2px solid var(--ink)' : '2px solid transparent',
-            cursor: 'pointer', fontSize: 13,
-            fontWeight: mode === 'cashflow' ? 600 : 400,
-            color: mode === 'cashflow' ? 'var(--ink)' : 'var(--ink-3)',
-            display: 'flex', alignItems: 'center', gap: 7,
-          }}
-        >
-          💰 Cash Flow
-        </button>
-      </div>
-
-      {/* Controls — differ per mode */}
+    <TopBar mode={mode} onSelectMode={handleSelectMode}>
       {mode === 'cashflow' ? (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-          <SpeedControl
-            speed={cashFlowSpeed}
-            paused={cashFlowPaused}
-            hasStarted={cashFlowHasStarted}
-            finished={cf.stateRef.current?.finished ?? false}
-            onSpeedChange={setCashFlowSpeed}
-            onTogglePause={() => { setCashFlowPaused(p => !p); setCashFlowHasStarted(true) }}
-            onReset={() => {
-              // Promote the last naturally-finished run into prevStats for comparison —
-              // same pattern as Advanced mode's handleReset.
-              promoteCashFlowFinishedRun()
-              if (cf.stateRef.current) resetFromSnapshot(cf.stateRef.current)
-              // Dialog změny křivky by se ptal na zahozený běh
-              cf.setConfirmingRevenueProfile(null)
-              setCashFlowPaused(true)
-              setCashFlowHasStarted(false)
-              cf.forceUpdate()
-            }}
-            runButtonTarget="cashflow-run-button"
-          />
-        </div>
+        <SpeedControl
+          speed={cashFlowSpeed}
+          paused={cashFlowPaused}
+          hasStarted={cashFlowHasStarted}
+          finished={cf.stateRef.current?.finished ?? false}
+          onSpeedChange={setCashFlowSpeed}
+          onTogglePause={() => { setCashFlowPaused(p => !p); setCashFlowHasStarted(true) }}
+          onReset={() => {
+            // Promote the last naturally-finished run into prevStats for comparison —
+            // same pattern as Advanced mode's handleReset.
+            promoteCashFlowFinishedRun()
+            if (cf.stateRef.current) resetFromSnapshot(cf.stateRef.current)
+            // Dialog změny křivky by se ptal na zahozený běh
+            cf.setConfirmingRevenueProfile(null)
+            setCashFlowPaused(true)
+            setCashFlowHasStarted(false)
+            cf.forceUpdate()
+          }}
+          runButtonTarget="cashflow-run-button"
+        />
       ) : mode === 'compare' ? (
         // data-tutorial-target lets the spotlight overlay focus on the compare simulation controls
-        <div data-tutorial-target="compare-controls" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <div data-tutorial-target="compare-controls" style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-8)' }}>
           {/* ? Tutorial relaunch — always visible, opens the tutorial for this mode */}
-          <button
-            onClick={() => handleTutorialRelaunch('compare')}
-            title="Restart tutorial"
-            aria-label="Restart tutorial"
-            style={{
-              width: 28, height: 28, borderRadius: '50%',
-              border: '1px solid var(--line-2)', background: 'transparent',
-              color: 'var(--ink-3)', fontSize: 13, fontWeight: 700, cursor: 'pointer',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              flexShrink: 0,
+          <Button onBar iconOnly onClick={() => handleTutorialRelaunch('compare')} title="Restart tutorial" aria-label="Restart tutorial">?</Button>
+          <Button onBar onClick={handleCompareReset}>↺ Reset</Button>
+          {/* Speed selector — 0.5×, 1×, 10× (stejný SegmentedControl jako všude, feat-021 Příklad 8) */}
+          <SegmentedControl
+            tone="bar"
+            options={COMPARE_SPEEDS.map(sp => ({ value: String(sp), label: `${sp}×` }))}
+            value={String(compareSpeed)}
+            onChange={v => {
+              const sp = COMPARE_SPEEDS.find(s => String(s) === v)
+              if (sp === undefined) return
+              compareSpeedRef.current = sp
+              setCompareSpeed(sp)
             }}
-          >?</button>
-          <button
-            onClick={handleCompareReset}
-            style={{
-              padding: '6px 12px', borderRadius: 7,
-              background: 'transparent', color: 'var(--ink-2)',
-              border: '1px solid var(--line)', fontSize: 12, fontWeight: 500, cursor: 'pointer',
-            }}
-          >
-            ↺ Reset
-          </button>
-          {/* Speed selector — 0.5×, 1×, 10× */}
-          <div style={{ display: 'flex', border: '1px solid var(--line)', borderRadius: 7, overflow: 'hidden' }}>
-            {([0.5, 1, 10] as const).map(sp => (
-              <button key={sp} onClick={() => { compareSpeedRef.current = sp; setCompareSpeed(sp) }} style={{
-                padding: '6px 10px', fontSize: 12, fontWeight: compareSpeed === sp ? 700 : 400,
-                background: compareSpeed === sp ? 'var(--line)' : 'transparent',
-                color: compareSpeed === sp ? 'var(--ink)' : 'var(--ink-3)',
-                border: 'none', cursor: 'pointer',
-                borderRight: sp !== 10 ? '1px solid var(--line)' : 'none',
-              }}>
-                {sp}×
-              </button>
-            ))}
-          </div>
-          <button
-            data-tutorial-target="compare-run-button"
-            onClick={() => {
-              setComparePaused(p => !p)
-              setCompareHasStarted(true)
-            }}
-            disabled={bothFinished && compareHasStarted}
-            style={{
-              padding: '9px 28px', borderRadius: 8, border: 'none',
-              background: comparePaused
-                ? 'oklch(52% 0.22 150)'
-                : 'oklch(58% 0.13 240)',
-              color: 'white',
-              fontSize: 14, fontWeight: 700, letterSpacing: 0.2,
-              cursor: bothFinished && compareHasStarted ? 'default' : 'pointer',
-              opacity: bothFinished && compareHasStarted ? 0.4 : 1,
-              display: 'flex', alignItems: 'center', gap: 8,
-              // Pulse glow before first click draws the eye; stops once simulation has started.
-              animation: comparePaused && !compareHasStarted ? 'run-cta-pulse 2s ease-out infinite' : 'none',
-              boxShadow: comparePaused ? '0 2px 8px oklch(52% 0.22 150 / 0.35)' : 'none',
-              transition: 'background 0.2s, box-shadow 0.2s, opacity 0.2s',
-            }}
-          >
-            {comparePaused ? '▶ Run' : '⏸ Pause'}
-          </button>
+          />
+          {compareRunButton}
         </div>
       ) : (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-8)' }}>
           {/* ? Tutorial relaunch — opens the experiment mode tutorial */}
-          <button
-            onClick={() => handleTutorialRelaunch('experiment')}
-            title="Restart tutorial"
-            aria-label="Restart tutorial"
-            style={{
-              width: 28, height: 28, borderRadius: '50%',
-              border: '1px solid var(--line-2)', background: 'transparent',
-              color: 'var(--ink-3)', fontSize: 13, fontWeight: 700, cursor: 'pointer',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              flexShrink: 0,
-            }}
-          >?</button>
+          <Button onBar iconOnly onClick={() => handleTutorialRelaunch('experiment')} title="Restart tutorial" aria-label="Restart tutorial">?</Button>
           {/* data-tutorial-target lets the spotlight overlay focus on speed/reset controls */}
           <div data-tutorial-target="experiment-controls">
             <SpeedControl
@@ -910,7 +807,7 @@ export function Simulator() {
           </div>
         </div>
       )}
-    </header>
+    </TopBar>
   )
 
   // ── Compare layout ─────────────────────────────────────────────────────────

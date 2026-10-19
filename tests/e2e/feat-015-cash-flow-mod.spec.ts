@@ -16,7 +16,7 @@ test.describe('Cash Flow mód (feat-015)', () => {
     // Tutorial overlay by jinak na první návštěvě blokovala kliknutí na tab.
     await page.addInitScript(() => localStorage.setItem('tutorial-completed', 'true'))
     await page.goto(BASE)
-    await page.getByRole('button', { name: /Cash Flow/i }).click()
+    await page.getByRole('tab', { name: /Cash Flow/i }).click()
   })
 
   test('přepnutí na Cash Flow tab zobrazí Backlog, In Progress, Metrics a Done panely', async ({ page }) => {

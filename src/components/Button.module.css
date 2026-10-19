@@ -1,0 +1,136 @@
+/* Tlačítko design systému Org Flow (feat-021): hranaté, popisek v Archivo 800 verzálkami.
+   Varianta určuje roli v toku workshopu — viz Button.tsx. */
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-6);
+  height: var(--size-control);
+  padding: 0 var(--space-12);
+  border: var(--border-hair) solid var(--line-control);
+  border-radius: var(--radius-none);
+  background: var(--surface-panel);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  font-size: 13px;
+  line-height: 16px;
+  font-weight: 800;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+  white-space: nowrap;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+/* :where() drží specificitu základního hoveru nízko, aby ho varianty vždy přebily */
+.button:where(:hover:not(:disabled)) {
+  background: var(--surface-subtle);
+}
+
+.button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+/* Run / Start: jediná primární výzva na obrazovce (elektrická modř) */
+.primary {
+  height: var(--size-cta);
+  padding: 0 var(--space-20);
+  background: var(--action);
+  border-color: var(--action);
+  color: var(--on-action);
+}
+.primary:hover:not(:disabled) {
+  background: var(--action-hover);
+  border-color: var(--action-hover);
+}
+
+/* Pause: totéž tlačítko, když simulace běží (fialová) */
+.running {
+  height: var(--size-cta);
+  padding: 0 var(--space-20);
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--on-accent);
+}
+.running:hover:not(:disabled) {
+  background: var(--accent);
+}
+
+/* ✓ Done: stav po doběhnutí běhu — plně sytý, i když je tlačítko vypnuté */
+.done {
+  height: var(--size-cta);
+  padding: 0 var(--space-20);
+  background: var(--done);
+  border-color: var(--done);
+  color: var(--on-done);
+}
+.done:disabled {
+  opacity: 1;
+}
+
+/* Potvrzení v dialogu — silné, ale ne v barvě Run */
+.strong {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--surface-panel);
+}
+.strong:hover:not(:disabled) {
+  background: var(--ink-2);
+  border-color: var(--ink-2);
+}
+
+/* Ústupové volby (Cancel) */
+.ghost {
+  background: transparent;
+  border-color: transparent;
+  color: var(--ink-2);
+}
+
+/* Sekundární tlačítko na antracitové liště */
+.secondary.onBar {
+  background: transparent;
+  border-color: var(--line-on-bar);
+  color: var(--ink-on-bar);
+}
+.secondary.onBar:hover:not(:disabled) {
+  background: var(--line-on-bar);
+}
+
+/* Kulaté tlačítko jen s ikonou, např. „?“ pro znovuspuštění tutoriálu */
+.iconOnly {
+  width: var(--size-control);
+  padding: 0;
+  border-radius: var(--radius-pill);
+  font-family: var(--font-mono);
+  font-weight: 700;
+  color: var(--ink-3);
+}
+.iconOnly.onBar {
+  background: transparent;
+  border-color: var(--line-on-bar);
+  color: var(--ink-on-bar);
+}
+
+/* Na liště se fokus kreslí žlutě, aby byl vidět na antracitu */
+.onBar:focus-visible {
+  outline: var(--border-active) solid var(--focus-on-bar);
+  outline-offset: 2px;
+}
+
+/* Pulz před prvním spuštěním simulace přitáhne pozornost k Run; po startu zmizí */
+.pulse {
+  animation: run-pulse 2s ease-out infinite;
+}
+
+@keyframes run-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--action) 45%, transparent); }
+  60%      { box-shadow: 0 0 0 7px color-mix(in srgb, var(--action) 0%, transparent); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pulse {
+    animation: none;
+  }
+}

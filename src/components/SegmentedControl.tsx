@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import styles from './SegmentedControl.module.css'
 
 /** One choice of a segmented control */
 interface SegmentedOption<T extends string> {
@@ -6,12 +7,14 @@ interface SegmentedOption<T extends string> {
   value: T
   /** Text shown on the segment */
   label: string
+  /** Optional native tooltip for this one segment (e.g. what a team type means) */
+  title?: string
 }
 
-/** Props for a two- or three-option segmented control */
+/** Props for a segmented control with two to four options */
 interface SegmentedControlProps<T extends string> {
-  /** The two or three options to display */
-  options: [SegmentedOption<T>, SegmentedOption<T>] | [SegmentedOption<T>, SegmentedOption<T>, SegmentedOption<T>]
+  /** The two to four options to display, left to right */
+  options: SegmentedOption<T>[]
   /** Currently active value */
   value: T
   /** Called when the user picks a different option */
@@ -20,126 +23,59 @@ interface SegmentedControlProps<T extends string> {
   hint?: string
   /** When true, the control is dimmed and clicks are ignored (e.g. setting locked until Reset) */
   disabled?: boolean
+  /** `bar` = the control sits on the anthracite top bar and uses the bar's colors */
+  tone?: 'default' | 'bar'
 }
 
 /**
- * iOS-style segmented control with a sliding white pill.
- * All options are always visible; the active one gets a raised pill background.
- * Animates smoothly on toggle. Shows an optional floating hint tooltip on hover.
+ * The one segmented control of the Org Flow design system (feat-021): team type, unit preset,
+ * revenue curve and simulation speed all use it, so they look and behave the same.
+ * Square segments in the mono `label` style inside a `line-control` frame; the active segment is a
+ * solid `ink` fill. Each segment is a button with `aria-pressed`, the whole control a labelled group.
  *
- * @param options - two or three choices, each with a value and display label
+ * @param options - two to four choices, each with a value, display label and optional title
  * @param value   - the currently selected value
  * @param onChange - callback fired with the newly selected value
  * @param hint    - optional description shown as a floating tooltip on hover
  * @param disabled - optional; dims the control and ignores clicks
+ * @param tone    - optional; `bar` for the dark top bar
  */
-export function SegmentedControl<T extends string>({ options, value, onChange, hint, disabled = false }: SegmentedControlProps<T>) {
-  // Unknown value falls back to the first segment (previously: anything but the first = second)
+export function SegmentedControl<T extends string>({ options, value, onChange, hint, disabled = false, tone = 'default' }: SegmentedControlProps<T>) {
+  // Unknown value falls back to the first segment, so exactly one segment is always pressed
   const activeIndex = Math.max(0, options.findIndex(o => o.value === value))
-  const count = options.length
   const [visible, setVisible] = useState(false)
 
   return (
     <div
-      style={{ position: 'relative', display: 'inline-block' }}
+      className={[styles.root, tone === 'bar' && styles.bar].filter(Boolean).join(' ')}
       onMouseEnter={() => hint && setVisible(true)}
       onMouseLeave={() => setVisible(false)}
     >
-      {/* Track — grid ensures all segments are always exactly equal width */}
       <div
         role="group"
         aria-label={options.map(o => o.label).join(' / ')}
-        style={{
-          position: 'relative',
-          display: 'inline-grid',
-          gridTemplateColumns: `repeat(${count}, 1fr)`,
-          background: 'var(--surface-page)',
-          borderRadius: 7,
-          padding: 2,
-          opacity: disabled ? 0.5 : 1,
-        }}
+        className={[styles.track, disabled && styles.disabled].filter(Boolean).join(' ')}
       >
-        {/* Sliding pill — sits behind the labels, moves via left transition */}
-        <div style={{
-          position: 'absolute',
-          top: 2,
-          bottom: 2,
-          // Each segment is exactly 1/count of the inner width (track minus 2px padding on both sides);
-          // the pill shifts by one segment width per index. For two options this equals the former
-          // 50 % layout (left 2px / 50 %, width 50 % - 2px).
-          left: `calc(2px + ${activeIndex} * (100% - 4px) / ${count})`,
-          width: `calc((100% - 4px) / ${count})`,
-          borderRadius: 5,
-          background: 'var(--surface-panel)',
-          boxShadow: '0 1px 2px rgba(0,0,0,0.12), 0 0 0 0.5px rgba(0,0,0,0.06)',
-          transition: 'left 0.2s ease',
-          pointerEvents: 'none',
-        }} />
-
         {options.map((opt, i) => (
           <button
             key={opt.value}
+            type="button"
+            className={styles.segment}
+            aria-pressed={i === activeIndex}
+            title={opt.title}
             onClick={() => onChange(opt.value)}
             disabled={disabled}
-            style={{
-              position: 'relative',
-              zIndex: 1,
-              padding: '4px 14px',
-              fontSize: 10,
-              fontFamily: 'inherit',
-              fontWeight: 500,
-              letterSpacing: 0.2,
-              border: 'none',
-              background: 'transparent',
-              cursor: disabled ? 'not-allowed' : 'pointer',
-              borderRadius: 5,
-              color: i === activeIndex ? 'var(--ink)' : 'var(--ink-3)',
-              transition: 'color 0.15s ease',
-              whiteSpace: 'nowrap',
-              // Explicit flex centering so text is centered both axes
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
           >
             {opt.label}
           </button>
         ))}
       </div>
 
-      {/* Floating hint tooltip — appears below the control on hover */}
+      {/* Floating hint below the control. Width and wrapping stay inline: long hints must wrap
+          inside the 320px settings sidebar (max-content keeps short hints on one line) */}
       {hint && visible && (
-        <div style={{
-          position: 'absolute',
-          top: 'calc(100% + 6px)',
-          left: 0,
-          zIndex: 100,
-          background: 'var(--ink)',
-          color: 'var(--surface-panel)',
-          fontSize: 10,
-          lineHeight: 1.5,
-          padding: '6px 10px',
-          borderRadius: 6,
-          // Long hints wrap instead of running past the 320px settings sidebar (max-content keeps
-          // short hints on one line; 260px keeps the tooltip inside the sidebar)
-          width: 'max-content',
-          maxWidth: 260,
-          whiteSpace: 'normal',
-          boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-          pointerEvents: 'none',
-        }}>
+        <div className={styles.hint} style={{ width: 'max-content', maxWidth: 260, whiteSpace: 'normal' }}>
           {hint}
-          {/* Small arrow pointing up toward the control */}
-          <div style={{
-            position: 'absolute',
-            top: -4,
-            left: 12,
-            width: 8,
-            height: 8,
-            background: 'var(--ink)',
-            transform: 'rotate(45deg)',
-            borderRadius: 1,
-          }} />
         </div>
       )}
     </div>

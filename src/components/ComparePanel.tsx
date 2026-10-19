@@ -5,6 +5,7 @@ import { calcCompareDelta } from '@/simulation/compareMode'
 import type { TeamType } from '@/simulation/compareMode'
 import { formatTime } from '@/lib/formatTime'
 import { FeatureCard } from '@/components/FeatureCard'
+import { SegmentedControl } from '@/components/SegmentedControl'
 import { featureMaxWork } from '@/lib/featureSize'
 import type { SimState, SimStats } from '@/types/simulation'
 
@@ -92,27 +93,12 @@ export function ComparePanel({
           display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8,
         }}
       >
-        {/* Team-type picker — three compact buttons */}
-        <div style={{ display: 'flex', border: '1px solid var(--line)', borderRadius: 7, overflow: 'hidden' }}>
-          {TEAM_TYPE_OPTIONS.map(opt => (
-            <button
-              key={opt.value}
-              title={opt.title}
-              onClick={() => onChangeType(opt.value)}
-              style={{
-                padding: '5px 12px', fontSize: 12,
-                fontWeight: teamType === opt.value ? 700 : 400,
-                background: teamType === opt.value ? 'var(--ink)' : 'transparent',
-                color: teamType === opt.value ? 'white' : 'var(--ink-3)',
-                border: 'none', cursor: 'pointer',
-                borderRight: opt !== TEAM_TYPE_OPTIONS.at(-1) ? '1px solid var(--line)' : 'none',
-                transition: 'background 0.15s, color 0.15s',
-              }}
-            >
-              {opt.label}
-            </button>
-          ))}
-        </div>
+        {/* Team-type picker — stejný SegmentedControl jako ostatní volby v aplikaci (feat-021, Příklad 8) */}
+        <SegmentedControl<TeamType>
+          options={TEAM_TYPE_OPTIONS}
+          value={teamType}
+          onChange={onChangeType}
+        />
         <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', letterSpacing: -0.2 }}>
           {TEAM_TYPE_LABELS[teamType]}
         </div>
