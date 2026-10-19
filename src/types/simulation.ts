@@ -304,11 +304,10 @@ export interface SimStats {
 export type FocusMode = 'priority' | 'continuity'
 
 /** Režim přiřazování úkolů z hlediska WIP — zda člen preferuje novou nebo rozběhnutou práci.
- *  'priority'    = backlogové features jsou preferovány před in-progress (vysoké WIP; výchozí)
- *  'reduce-wip'  = in-progress features jsou preferovány před backlogovými (nízké WIP)
+ *  'reduce-wip'  = in-progress features jsou preferovány před backlogovými (nízké WIP; výchozí)
  *  'min-units'   = jednotka zůstává na featuře, kterou zná, a vyhýbá se featurám, na kterých
  *                  pracují jiné jednotky (nejméně jednotek na featuru; feat-016) */
-export type WipMode = 'priority' | 'reduce-wip' | 'min-units'
+export type WipMode = 'reduce-wip' | 'min-units'
 
 /**
  * Identifikátor aktivního presetu.

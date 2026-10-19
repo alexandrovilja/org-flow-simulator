@@ -116,5 +116,8 @@ pro každý přechod fáze N → N+1:
 ### Závislosti
 - feat-004 (Lead Time analýza) — sdílí `StatTile`, `RunSnapshot`, delta mechanismus
 
+## Related Features
+- **feat-016-coordination-overhead**: Cash Flow mód (při zapnutém přepínači) počítá předání **živě** v `tick()` a dává jim dopad na čas (tax + rework). Používá širší definici předání (i uvnitř jedné fáze), proto je to samostatná logika — `computeHandoffs`, `avgHandoffs` a tato definice zůstávají beze změny. Částečně naplňuje položku z Out of Scope „Handoff time“, ale jen v Cash Flow módu.
+
 ## Open Questions
 —
