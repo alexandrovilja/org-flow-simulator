@@ -106,10 +106,12 @@ describe('feat-001 Příklad 6: hlavička Done v Advanced módu (Simulator)', { 
   const ADVANCED_BACKLOG_SIZE = 50
 
   const click = (name: string | RegExp) => fireEvent.click(screen.getByRole('button', { name }))
+  // Záložky módů jsou od feat-021 role="tab" (dřív tlačítka)
+  const tab = (name: RegExp) => fireEvent.click(screen.getByRole('tab', { name }))
 
   it('po doběhnutí backlogu o 50 features ukazuje hlavička Done 50', async () => {
     render(<Simulator />)
-    click(/Advanced/)
+    tab(/Advanced/)
     click('♻ Backlog')
     fireEvent.change(screen.getByRole('slider', { name: 'Backlog size' }), { target: { value: String(ADVANCED_BACKLOG_SIZE) } })
     click(/Generate new backlog/)

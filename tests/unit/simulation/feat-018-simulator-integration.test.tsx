@@ -28,6 +28,8 @@ async function advance(ms: number): Promise<void> {
 }
 
 const click = (name: string | RegExp) => fireEvent.click(screen.getByRole('button', { name }))
+// Záložky módů jsou od feat-021 role="tab" (dřív tlačítka)
+const tab = (name: RegExp) => fireEvent.click(screen.getByRole('tab', { name }))
 
 // Velikost backlogu pro tyto testy. Výchozích 100 featur (feat-015) by běh do konce v testu
 // protáhlo zhruba na 3 s a testy se dvěma běhy by nestihly výchozí 5s limit Vitestu.
@@ -44,7 +46,7 @@ function setBacklogSize(size: number): void {
  */
 function openCashFlowSettings(): void {
   render(<Simulator />)
-  click(/Cash Flow/)
+  tab(/Cash Flow/)
   click('♻ Backlog')
   setBacklogSize(TEST_BACKLOG_SIZE)
   click(/Generate new backlog/)

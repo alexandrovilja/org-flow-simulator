@@ -1,0 +1,106 @@
+/* Antracitová horní lišta (feat-021): značka vlevo, záložky módů uprostřed, ovládání běhu vpravo.
+   Tři sloupce gridu drží záložky přesně uprostřed bez ohledu na šířku ovládání. */
+.bar {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: stretch;
+  height: var(--size-topbar);
+  padding: 0 var(--space-20);
+  background: var(--surface-bar);
+  color: var(--ink-on-bar);
+  flex-shrink: 0;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: var(--space-12);
+  min-width: 0;
+}
+
+/* Bílý glyf značky ve 28px čtverci s jemným obrysem — na antracitu by plný čtverec splynul */
+.mark {
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: var(--border-hair) solid var(--line-on-bar);
+}
+
+.wordmark {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  white-space: nowrap;
+}
+
+/* Styl „wordmark“: Archivo 800 verzálkami */
+.name {
+  font-family: var(--font-display);
+  font-size: 15px;
+  line-height: 18px;
+  font-weight: 800;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  color: var(--ink-inverse);
+}
+
+/* Heslo pod názvem: žluté zvýraznění na liště, mono verzálky */
+.tagline {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  line-height: 10px;
+  font-weight: 600;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  color: var(--highlight);
+}
+
+.tabs {
+  display: flex;
+  align-items: stretch;
+}
+
+/* Záložka módu: styl „button“; aktivní má bílý text a žlutou linku dole */
+.tab {
+  display: flex;
+  align-items: center;
+  padding: 0 var(--space-20);
+  border: 0;
+  border-top: 3px solid transparent;
+  border-bottom: 3px solid transparent;
+  background: transparent;
+  color: var(--ink-on-bar);
+  font-family: var(--font-sans);
+  font-size: 13px;
+  line-height: 16px;
+  font-weight: 800;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.tab:hover {
+  color: var(--ink-inverse);
+}
+
+.tab[aria-selected='true'] {
+  color: var(--ink-inverse);
+  border-bottom-color: var(--highlight);
+}
+
+.tab:focus-visible {
+  outline: var(--border-active) solid var(--focus-on-bar);
+  outline-offset: -4px;
+}
+
+.controls {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-8);
+}

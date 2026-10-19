@@ -66,7 +66,7 @@ Rozložení obrazovek a chování zůstávají stejné, mění se vzhled podle d
 **Příklad 8: Jednotný přepínač**
 - Given: Compare a Advanced
 - When: se vykreslí volba typu týmu a rychlosti
-- Then: obě jsou stejná komponenta SegmentedControl (`role="group"`, tlačítka s `aria-pressed`) a aktivní segment má výplň `ink`
+- Then: obě jsou stejná komponenta SegmentedControl (`role="group"`, tlačítka s `aria-pressed`); aktivní segment má v panelu výplň `ink`, na antracitové liště (rychlost) výplň `ink-on-bar`, protože `ink` by na liště stejné barvy nebyl vidět
 
 **Příklad 9: Rám výsledku**
 - Given: obě simulace v Compare doběhly a Team B má nižší průměrný lead time

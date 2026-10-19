@@ -1,0 +1,107 @@
+/* Segmentový přepínač design systému Org Flow (feat-021): jeden vzhled pro typ týmu, preset,
+   křivku výnosu i rychlost simulace. Rámeček line-control, hranaté segmenty v mono stylu „label“. */
+.root {
+  position: relative;
+  display: inline-block;
+}
+
+/* Grid drží všechny segmenty stejně široké, ať je voleb 2, 3 nebo 4 */
+.track {
+  display: inline-grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  gap: var(--space-2);
+  padding: var(--space-2);
+  border: var(--border-hair) solid var(--line-control);
+  border-radius: var(--radius-sm);
+  background: var(--surface-panel);
+}
+
+.disabled {
+  opacity: 0.45;
+}
+
+.segment {
+  height: 22px;
+  padding: 0 var(--space-12);
+  border: 0;
+  border-radius: var(--radius-none);
+  background: transparent;
+  color: var(--ink-3);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  line-height: 12px;
+  font-weight: 600;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.15s ease;
+}
+
+.segment:hover:not(:disabled) {
+  color: var(--ink);
+}
+
+.segment:disabled {
+  cursor: not-allowed;
+}
+
+/* Aktivní segment: plná výplň ink, text v barvě panelu (v tmavém tématu se obojí převrátí samo) */
+.segment[aria-pressed='true'] {
+  background: var(--ink);
+  color: var(--surface-panel);
+}
+
+/* Varianta pro antracitovou horní lištu */
+.bar .track {
+  background: transparent;
+  border-color: var(--line-on-bar);
+}
+
+.bar .segment {
+  color: var(--ink-on-bar);
+}
+
+.bar .segment:hover:not(:disabled) {
+  color: var(--ink-inverse);
+}
+
+.bar .segment[aria-pressed='true'] {
+  background: var(--ink-on-bar);
+  color: var(--surface-bar);
+}
+
+.bar .segment:focus-visible {
+  outline: var(--border-active) solid var(--focus-on-bar);
+  outline-offset: 2px;
+}
+
+/* Plovoucí nápověda pod přepínačem; šířku a zalomení nastavuje inline styl (feat-016, Příklad 17) */
+.hint {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: var(--z-popover);
+  padding: var(--space-6) 10px;
+  border-radius: var(--radius-sm);
+  background: var(--surface-bar);
+  color: var(--ink-on-bar);
+  font-family: var(--font-sans);
+  font-size: 12px;
+  line-height: 16px;
+  box-shadow: var(--shadow-pop);
+  pointer-events: none;
+}
+
+/* Šipka nápovědy mířící nahoru k přepínači */
+.hint::before {
+  content: '';
+  position: absolute;
+  top: -4px;
+  left: 12px;
+  width: 8px;
+  height: 8px;
+  background: var(--surface-bar);
+  transform: rotate(45deg);
+}

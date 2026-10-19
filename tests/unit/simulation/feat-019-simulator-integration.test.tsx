@@ -38,6 +38,8 @@ async function advance(ms: number): Promise<void> {
 }
 
 const click = (name: string | RegExp) => fireEvent.click(screen.getByRole('button', { name }))
+// Záložky módů jsou od feat-021 role="tab" (dřív tlačítka)
+const tab = (name: RegExp) => fireEvent.click(screen.getByRole('tab', { name }))
 // Přístupný název tlačítka AI je „AI speed-up“, se zapnutým AI „AI speed-up: 5×“
 const aiButtons = () => screen.queryAllByRole('button', { name: /^AI speed-up/ })
 
@@ -68,7 +70,7 @@ function setAi(index: number, label: '2×' | '5×' | 'off'): void {
 describe('feat-019: tlačítko AI je jen v Advanced a Cash Flow', () => {
   it('Advanced: každá karta jednotky má tlačítko AI (výchozí stav „AI“)', () => {
     render(<Simulator />)
-    click(/Advanced/)
+    tab(/Advanced/)
     const units = screen.getAllByTitle('Remove unit').length
     expect(units).toBeGreaterThan(0)
     expect(aiButtons()).toHaveLength(units)
@@ -77,7 +79,7 @@ describe('feat-019: tlačítko AI je jen v Advanced a Cash Flow', () => {
 
   it('Cash Flow: každá karta jednotky má tlačítko AI', () => {
     render(<Simulator />)
-    click(/Cash Flow/)
+    tab(/Cash Flow/)
     const units = screen.getAllByTitle('Remove unit').length
     expect(units).toBeGreaterThan(0)
     expect(aiButtons()).toHaveLength(units)
@@ -94,7 +96,7 @@ describe('feat-019: tlačítko AI je jen v Advanced a Cash Flow', () => {
 describe('feat-019 Příklad 5: nastavení AI v Simulatoru', () => {
   it('Advanced: volba 5× změní tlačítko jednotky na „5×“, ostatní jednotky zůstanou „AI“', () => {
     render(<Simulator />)
-    click(/Advanced/)
+    tab(/Advanced/)
     setAi(0, '5×')
     expect(aiButtons()[0].textContent).toBe('5×')
     for (const b of aiButtons().slice(1)) expect(b.textContent).toBe('AI')
@@ -102,7 +104,7 @@ describe('feat-019 Příklad 5: nastavení AI v Simulatoru', () => {
 
   it('Advanced: „off“ vrátí jednotku na „AI“', () => {
     render(<Simulator />)
-    click(/Advanced/)
+    tab(/Advanced/)
     setAi(1, '2×')
     expect(aiButtons()[1].textContent).toBe('2×')
     setAi(1, 'off')
@@ -111,18 +113,18 @@ describe('feat-019 Příklad 5: nastavení AI v Simulatoru', () => {
 
   it('Advanced a Cash Flow mají vlastní týmy: AI nastavené v Cash Flow se v Advanced neprojeví', () => {
     render(<Simulator />)
-    click(/Cash Flow/)
+    tab(/Cash Flow/)
     setAi(0, '5×')
     expect(aiButtons()[0].textContent).toBe('5×')
-    click(/Advanced/)
+    tab(/Advanced/)
     for (const b of aiButtons()) expect(b.textContent).toBe('AI')
-    click(/Cash Flow/)
+    tab(/Cash Flow/)
     expect(aiButtons()[0].textContent).toBe('5×')
   })
 
   it('Příklad 4 v UI: změna AI za běhu nezahodí rozpracovanost úkolu jednotky', async () => {
     render(<Simulator />)
-    click(/Advanced/)
+    tab(/Advanced/)
     click(/Start/)
     await advance(300)
     // Jednotka, která právě pracuje (má na kartě progress bar)
@@ -140,7 +142,7 @@ describe('feat-019 Příklad 5: nastavení AI v Simulatoru', () => {
 describe('feat-019 Příklad 6: Generate new backlog zachová nastavení AI', () => {
   it.each([[/Advanced/], [/Cash Flow/]])('mód %s: po „Generate new backlog“ má jednotka stále 5×', (mode) => {
     render(<Simulator />)
-    click(mode)
+    tab(mode)
     setAi(0, '5×')
     click('♻ Backlog')
     click(/Generate new backlog/)
@@ -151,7 +153,7 @@ describe('feat-019 Příklad 6: Generate new backlog zachová nastavení AI', ()
 describe('feat-019 Příklad 6: Reset zachová nastavení AI', () => {
   it('Advanced: po běhu a „Reset backlog“ má jednotka stále 5×', async () => {
     render(<Simulator />)
-    click(/Advanced/)
+    tab(/Advanced/)
     setAi(0, '5×')
     click(/Start/)
     await advance(1000)
@@ -163,7 +165,7 @@ describe('feat-019 Příklad 6: Reset zachová nastavení AI', () => {
 describe('feat-019 Příklad 7: preset a AI', () => {
   it('Advanced: změna AI přepne preset na custom — volba presetu ukáže dialog a po potvrzení mají všichni AI 1×', () => {
     render(<Simulator />)
-    click(/Advanced/)
+    tab(/Advanced/)
     setAi(0, '5×')
     setAi(1, '2×')
     click('People')
@@ -176,7 +178,7 @@ describe('feat-019 Příklad 7: preset a AI', () => {
 
   it('Cash Flow: změna AI přepne preset na custom (volba presetu ukáže dialog)', () => {
     render(<Simulator />)
-    click(/Cash Flow/)
+    tab(/Cash Flow/)
     setAi(0, '5×')
     click('People')
     expect(screen.getByText('Apply “People” preset?')).toBeTruthy()
