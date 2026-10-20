@@ -1,7 +1,9 @@
 # Feature: Převod na design system Org Flow
 
 ## Status
-ready
+done
+
+*Hotovo 2026-10-20 v pěti PR: tokeny a písma (#19), horní lišta a ovládání (#20), Kanban (#21), tým a metriky (#22), overlaye, tmavé téma a nastavení (#23); oprava horní lišty pro projektor 1024 px.*
 
 ## Problem
 Aplikace se promítá na workshopech, ale její vzhled na to není stavěný:
@@ -19,7 +21,7 @@ Design system Org Flow (paleta Antracit a elektrická modř) tohle řeší jedn�
 ## UI / Design
 Rozložení obrazovek a chování zůstávají stejné, mění se vzhled podle design systému Org Flow (artefakt https://claude.ai/artifact/EvHZ56JjHa9D9etc85fy3Q). Schválený UI návrh (fáze 3): maketa `docs/design-system-mockup.html`. Texty UI zůstávají anglicky.
 
-- **Horní lišta:** antracitová (`surface-bar`), 56 px. Vlevo značka (glyf tří uzlů) a název ORG FLOW SIMULATOR se žlutým heslem. Uprostřed záložky Compare / Advanced / Cash Flow bez emoji, aktivní má žlutou linku (`highlight`). Vpravo „?“, Reset, přepínač rychlosti a tlačítko **Run** v elektrické modři (`action`), které před prvním spuštěním pulzuje. Za běhu je to fialové **Pause** (`accent`), po doběhnutí zelené **✓ Done** (`done`).
+- **Horní lišta:** antracitová (`surface-bar`), 56 px. Vlevo značka (glyf tří uzlů) a název ORG FLOW SIMULATOR se žlutým heslem. Uprostřed záložky Compare / Advanced / Cash Flow bez emoji, aktivní má žlutou linku (`highlight`). Vpravo „?“, Reset, přepínač rychlosti a tlačítko **Run** v elektrické modři (`action`), které před prvním spuštěním pulzuje. Za běhu je to fialové **Pause** (`accent`), po doběhnutí zelené **✓ Done** (`done`). Na užší obrazovce (projektor 1024 × 768) zůstane vlevo jen glyf značky a název s heslem se schová (pro čtečky obrazovky zůstává), aby se značka, záložky a ovládání nepřekrývaly.
 - **Písmo:** Archivo místo Inter (titulky 800 verzálkami), JetBrains Mono pro popisky a čísla, Kalam jen pro poznámku kouče. Nic menšího než 10 px.
 - **Barvy podle tokenů:** neutrální šedé plochy, fialová pro In progress a výběr. Stavy Done (zelená), čekání (okr) a rework (červená). Role čipy s bílým textem v osmi slotech: Design `role-rose`, Frontend/Payments `role-blue`, Backend/Platform `role-brick`, Testing/Integration Testing `role-green`, DevOps/CRM `role-ochre`, Data/Client Acquisition `role-teal`, vlastní specializace `role-violet` a `role-slate`.
 - **Jednotné komponenty:** jeden segmentový přepínač pro typ týmu, preset, křivku výnosu i rychlost. Hranatá tlačítka. Karty features, jednotek a dlaždice metrik podle design systému. Tooltipy nápovědy na antracitu.
@@ -77,6 +79,11 @@ Rozložení obrazovek a chování zůstávají stejné, mění se vzhled podle d
 - Given: libovolná stránka aplikace
 - When: se načte layout
 - Then: `body` má písmo Archivo (font-family obsahuje „Archivo“), mono prvky JetBrains Mono a stránka nestahuje písma z `fonts.googleapis.com` (jsou přibalená přes `next/font`)
+
+**Příklad 11: Horní lišta na projektoru 1024 px**
+- Given: okno široké 1024 px (běžný projektor), resp. 1280 px
+- When: se v módu Compare, Advanced i Cash Flow vykreslí horní lišta
+- Then: viditelná značka končí před záložkami, záložky končí před ovládáním vpravo a stránka se vodorovně neroluje; při 1280 px je vidět celý název ORG FLOW SIMULATOR
 
 ## Out of Scope
 —

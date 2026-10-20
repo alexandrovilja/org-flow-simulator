@@ -104,3 +104,21 @@
   justify-content: flex-end;
   gap: var(--space-8);
 }
+
+/* Užší obrazovka, např. projektor 1024 × 768 (feat-021, Příklad 11): s celým názvem potřebuje lišta
+   až ~1225 px (Advanced s „Resume“). Pod 1260 px proto zůstane jen glyf značky — název s heslem se
+   schová vizuálně, ale ne pro čtečky obrazovky — a záložky dostanou užší odsazení. */
+@media (max-width: 1259px) {
+  .wordmark {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  .tab {
+    padding: 0 var(--space-12);
+  }
+}
