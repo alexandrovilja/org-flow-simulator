@@ -37,9 +37,9 @@
   white-space: nowrap;
 }
 
-/* Styl „wordmark“: Archivo 800 verzálkami */
+/* Styl „wordmark“: JetBrains Mono 800 verzálkami */
 .name {
-  font-family: var(--font-display);
+  font-family: var(--font-mono);
   font-size: 15px;
   line-height: 18px;
   font-weight: 800;
@@ -74,7 +74,7 @@
   border-bottom: 3px solid transparent;
   background: transparent;
   color: var(--ink-on-bar);
-  font-family: var(--font-sans);
+  font-family: var(--font-mono);
   font-size: 13px;
   line-height: 16px;
   font-weight: 800;

@@ -3,6 +3,8 @@
 import { useId, useRef, useState } from 'react'
 import type { KeyboardEvent } from 'react'
 import { RoleChip } from './RoleChip'
+import { TruncatedText } from './TruncatedText'
+import { useIsTruncated } from '@/hooks/useIsTruncated'
 import styles from './MemberCard.module.css'
 import { memberInitial } from '@/lib/memberInitial'
 import type { CssVariables } from '@/types/css'
@@ -58,6 +60,8 @@ function BoltIcon() {
  */
 export function MemberCard({ member, currentFeature, currentTask, roleConfig, onAddRole, onRemoveRole, onRename, onRemove, onSetAiMultiplier, isWaiting = false }: MemberCardProps) {
   const [adding, setAdding] = useState(false)
+  // Plné jméno v title jen tehdy, když ho v úzké kartě zkrátí výpustka (feat-023)
+  const [nameRef, nameTruncated] = useIsTruncated<HTMLInputElement>(member.name)
   // Pro kterou jednotku je otevřené menu voleb AI (feat-019) — lokální UI stav karty, simulace o něm
   // neví. Pamatujeme si objekt jednotky, ne jen true/false: karty jsou klíčované ID jednotky a po
   // výměně týmu (preset, nová jednotka se stejným ID) dostane karta jiný objekt — menu se pak samo
@@ -109,6 +113,9 @@ export function MemberCard({ member, currentFeature, currentTask, roleConfig, on
         <input
           type="text"
           value={member.name}
+          ref={nameRef}
+          title={nameTruncated ? member.name : undefined}
+          aria-label="Unit name"
           onChange={e => onRename(member.id, e.target.value)}
           onKeyDown={e => { if (e.key === 'Enter') e.currentTarget.blur() }}
           className={styles.name}
@@ -203,7 +210,7 @@ export function MemberCard({ member, currentFeature, currentTask, roleConfig, on
           <>
             <div className={styles.taskLine}>
               <span className={styles.swatch} style={swatchStyle} />
-              <span className={styles.taskName}>{currentFeature.name}</span>
+              <TruncatedText className={styles.taskName} text={currentFeature.name} />
               {/* Plný název aktuálně pracované specializace — v ink-3, barva role by v tmavém tématu neprošla kontrastem */}
               <span className={styles.taskRole}>{roleConfig[currentTask.role].label}</span>
             </div>

@@ -44,3 +44,99 @@ export function runButton(page: Page, label: 'Run' | 'Start' | 'Pause' | 'Done')
 export function groupWith(page: Page, buttonName: string): Locator {
   return page.getByRole('group').filter({ has: page.getByRole('button', { name: buttonName, exact: true }) })
 }
+
+/** Písmo celé aplikace od feat-023: JetBrains Mono (next/font ho pojmenuje „JetBrains Mono“ nebo „JetBrains_Mono“). */
+export const MONO = /JetBrains[ _]Mono/
+
+/** Velikosti písma z typové škály design systému (project/tokens.json, skupina type). */
+const TYPE_SCALE_PX = [10, 11, 12, 13, 15, 20, 28, 36, 56]
+
+/**
+ * Znaky podobné emoji (stejná definice jako hlídač ve feat-022-source-guards.test.ts) a glyfy,
+ * které design system povoluje. Předávají se do prohlížeče jako text.
+ */
+const EMOJI_LIKE_SOURCE = '[\\p{Extended_Pictographic}\\p{Emoji_Presentation}\\u{FE0F}\\u{2600}-\\u{27BF}]'
+const ALLOWED_GLYPHS = ['▶', '❙', '↺', '⇄', '✓', '×', '↑', '↓', '→', '▸', '▾', '▴', '⚡']
+
+/**
+ * Vypočtené typografické a tvarové vlastnosti prvku.
+ *
+ * @param el - Prvek, který se měří
+ * @returns Písmo, velikost, řez, verzálky, barvu, rádius a styl obrysu (hodnoty z getComputedStyle)
+ */
+export const styleOf = (el: Locator) => el.evaluate(e => {
+  const s = getComputedStyle(e)
+  return {
+    family: s.fontFamily, size: s.fontSize, weight: s.fontWeight, transform: s.textTransform,
+    color: s.color, radius: s.borderTopLeftRadius, borderStyle: s.borderTopStyle,
+  }
+})
+
+/**
+ * Otevře všechny tři akordeony nastavení (Advanced / Cash Flow), pokud ještě otevřené nejsou.
+ *
+ * @param page - Stránka Playwrightu
+ */
+export async function openAccordions(page: Page): Promise<void> {
+  for (const name of ['Backlog', 'Specializations', 'Team']) {
+    const button = page.getByRole('button', { name, exact: true })
+    if (await button.getAttribute('aria-expanded') !== 'true') await button.click()
+  }
+}
+
+/**
+ * Projde viditelné prvky s vlastním textem a vrátí ty, které porušují typografii aplikace:
+ * první písmo jiné než JetBrains Mono, velikost mimo typovou škálu design systému nebo emoji v textu.
+ * Vlastní text = přímý textový uzel prvku, aby se nepočítali rodiče s jiným písmem.
+ *
+ * @param page - Stránka Playwrightu
+ * @returns Seznam porušení „tag „text“: důvod“
+ */
+export async function typographyViolations(page: Page): Promise<string[]> {
+  return page.evaluate(({ familySource, scale, emojiSource, allowed }) => {
+    const family = new RegExp(familySource)
+    const emoji = new RegExp(emojiSource, 'gu')
+    const out: string[] = []
+    for (const el of Array.from(document.body.querySelectorAll<HTMLElement>('*'))) {
+      const ownText = Array.from(el.childNodes).filter(n => n.nodeType === Node.TEXT_NODE).map(n => n.textContent ?? '').join('').trim()
+      if (!ownText) continue
+      const rect = el.getBoundingClientRect()
+      const s = getComputedStyle(el)
+      if (rect.width === 0 || rect.height === 0 || s.visibility === 'hidden' || s.display === 'none') continue
+      const where = `${el.tagName.toLowerCase()} „${ownText.slice(0, 30)}“`
+      const first = s.fontFamily.split(',')[0].trim()
+      if (!family.test(first)) out.push(`${where}: písmo ${first}`)
+      const size = parseFloat(s.fontSize)
+      if (!scale.includes(size)) out.push(`${where}: velikost ${size}px`)
+      const glyphs = (ownText.match(emoji) ?? []).filter(ch => !allowed.includes(ch))
+      if (glyphs.length) out.push(`${where}: emoji ${glyphs.join(' ')}`)
+    }
+    return out
+  }, { familySource: `^"?_*${MONO.source}`, scale: TYPE_SCALE_PX, emojiSource: EMOJI_LIKE_SOURCE, allowed: ALLOWED_GLYPHS })
+}
+
+/**
+ * Rozložení horní lišty: kde končí viditelná značka, kde jsou záložky a kde začíná ovládání vpravo.
+ * Značku tvoří prvky s šířkou nad 2 px — schovaný název (1 px pro čtečky obrazovky) se nepočítá.
+ *
+ * @returns Pravý okraj značky, rozsah záložek, levý okraj ovládání, šířka názvu a šířka stránky
+ */
+export async function topBarLayout(page: Page): Promise<{ brandRight: number; tabsLeft: number; tabsRight: number; controlsLeft: number; nameWidth: number; scrollWidth: number }> {
+  return page.evaluate(() => {
+    const header = document.querySelector('header')!
+    const [brand, tabs, controls] = Array.from(header.children) as HTMLElement[]
+    const visible = (els: Element[]) => els.map(e => e.getBoundingClientRect()).filter(r => r.width > 2 && r.height > 2)
+    const brandBoxes = visible(Array.from(brand.querySelectorAll('*')))
+    const controlBoxes = visible(Array.from(controls.children))
+    const tabsBox = tabs.getBoundingClientRect()
+    const name = Array.from(brand.querySelectorAll('span')).find(e => e.textContent === 'Org Flow Simulator')
+    return {
+      brandRight: Math.max(...brandBoxes.map(r => r.right)),
+      tabsLeft: tabsBox.left,
+      tabsRight: tabsBox.right,
+      controlsLeft: Math.min(...controlBoxes.map(r => r.left)),
+      nameWidth: name ? name.getBoundingClientRect().width : 0,
+      scrollWidth: document.documentElement.scrollWidth,
+    }
+  })
+}

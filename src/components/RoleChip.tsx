@@ -1,3 +1,4 @@
+import { useIsTruncated } from '@/hooks/useIsTruncated'
 import type { Role } from '@/types/simulation'
 import type { CssVariables } from '@/types/css'
 import styles from './RoleChip.module.css'
@@ -25,9 +26,12 @@ interface RoleChipProps {
  */
 export function RoleChip({ role, color, label, removable, onRemove }: RoleChipProps) {
   const style: CssVariables = { '--role': color }
+  const text = label ?? role
+  // Plný název v title jen tehdy, když ho v úzké kartě zkrátí výpustka (feat-023)
+  const [ref, truncated] = useIsTruncated<HTMLSpanElement>(text)
   return (
-    <span className={styles.chip} style={style}>
-      {label ?? role}
+    <span ref={ref} className={[styles.chip, removable && styles.removable].filter(Boolean).join(' ')} style={style} title={truncated ? text : undefined}>
+      {text}
       {removable && (
         <button type="button" onClick={onRemove} className={styles.remove} title="Remove role">×</button>
       )}

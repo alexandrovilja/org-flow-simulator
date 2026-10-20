@@ -3,6 +3,8 @@
 ## Status
 done
 
+*Poznámka (feat-023, 2026-10-20): písma Archivo i Kalam se od feat-023 nepoužívají, celá aplikace je v JetBrains Mono (včetně titulků, záložek a tlačítek). Zmínky o Archivo a Kalam níže, zejména část „UI / Design: Písmo“, příklad 10 a Technical Notes „Písma“, popisují stav po feat-021 a jsou nahrazené specem feat-023.*
+
 *Hotovo 2026-10-20 v pěti PR: tokeny a písma (#19), horní lišta a ovládání (#20), Kanban (#21), tým a metriky (#22), overlaye, tmavé téma a nastavení (#23); oprava horní lišty pro projektor 1024 px.*
 
 ## Problem

@@ -197,15 +197,18 @@
   --z-tutorial-card: 910;
   --z-tooltip: 1000;
 
-  /* Písma: proměnné --font-archivo, --font-jetbrains-mono a --font-kalam nastavuje next/font v layout.tsx */
-  --font-display: var(--font-archivo), system-ui, sans-serif;
-  --font-sans: var(--font-archivo), system-ui, sans-serif;
+  /* Písmo: celá aplikace je JetBrains Mono (feat-023) — jediný token písma. Proměnnou --font-jetbrains-mono
+     nastavuje next/font v layout.tsx. Písmo, které si prvek nenastaví sám, dědí z body, takže i nový text
+     zůstane v mono. */
   --font-mono: var(--font-jetbrains-mono), ui-monospace, Menlo, monospace;
-  --font-hand: var(--font-kalam), "Comic Neue", cursive;
 }
 
 * {
   box-sizing: border-box;
+  /* JetBrains Mono má kódové ligatury (->, !=, <= se kreslí jako jeden glyf), které by změnily vzhled
+     textu psaného uživatelem. Selektor * je nutný: vstupy a tlačítka mají z prohlížeče vlastní font
+     a dědičnost z body by je minula (feat-023). */
+  font-variant-ligatures: none;
 }
 
 html,
@@ -214,7 +217,7 @@ body {
   padding: 0;
   background: var(--surface-page);
   color: var(--ink);
-  font-family: var(--font-sans);
+  font-family: var(--font-mono);
   font-size: 14px;
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;

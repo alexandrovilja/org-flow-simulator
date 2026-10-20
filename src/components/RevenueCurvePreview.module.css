@@ -37,7 +37,7 @@
 /* Popis pod grafem ve stylu „body-sm“ */
 .caption {
   margin-top: var(--space-2);
-  font-size: 12px;
+  font-size: 11px;
   line-height: 16px;
   color: var(--ink-3);
 }

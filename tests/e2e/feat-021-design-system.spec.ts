@@ -9,7 +9,7 @@
  */
 
 import { test, expect, type Page, type Locator } from '@playwright/test'
-import { BASE, groupWith, runButton, skipTutorial } from './helpers'
+import { BASE, groupWith, runButton, skipTutorial, topBarLayout } from './helpers'
 
 /** Barvy tokenů jako je vrací getComputedStyle (rgb). Hodnoty z design systému Org Flow. */
 const RGB = {
@@ -71,32 +71,6 @@ async function chipColors(page: Page, labels: string[]): Promise<Record<string, 
     }
     return out
   }, labels)
-}
-
-/**
- * Rozložení horní lišty: kde končí viditelná značka, kde jsou záložky a kde začíná ovládání vpravo.
- * Značku tvoří prvky s šířkou nad 2 px — schovaný název (1 px pro čtečky obrazovky) se nepočítá.
- *
- * @returns Pravý okraj značky, rozsah záložek, levý okraj ovládání, šířka názvu a šířka stránky
- */
-async function topBarLayout(page: Page): Promise<{ brandRight: number; tabsLeft: number; tabsRight: number; controlsLeft: number; nameWidth: number; scrollWidth: number }> {
-  return page.evaluate(() => {
-    const header = document.querySelector('header')!
-    const [brand, tabs, controls] = Array.from(header.children) as HTMLElement[]
-    const visible = (els: Element[]) => els.map(e => e.getBoundingClientRect()).filter(r => r.width > 2 && r.height > 2)
-    const brandBoxes = visible(Array.from(brand.querySelectorAll('*')))
-    const controlBoxes = visible(Array.from(controls.children))
-    const tabsBox = tabs.getBoundingClientRect()
-    const name = Array.from(brand.querySelectorAll('span')).find(e => e.textContent === 'Org Flow Simulator')
-    return {
-      brandRight: Math.max(...brandBoxes.map(r => r.right)),
-      tabsLeft: tabsBox.left,
-      tabsRight: tabsBox.right,
-      controlsLeft: Math.min(...controlBoxes.map(r => r.left)),
-      nameWidth: name ? name.getBoundingClientRect().width : 0,
-      scrollWidth: document.documentElement.scrollWidth,
-    }
-  })
 }
 
 test.describe('feat-021: design system Org Flow', () => {
@@ -203,18 +177,19 @@ test.describe('feat-021: design system Org Flow', () => {
     }
   })
 
-  test('Příklad 10: písma Archivo a JetBrains Mono jsou přibalená, nic se nestahuje z Google Fonts', async ({ page }) => {
+  test('Příklad 10: písmo JetBrains Mono je přibalené, nic se nestahuje z Google Fonts (od feat-023 je to jediné písmo aplikace)', async ({ page }) => {
     const googleRequests: string[] = []
     page.on('request', req => { if (req.url().includes('fonts.googleapis.com') || req.url().includes('fonts.gstatic.com')) googleRequests.push(req.url()) })
     await page.goto(BASE)
     await page.waitForLoadState('networkidle')
 
     const bodyFont = await page.evaluate(() => getComputedStyle(document.body).fontFamily)
-    expect(bodyFont).toMatch(/Archivo/)
+    // feat-023: Archivo se nepoužívá, písmo celé aplikace je JetBrains Mono
+    expect(bodyFont).toMatch(/JetBrains[ _]Mono/)
     // Čísla a ID features jsou v mono písmu; next/font pojmenuje rodinu „JetBrains_Mono“ nebo „JetBrains Mono“
     const monoFont = await page.getByText(/^F-001/).first().evaluate(e => getComputedStyle(e).fontFamily)
     expect(monoFont).toMatch(/JetBrains[ _]Mono/)
-    expect(await page.evaluate(() => document.fonts.check('16px Archivo') || Array.from(document.fonts).some(f => /Archivo/.test(f.family)))).toBe(true)
+    expect(await page.evaluate(() => Array.from(document.fonts).some(f => /JetBrains[ _]Mono/.test(f.family)))).toBe(true)
     expect(googleRequests).toEqual([])
   })
 })

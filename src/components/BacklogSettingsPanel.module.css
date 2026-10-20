@@ -163,7 +163,7 @@
   padding: 5px var(--space-8);
   border: var(--border-hair) solid;
   border-radius: var(--radius-sm);
-  font-size: 12px;
+  font-size: 11px;
   line-height: 16px;
 }
 
@@ -182,7 +182,7 @@
 /* Poznámka pod zamčeným přepínačem */
 .note {
   margin-top: var(--space-4);
-  font-size: 12px;
+  font-size: 11px;
   line-height: 16px;
   color: var(--ink-3);
 }

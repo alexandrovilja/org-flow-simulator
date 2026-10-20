@@ -91,7 +91,7 @@
   border-radius: var(--radius-sm);
   background: var(--surface-bar);
   color: var(--ink-on-bar);
-  font-family: var(--font-sans);
+  font-family: var(--font-mono);
   font-size: 12px;
   line-height: 16px;
   box-shadow: var(--shadow-pop);

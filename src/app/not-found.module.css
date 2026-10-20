@@ -11,23 +11,23 @@
   color: var(--ink);
 }
 
-/* Styl „display-xl“: Archivo 800 verzálkami */
+/* Styl „display-xl“: JetBrains Mono 800 verzálkami */
 .code {
   margin: 0;
-  font-family: var(--font-display);
+  font-family: var(--font-mono);
   font-size: 56px;
   line-height: 54px;
   font-weight: 800;
-  letter-spacing: -1.1px;
   text-transform: uppercase;
 }
 
 /* Styl „body“ v tlumené barvě */
 .message {
   margin: 0;
-  font-size: 13px;
-  line-height: 20px;
+  font-size: 11px;
+  line-height: 16px;
   color: var(--ink-3);
+  font-weight: 400;
 }
 
 /* Odkaz zpět v barvě výběru a odkazů (accent) */

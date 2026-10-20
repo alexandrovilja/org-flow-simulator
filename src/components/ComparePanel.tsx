@@ -9,6 +9,7 @@ import { SegmentedControl } from '@/components/SegmentedControl'
 import { EmptyNote } from '@/components/EmptyNote'
 import styles from './ComparePanel.module.css'
 import { RoleChip } from '@/components/RoleChip'
+import { TruncatedText } from '@/components/TruncatedText'
 import { memberInitial } from '@/lib/memberInitial'
 import type { CssVariables } from '@/types/css'
 import { featureMaxWork } from '@/lib/featureSize'
@@ -207,7 +208,7 @@ export function ComparePanel({
               <div key={m.id} className={styles.member}>
                 <div className={styles.memberTop}>
                   <div className={styles.avatar}>{memberInitial(m.name)}</div>
-                  <span className={styles.memberName}>{m.name}</span>
+                  <TruncatedText className={styles.memberName} text={m.name} />
                 </div>
                 {/* Role chips — read-only */}
                 <div className={styles.chips}>
@@ -221,7 +222,7 @@ export function ComparePanel({
                     <>
                       <div className={styles.workLine}>
                         <span className={styles.swatch} style={swatchStyle} />
-                        <span className={styles.workName}>{cf.name}</span>
+                        <TruncatedText className={styles.workName} text={cf.name} />
                       </div>
                       <div className={styles.progress} style={progressStyle}>
                         <div className={styles.progressFill} style={{ width: `${fillPct}%` }} />

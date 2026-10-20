@@ -36,7 +36,7 @@
 
 /* Poznámka vpravo („auto-scaled“, „sorted by revenue“) ve stylu „body-sm“ */
 .hint {
-  font-size: 12px;
+  font-size: 11px;
   line-height: 16px;
   color: var(--ink-3);
   white-space: nowrap;

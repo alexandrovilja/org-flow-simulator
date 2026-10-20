@@ -1,6 +1,6 @@
 /* Prázdný stav seznamu (feat-021): styl „body-sm“ v ink-3, bez kurzívy — popisuje stav, ne pocit. */
 .note {
-  font-size: 12px;
+  font-size: 11px;
   line-height: 16px;
   color: var(--ink-3);
   padding: var(--space-4) 0;
