@@ -3,16 +3,34 @@
  * Cílem není testovat každý detail, ale ověřit, že aplikace vůbec funguje:
  * načte se, simulace se spustí, zobrazí základní UI prvky.
  *
+ * Výchozí mód po načtení je Compare (feat-009) — dva týmy vedle sebe, tlačítko Run v horní liště.
+ *
  * Spuštění lokálně: BASE_URL=https://... npx playwright test
  * Spuštění proti localhost: npx playwright test (použije webServer z config)
  */
 
-import { test, expect } from '@playwright/test'
+import { test, expect, type Page } from '@playwright/test'
 
 const BASE = process.env.BASE_URL ?? 'http://localhost:3000'
 
+/** Tlačítko Run / Pause v horní liště Compare (podle konce přístupného názvu, glyf ▶ / ❙❙ předchází). */
+const runButton = (page: Page, label: 'Run' | 'Pause') =>
+  page.getByRole('button', { name: new RegExp(`${label}$`) })
+
+/**
+ * Hodnota dlaždice Total Time prvního týmu v Compare.
+ * Dlaždice v Compare nemá data-testid — hodnota je prvek hned za popiskem.
+ */
+const totalTimeValue = (page: Page) =>
+  page.getByText('Total Time', { exact: true }).first().locator('xpath=following-sibling::div[1]')
+
 test.describe('Smoke: základní funkčnost', () => {
   test.beforeEach(async ({ page }) => {
+    // Tutorial overlay (feat-013) by jinak na první návštěvě (i prvním přepnutí do Advanced) blokovala kliknutí
+    await page.addInitScript(() => {
+      localStorage.setItem('tutorial-completed', 'true')
+      localStorage.setItem('tutorial-seen-modes', JSON.stringify(['compare', 'experiment']))
+    })
     await page.goto(BASE)
   })
 
@@ -22,55 +40,55 @@ test.describe('Smoke: základní funkčnost', () => {
     await expect(page.getByText('Org Flow Simulator')).toBeVisible()
   })
 
-  test('tlačítko Play je přítomno a klikatelné', async ({ page }) => {
-    // Tlačítko play/pause musí existovat ve výchozím stavu
-    const playBtn = page.getByRole('button', { name: /▶|play|start/i }).first()
-    await expect(playBtn).toBeVisible()
-    await expect(playBtn).toBeEnabled()
+  test('tlačítko Run je přítomno a klikatelné', async ({ page }) => {
+    // Tlačítko Run musí existovat ve výchozím stavu
+    const runBtn = runButton(page, 'Run')
+    await expect(runBtn).toBeVisible()
+    await expect(runBtn).toBeEnabled()
   })
 
-  test('po kliknutí na Play se timer spustí', async ({ page }) => {
-    // Klikneme na Play
-    const playBtn = page.getByRole('button', { name: /▶|play|start/i }).first()
-    await playBtn.click()
+  test('po kliknutí na Run se timer spustí', async ({ page }) => {
+    await runButton(page, 'Run').click()
 
-    // Počkáme chvíli a ověříme, že se timer změnil z 00:00.0
-    await page.waitForTimeout(600)
-    // Timer tile zobrazuje čas — hledáme hodnotu různou od 00:00.0
-    const timerValue = page.locator('.mono').first()
+    // Před spuštěním ukazuje Total Time „—“, za běhu čas ve formátu mm:ss.d — hledáme hodnotu různou od 00:00.0
+    const timerValue = totalTimeValue(page)
+    await expect(timerValue).toHaveText(/^\d{2}:\d{2}\.\d$/)
     await expect(timerValue).not.toHaveText('00:00.0')
   })
 
   test('backlog zobrazuje items', async ({ page }) => {
-    // Backlog musí obsahovat alespoň jednu feature před spuštěním
-    await expect(page.getByText(/F-001/)).toBeVisible()
+    // Backlog musí obsahovat alespoň jednu feature před spuštěním.
+    // Compare má dva týmy se stejným backlogem, F-001 je na stránce dvakrát.
+    await expect(page.getByText(/F-001/).first()).toBeVisible()
   })
 
-  test('panel Units zobrazuje členy s rolemi', async ({ page }) => {
-    // Panel se nyní jmenuje "Units" (bylo "Team")
-    await expect(page.getByText(/Units/i).first()).toBeVisible()
-    // Jméno Ada je teď v <input> — hledáme přes hodnotu inputu
-    await expect(page.locator('input[value="Ada"]')).toBeVisible()
-    // Chipy zobrazují plné názvy specializací
-    await expect(page.getByText(/Frontend|Backend|Design|QA|DevOps|Data/).first()).toBeVisible()
+  test('panel Units v Advanced zobrazuje jednotky se specializacemi', async ({ page }) => {
+    // Panel Units je jen v módu Advanced, Compare ukazuje pevné týmy (feat-009)
+    await page.getByRole('tab', { name: 'Advanced' }).click()
+    await expect(page.getByRole('heading', { name: /^Units/ })).toBeVisible()
+    // Výchozí preset je Teams (feat-014) — jméno jednotky je v <input>, hledáme přes hodnotu inputu
+    await expect(page.locator('input[value="Team A"]')).toBeVisible()
+    // Chipy zobrazují plné názvy specializací (Client Acquisition, ne zkratku ACQ)
+    await expect(page.getByText('Client Acquisition')).toBeVisible()
   })
 
-  test('statistiky zobrazují Lead Time tile', async ({ page }) => {
-    // StatTile s labelem "Avg Lead Time" musí být přítomný
-    await expect(page.getByText(/lead time/i).first()).toBeVisible()
+  test('statistiky zobrazují Cycle Time tile', async ({ page }) => {
+    // Metrika Lead Time byla nahrazena Cycle Time (feat-010) — dlaždice „Avg Cycle Time“ má každý tým
+    await expect(page.getByText('Avg Cycle Time', { exact: true }).first()).toBeVisible()
   })
 
-  test('po Play → Pause se simulace zastaví', async ({ page }) => {
-    const playBtn = page.getByRole('button', { name: /▶|play|start/i }).first()
-    await playBtn.click()
-    await page.waitForTimeout(300)
+  test('po Run → Pause se simulace zastaví', async ({ page }) => {
+    await runButton(page, 'Run').click()
 
-    // Klikneme znovu — tlačítko se přepne na Pause
-    const pauseBtn = page.getByRole('button', { name: /⏸|pause/i }).first()
-    await pauseBtn.click()
+    // Simulace musí opravdu běžet — stojící „—“ by jinak test splnil i bez spuštění
+    const timerValue = totalTimeValue(page)
+    await expect(timerValue).not.toHaveText('—')
+
+    // Za běhu se tlačítko přepne na Pause, po kliknutí se vrátí na Run
+    await runButton(page, 'Pause').click()
+    await expect(runButton(page, 'Run')).toBeVisible()
 
     // Počkáme a ověříme, že timer stojí (hodnota se nemění)
-    const timerValue = page.locator('.mono').first()
     const before = await timerValue.textContent()
     await page.waitForTimeout(400)
     const after = await timerValue.textContent()
