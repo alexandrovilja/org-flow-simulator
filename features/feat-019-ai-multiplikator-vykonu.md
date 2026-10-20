@@ -3,6 +3,8 @@
 ## Status
 done
 
+*Změna (2026-10-20): kliknutí na tlačítko AI přepíná hodnoty dokola **1× → 2× → 5× → 1×**, menu voleb 2× / 5× / off se ruší. Upraveno UI / Design, Příklad 5 a Technical Notes, nový Příklad 10.*
+
 ## Problem
 Manažeři dnes často věří, že nasazení AI automaticky zrychlí dodávku: „dáme lidem AI a budeme 5× rychlejší“. Kouč teď v simulátoru nemá jak ukázat, co se stane, když AI zrychlí jen některé jednotky. Většinu Lead Time totiž často netvoří samotná práce, ale čekání, předávky a úzká hrdla. Zrychlení jedné jednotky se pak do celkového Lead Time ani Cash Flow nepromítne úměrně, nebo vůbec. Bez této možnosti zůstává argument jen v teoretické rovině.
 
@@ -12,17 +14,17 @@ Manažeři dnes často věří, že nasazení AI automaticky zrychlí dodávku: 
 ## UI / Design
 Změna se týká jen karty jednotky (`MemberCard`) v Team panelu v režimech **Experimentování** (Advanced) a **Cash Flow** — oba režimy kartu sdílejí přes `InProgressTeamPanel`. Režim **Srovnání** se nemění (žádné tlačítko AI ani odznak). Texty UI jsou anglicky.
 
-- **Tlačítko „AI“:** malé průhledné tlačítko v horním řádku karty, hned vlevo od křížku pro odebrání jednotky. Vysoké jako křížek (16 px), tenký rámeček (`--line`), tlumený text „AI“ (`--ink-3`). Tooltip „AI speed-up“. **Křížek se nemění** — zůstává malý jako dnes.
-- **Menu voleb:** kliknutím na „AI“ se otevře menu se dvěma volbami **2×** a **5×** (malé čtverečky stejné výšky). Pokud má jednotka AI zapnuté, je v menu navíc volba **„off“** (návrat na 1×). Menu je vložené přímo do karty pod horní řádek, zarovnané doprava — stejný princip jako dnešní výběr specializací přes „+“ (karta má oříznutý obsah, plovoucí bublina by se usekla). Po výběru volby se menu zavře; opětovné kliknutí na tlačítko menu zavře bez změny.
-- **Vybraný stav:** po výběru 2× nebo 5× se tlačítko „AI“ změní na **plně modrý odznak** (barva `--accent`) s **bílou ikonou blesku a hodnotou**, např. „⚡ 5×“. Odznak má stejnou výšku jako křížek, jen je širší. Kliknutím na odznak se menu otevře znovu (změna hodnoty nebo „off“). Aktuálně vybraná volba je v menu také modrá.
+- **Tlačítko „AI“:** malé průhledné tlačítko v horním řádku karty, hned vlevo od křížku pro odebrání jednotky. Vysoké jako křížek (16 px), tenký rámeček (`--line`), tlumený text „AI“ (`--ink-3`). **Křížek se nemění** — zůstává malý jako dnes.
+- **Přepínání kliknutím (změna 2026-10-20):** každé kliknutí na tlačítko nastaví další hodnotu v pořadí **1× (bez AI) → 2× → 5× → 1×**. Žádné menu voleb se neotevírá; jedno kliknutí = jedna změna, která hned platí. Po 5× se AI vypne do výchozího stavu.
+- **Vybraný stav:** se zapnutým AI je tlačítko **plně modrý odznak** (barva `--accent`) s **bílou ikonou blesku a hodnotou**, např. „⚡ 2×“ nebo „⚡ 5×“. Odznak má stejnou výšku jako křížek, jen je širší.
 - **Výchozí stav:** každá jednotka má 1× (bez AI) — tlačítko je průhledné s textem „AI“.
+- **Tooltip** říká, co udělá další kliknutí: „AI speed-up – click for 2×“, „AI speed-up: 2× – click for 5×“, „AI speed-up: 5× – click to turn off“. Kouč tak pozná, že se hodnoty přepínají dokola.
 - **Za běhu:** nastavení lze měnit před startem i během simulace; změna platí okamžitě, i pro právě rozpracovaný úkol. Progress bar úkolu se u jednotky s AI plní úměrně rychleji.
-- **Přístupnost (z review):** přístupný název tlačítka je „AI speed-up“, se zapnutým AI „AI speed-up: 5×“ — viditelná hodnota je součástí názvu, aby ji čtečka ohlásila. Tlačítko má `aria-expanded` a `aria-controls` na menu. Po výběru volby se fokus vrátí na tlačítko AI; **Escape** (v tlačítku i ve volbách) menu zavře bez změny.
-- **Menu patří jednotce:** když se tým vymění (preset, nová jednotka se stejným ID), otevřené menu se zavře a „nepřeskočí“ na jinou jednotku.
-- Výběr hodnoty, kterou jednotka už má, není změna týmu — preset se nepřepne na „custom“.
+- **Přístupnost:** přístupný název tlačítka je „AI speed-up“, se zapnutým AI „AI speed-up: 2×“ / „AI speed-up: 5×“ — viditelná hodnota je součástí názvu, aby ji čtečka ohlásila. Tlačítko jde ovládat klávesnicí (Enter / mezerník přepne na další hodnotu) a fokus na něm po kliknutí zůstává, takže se dá přepínat opakovaně.
+- Každé kliknutí je skutečná změna týmu, preset se proto přepne na „custom“ (i když se kolečkem vrátí na 1×).
 - Ikona blesku odlišuje AI multiplikátor od přepínače rychlosti simulace (0.5× / 1× / 2× / 10×), který používá stejný zápis „N×“.
 - **Tooltip dlaždice Coordination overhead** (Cash Flow, feat-016) dostane na konec větu: „Units using AI process this extra work faster, so the share can be higher than the time it actually took.“ Výpočet dlaždice se nemění (viz Open Questions, varianta A).
-- Schválený UI návrh (fáze 3): mockup `docs/feat-019-ui-mockup.html`.
+- Schválený UI návrh (fáze 3): mockup `docs/feat-019-ui-mockup.html`. Menu voleb v mockupu je historické (nahrazeno přepínáním kliknutím, změna 2026-10-20).
 
 ### Chování jednotky s AI (pravidla modelu)
 - **Rychlost práce:** jednotka s AI 2× / 5× odvede za 1 s simulačního času 2 / 5 s práce na úkolu, který právě zpracovává. Jednotka bez AI (1×) pracuje jako dnes.
@@ -55,10 +57,10 @@ Změna se týká jen karty jednotky (`MemberCard`) v Team panelu v režimech **E
 - When: uživatel za běhu přepne jednotku na 5×
 - Then: rozpracovanost se neztratí (progress zůstane 4 s) a zbývajících 6 s práce je hotových za 1,2 s simulačního času
 
-**Příklad 5: Indikace AI na kartě**
+**Příklad 5: Přepínání AI kliknutím a indikace na kartě**
 - Given: jednotka „Backend“ v Team panelu (Experimentování nebo Cash Flow) bez AI, vedle křížku je průhledné tlačítko „AI“
-- When: uživatel klikne na „AI“ a zvolí 5×
-- Then: tlačítko se změní na plně modrý odznak s bílým bleskem a textem „5×“; po opětovném kliknutí a volbě „off“ se vrátí do průhledného stavu s textem „AI“
+- When: uživatel klikne na tlačítko třikrát po sobě
+- Then: po 1. kliknutí má jednotka AI 2× a tlačítko je plně modrý odznak s bílým bleskem a textem „2×“; po 2. kliknutí 5× a odznak „5×“; po 3. kliknutí 1× a tlačítko je zpět průhledné s textem „AI“. Žádné menu voleb se neotevře a ostatní jednotky zůstanou beze změny
 
 **Příklad 6: Reset a nový backlog zachovají nastavení AI**
 - Given: jednotka má AI 5× a simulace doběhla
@@ -79,6 +81,11 @@ Změna se týká jen karty jednotky (`MemberCard`) v Team panelu v režimech **E
 - Given: fáze Design (level 1) → Frontend (level 2); jednotka Design bez AI pracuje na úkolu s prací 10 s, volná jednotka Frontend s AI 5× čeká na svůj úkol (práce 10 s) ve stejné featuře
 - When: simulace běží
 - Then: jednotka Frontend čeká (roste jí idle čas) stejně jako jednotka bez AI; jednotka Design pracuje dál 1× a svůj úkol dokončí po 10 s; teprve potom Frontend převezme svůj úkol a dokončí ho za 2 s
+
+**Příklad 10: Tooltip a klávesnice**
+- Given: jednotka bez AI, fokus na jejím tlačítku AI
+- When: uživatel třikrát stiskne Enter
+- Then: hodnota se mění stejně jako kliknutím (2×, 5×, 1×) a fokus zůstává na tlačítku; přístupný název je postupně „AI speed-up: 2×“, „AI speed-up: 5×“, „AI speed-up“ a tooltip „AI speed-up: 2× – click for 5×“, „AI speed-up: 5× – click to turn off“, „AI speed-up – click for 2×“
 
 ## Out of Scope
 - Režim Srovnání se nemění, nemá tlačítko AI ani odznak.
@@ -104,7 +111,8 @@ Změna se týká jen karty jednotky (`MemberCard`) v Team panelu v režimech **E
   - Engine zůstává čistý TypeScript bez Reactu.
 - **Coordination overhead (feat-016) — rozhodnuto (varianta A):** multiplikátor zrychluje **celou práci tasku včetně join taxu**, protože tax je součástí `task.work`. Ztracený progres z reworku jednotka s AI dohání také zrychleně. Varianta B (join tax vždy 1×, AI nezrychlí domlouvání) je kandidát na navazující feature.
 - **UI:**
-  - `src/components/MemberCard.tsx`: tlačítko „AI“ vedle křížku, inline menu 2× / 5× / off (stejný princip jako picker specializací) a modrý odznak s bleskem (`--accent`). Nová prop `onSetAiMultiplier`. Statické styly tlačítka, odznaku a menu jsou v `src/components/MemberCard.module.css` (konvence CLAUDE.md); zbytek karty zůstává inline jako dosud. Stav otevřeného menu si pamatuje objekt jednotky, takže se po výměně týmu zavře sám.
+  - `src/components/MemberCard.tsx`: tlačítko „AI“ vedle křížku a modrý odznak s bleskem (`--accent`). Nová prop `onSetAiMultiplier`. Statické styly tlačítka a odznaku jsou v `src/components/MemberCard.module.css` (konvence CLAUDE.md); zbytek karty zůstává inline jako dosud.
+  - **Přepínání kliknutím (změna 2026-10-20):** karta si spočítá další hodnotu z pevného pořadí (konstanta, např. `NEXT_AI: Record<AiMultiplier, AiMultiplier> = { 1: 2, 2: 5, 5: 1 }`) a zavolá `onSetAiMultiplier(member.id, další)`. Menu se ruší celé: stav otevřeného menu (`aiMenuFor`), `AI_OPTIONS`, ref a `useId` pro `aria-controls`, obsluha Escape, `aria-expanded` / `aria-controls` a styly `.aiMenu`, `.aiOption*` v `MemberCard.module.css`. Rozhraní karty (`onSetAiMultiplier`), handlery v `Simulator.tsx` a `useCashFlowSimSetup.ts` a engine (`setMemberAiMultiplier`) se nemění.
   - `src/components/InProgressTeamPanel.tsx`: předá kartě nový handler.
   - `src/components/Simulator.tsx` (Experimentování) a `src/hooks/useCashFlowSimSetup.ts` (Cash Flow): handler `handleSetAiMultiplier(memberId, value)` zavolá `setMemberAiMultiplier` a jen při skutečné změně přepne preset na „custom“ (`markCustom`) a překreslí UI (`forceUpdate`).
   - Změna AI se počítá jako ruční úprava týmu, takže preset přejde na „custom“. Při přepnutí presetu se pak zobrazí potvrzovací dialog.
@@ -117,7 +125,7 @@ Změna se týká jen karty jednotky (`MemberCard`) v Team panelu v režimech **E
   - Režim Srovnání (`ComparePanel`, `makeCompareStates`) se nemění a jeho týmy mají vždy 1×.
   - AI multiplikátor (rychlost práce v simulačním čase) je nezávislý na přepínači rychlosti simulace (počet volání `tick()` za reálnou sekundu, feat-001 / feat-015 Příklad 5).
   - Při velkém `dtSim` a 5× může task v jednom ticku „přestřelit“ `work`; zbytek ticku propadne stejně jako dnes (progress se ořízne na `work`). Při 60 fps je odchylka zanedbatelná.
-- **Testy:** Příklady 1–4 a 6–9 jako unit testy enginu (`tests/unit/simulation/feat-019-ai-multiplikator.test.ts`), Příklad 5 jako test komponenty (`feat-019-member-card.test.tsx`, styly ověřuje přes třídy z CSS Modulu), napojení na Simulator (presety a `markCustom`, Reset a Generate new backlog, zachování progresu při změně za běhu, Cash Flow, Srovnání, tooltip) v `feat-019-simulator-integration.test.tsx`. Testy ověřují jen chování jednotek, ne dopad na metriky týmu.
+- **Testy:** Příklady 1–4 a 6–9 jako unit testy enginu (`tests/unit/simulation/feat-019-ai-multiplikator.test.ts`), Příklady 5 a 10 jako test komponenty (`feat-019-member-card.test.tsx`, styly ověřuje přes třídy z CSS Modulu), napojení na Simulator (presety a `markCustom`, Reset a Generate new backlog, zachování progresu při změně za běhu, Cash Flow, Srovnání, tooltip) v `feat-019-simulator-integration.test.tsx`. Testy ověřují jen chování jednotek, ne dopad na metriky týmu. Při změně 2026-10-20 se testy menu (otevření, volby, Escape, menu patří jednotce) nahrazují testy přepínání kliknutím a integrační testy nastavují AI kliknutím místo volby v menu.
 - **Závislosti:** feat-002 (konfigurace týmu, `MemberCard`), feat-014 (presety, `markCustom`), feat-015 (Cash Flow, sdílený Team panel), feat-016 (coordination overhead — join tax).
 
 ## Open Questions
@@ -127,7 +135,7 @@ Změna se týká jen karty jednotky (`MemberCard`) v Team panelu v režimech **E
 
 ## Related Features
 - **feat-001-simulace-prubehu-vyvoje:** rychlost postupu práce už není pro všechny jednotky stejná (1 s simulace = 1 s práce); jednotka s AI odvede za 1 s simulace 2 nebo 5 s práce.
-- **feat-002-konfigurace-tymu:** `MemberCard` dostává tlačítko „AI“ a menu; nová vlastnost jednotky `aiMultiplier`.
+- **feat-002-konfigurace-tymu:** `MemberCard` dostává tlačítko „AI“ (od změny 2026-10-20 přepíná hodnoty kliknutím, bez menu); nová vlastnost jednotky `aiMultiplier`.
 - **feat-009-dva-mody-ui:** režim Srovnání zůstává beze změny (bez AI).
 - **feat-012-xls-import:** importovaný tým má AI 1×; sloupec pro AI není součástí této feature.
 - **feat-014-unit-mode-preset:** změna AI přepne preset na „custom“; aplikace presetu vrací AI na 1×.

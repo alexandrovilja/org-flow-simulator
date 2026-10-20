@@ -118,47 +118,6 @@
   flex-shrink: 0;
 }
 
-/* Menu voleb pod horním řádkem karty, zarovnané doprava. Žádné absolutní pozicování:
-   karta má overflow: hidden, plovoucí bublina by se usekla (stejně jako picker specializací). */
-.aiMenu {
-  display: flex;
-  justify-content: flex-end;
-  gap: var(--space-4);
-}
-
-/* Jedna volba menu (2× / 5× / off) — malý čtvereček stejné výšky jako tlačítko AI */
-.aiOption {
-  height: var(--size-control-sm);
-  min-width: var(--size-control-sm);
-  padding: 0 3px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: transparent;
-  border: var(--border-hair) solid var(--line-control);
-  border-radius: var(--radius-xs);
-  color: var(--ink-2);
-  font-family: var(--font-mono);
-  font-size: 10px;
-  font-weight: 600;
-  line-height: 1;
-  cursor: pointer;
-}
-
-/* „off“ je slovo, potřebuje víc místa; tlumenější než volby zrychlení */
-.aiOptionOff {
-  padding: 0 var(--space-4);
-  color: var(--ink-3);
-  font-weight: 500;
-}
-
-/* Aktuálně vybraná volba — stejná barva jako odznak */
-.aiOptionSelected {
-  background: var(--accent);
-  border-color: var(--accent);
-  color: var(--on-accent);
-}
-
 .roles {
   display: flex;
   align-items: center;
