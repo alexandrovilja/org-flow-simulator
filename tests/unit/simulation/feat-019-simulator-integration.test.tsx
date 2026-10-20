@@ -11,9 +11,12 @@ import type { SimSettings } from '@/types/simulation'
 // Schválený kontrakt (spec features/feat-019-ai-multiplikator-vykonu.md):
 //  - Tlačítko „AI speed-up“ má každá karta jednotky v Advanced (Experimentování) i Cash Flow;
 //    režim Compare (Srovnání) ho nemá.
+//  - Každé kliknutí na tlačítko nastaví další hodnotu v pořadí 1× → 2× → 5× → 1× (změna 2026-10-20,
+//    bez menu voleb).
 //  - Handler `handleSetAiMultiplier` v Simulator.tsx (Advanced) a v useCashFlowSimSetup.ts (Cash Flow)
-//    nastaví jednotce `aiMultiplier` a překreslí UI. Změna se počítá jako ruční úprava týmu
-//    (preset přejde na „custom“), takže další volba presetu ukáže potvrzovací dialog.
+//    nastaví jednotce `aiMultiplier` a překreslí UI. Každé kliknutí se počítá jako ruční úprava týmu
+//    (preset přejde na „custom“, i když se kolečkem vrátí na 1×), takže další volba presetu ukáže
+//    potvrzovací dialog.
 //  - Aplikace presetu vytvoří tým s AI 1× (Příklad 7). Reset backlogu nastavení AI zachová (Příklad 6).
 //  - Advanced a Cash Flow mají každý vlastní tým, nastavení AI se mezi nimi nepřenáší.
 //  - Tooltip dlaždice Coordination overhead (Cash Flow) dostane na konec větu o jednotkách s AI.
@@ -56,15 +59,15 @@ function progressFill(aiButton: HTMLElement): HTMLElement | null {
 }
 
 /**
- * Nastaví AI multiplikátor jednotce na pozici `index` přes UI (tlačítko AI → volba).
+ * Nastaví AI multiplikátor jednotce na pozici `index` přes UI: kliká na tlačítko AI, dokud neukazuje
+ * požadovanou hodnotu. Kolečko 1× → 2× → 5× → 1× má tři kroky, takže stačí nejvýš tři kliknutí.
  *
- * @param index - Pořadí karty jednotky v Team panelu
- * @param label - Text volby: „2×“, „5×“ nebo „off“
+ * @param index  - Pořadí karty jednotky v Team panelu
+ * @param target - Text tlačítka, na který se má dojít: „2×“, „5×“ nebo „AI“ (vypnuto)
  */
-function setAi(index: number, label: '2×' | '5×' | 'off'): void {
-  fireEvent.click(aiButtons()[index])
-  const group = screen.getByRole('group', { name: 'AI speed-up options' })
-  fireEvent.click(Array.from(group.querySelectorAll('button')).find(b => b.textContent === label)!)
+function setAi(index: number, target: '2×' | '5×' | 'AI'): void {
+  for (let i = 0; i < 3 && aiButtons()[index].textContent !== target; i++) fireEvent.click(aiButtons()[index])
+  expect(aiButtons()[index].textContent).toBe(target)
 }
 
 describe('feat-019: tlačítko AI je jen v Advanced a Cash Flow', () => {
@@ -94,21 +97,15 @@ describe('feat-019: tlačítko AI je jen v Advanced a Cash Flow', () => {
 })
 
 describe('feat-019 Příklad 5: nastavení AI v Simulatoru', () => {
-  it('Advanced: volba 5× změní tlačítko jednotky na „5×“, ostatní jednotky zůstanou „AI“', () => {
+  it.each([[/Advanced/], [/Cash Flow/]])('mód %s: tři kliknutí přepnou jednotku 2× → 5× → „AI“, ostatní zůstanou „AI“, menu se neotevře', (mode) => {
     render(<Simulator />)
-    tab(/Advanced/)
-    setAi(0, '5×')
-    expect(aiButtons()[0].textContent).toBe('5×')
-    for (const b of aiButtons().slice(1)) expect(b.textContent).toBe('AI')
-  })
-
-  it('Advanced: „off“ vrátí jednotku na „AI“', () => {
-    render(<Simulator />)
-    tab(/Advanced/)
-    setAi(1, '2×')
-    expect(aiButtons()[1].textContent).toBe('2×')
-    setAi(1, 'off')
-    expect(aiButtons()[1].textContent).toBe('AI')
+    tab(mode)
+    for (const expected of ['2×', '5×', 'AI']) {
+      fireEvent.click(aiButtons()[1])
+      expect(aiButtons()[1].textContent).toBe(expected)
+      expect(screen.queryByRole('group', { name: 'AI speed-up options' })).toBeNull()
+      for (const [i, b] of aiButtons().entries()) if (i !== 1) expect(b.textContent).toBe('AI')
+    }
   })
 
   it('Advanced a Cash Flow mají vlastní týmy: AI nastavené v Cash Flow se v Advanced neprojeví', () => {
@@ -174,6 +171,16 @@ describe('feat-019 Příklad 7: preset a AI', () => {
     click('Apply preset')
     expect(aiButtons().length).toBeGreaterThan(0)
     for (const b of aiButtons()) expect(b.textContent).toBe('AI')
+  })
+
+  it('Advanced: celé kolečko zpět na „AI“ (1×) nechá preset custom — volba presetu ukáže dialog', () => {
+    render(<Simulator />)
+    tab(/Advanced/)
+    setAi(0, '2×')
+    setAi(0, 'AI')
+    click('People')
+    // Každé kliknutí je ruční úprava týmu, i když jednotka skončí zase na 1×
+    expect(screen.getByText('Apply “People” preset?')).toBeTruthy()
   })
 
   it('Cash Flow: změna AI přepne preset na custom (volba presetu ukáže dialog)', () => {

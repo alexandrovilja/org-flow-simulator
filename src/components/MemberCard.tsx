@@ -1,7 +1,6 @@
 'use client'
 
-import { useId, useRef, useState } from 'react'
-import type { KeyboardEvent } from 'react'
+import { useState } from 'react'
 import { RoleChip } from './RoleChip'
 import { TruncatedText } from './TruncatedText'
 import { useIsTruncated } from '@/hooks/useIsTruncated'
@@ -10,9 +9,9 @@ import { memberInitial } from '@/lib/memberInitial'
 import type { CssVariables } from '@/types/css'
 import type { AiMultiplier, Feature, Member, Task, Role, RoleMeta } from '@/types/simulation'
 
-/** Volby menu AI v pořadí zobrazení (feat-019). Hodnota 1 je volba „off“ — nabízí se jen
- *  při zapnutém AI, protože bez AI není co vypínat. */
-const AI_OPTIONS: AiMultiplier[] = [2, 5, 1]
+/** Pořadí přepínání AI kliknutím (feat-019, změna 2026-10-20): každé kliknutí na tlačítko AI
+ *  nastaví hodnotu, na kterou ukazuje ta současná — 1× → 2× → 5× → 1×. Po 5× se AI vypne. */
+const NEXT_AI: Record<AiMultiplier, AiMultiplier> = { 1: 2, 2: 5, 5: 1 }
 
 /** Vstupní props karty jednotky v Team panelu (Advanced i Cash Flow). */
 interface MemberCardProps {
@@ -62,36 +61,16 @@ export function MemberCard({ member, currentFeature, currentTask, roleConfig, on
   const [adding, setAdding] = useState(false)
   // Plné jméno v title jen tehdy, když ho v úzké kartě zkrátí výpustka (feat-023)
   const [nameRef, nameTruncated] = useIsTruncated<HTMLInputElement>(member.name)
-  // Pro kterou jednotku je otevřené menu voleb AI (feat-019) — lokální UI stav karty, simulace o něm
-  // neví. Pamatujeme si objekt jednotky, ne jen true/false: karty jsou klíčované ID jednotky a po
-  // výměně týmu (preset, nová jednotka se stejným ID) dostane karta jiný objekt — menu se pak samo
-  // zavře, místo aby „přeskočilo“ na jednotku, na kterou uživatel neklikl.
-  const [aiMenuFor, setAiMenuFor] = useState<Member | null>(null)
-  const aiOpen = aiMenuFor === member
-  // Tlačítko AI — po výběru volby nebo Escape na něj vracíme fokus, aby klávesnice neztratila pozici
-  const aiButtonRef = useRef<HTMLButtonElement>(null)
-  // Stabilní ID menu pro aria-controls tlačítka AI
-  const aiMenuId = useId()
   // Chybějící hodnota = 1× (bez AI); odznak se ukazuje jen při 2× nebo 5×
   const ai = member.aiMultiplier ?? 1
   const aiOn = ai > 1
+  // Hodnota, kterou nastaví další kliknutí na tlačítko AI
+  const nextAi = NEXT_AI[ai]
   // Přístupný název obsahuje i viditelnou hodnotu („5×“), aby ji čtečka ohlásila (WCAG 2.5.3)
   const aiLabel = aiOn ? `AI speed-up: ${ai}×` : 'AI speed-up'
+  // Tooltip říká, co udělá další kliknutí — bez menu by jinak nebylo poznat, že se hodnoty točí dokola
+  const aiTitle = `${aiLabel} – ${nextAi === 1 ? 'click to turn off' : `click for ${nextAi}×`}`
 
-  /** Zavře menu AI a vrátí fokus na tlačítko AI (menu s fokusovanou volbou právě zmizí). */
-  function closeAiMenu() {
-    setAiMenuFor(null)
-    aiButtonRef.current?.focus()
-  }
-
-  /**
-   * Escape v tlačítku AI nebo ve volbách menu zavře menu bez změny nastavení.
-   *
-   * @param e - Událost klávesnice z tlačítka AI nebo z volby menu
-   */
-  function handleAiKeyDown(e: KeyboardEvent) {
-    if (e.key === 'Escape' && aiOpen) closeAiMenu()
-  }
   // Object.keys(roleConfig) místo statického ROLES — zahrnuje i uživatelsky přidané specializace
   const availableRoles = Object.keys(roleConfig).filter(r => !member.roles.includes(r))
   const taskMeta = currentTask ? roleConfig[currentTask.role] ?? null : null
@@ -122,16 +101,14 @@ export function MemberCard({ member, currentFeature, currentTask, roleConfig, on
         />
 
         {/* Tlačítko AI (feat-019): bez AI průhledné „AI“ ve velikosti křížku; se zapnutým AI
-            odznak v barvě accent s bleskem a hodnotou („⚡ 5×“). Kliknutí otevře/zavře menu voleb. */}
+            odznak v barvě accent s bleskem a hodnotou („⚡ 5×“). Každé kliknutí (i Enter / mezerník)
+            nastaví další hodnotu 1× → 2× → 5× → 1×; fokus na tlačítku zůstává, takže jde přepínat
+            opakovaně. */}
         <button
-          ref={aiButtonRef}
           type="button"
-          onClick={() => setAiMenuFor(aiOpen ? null : member)}
-          onKeyDown={handleAiKeyDown}
-          title={aiLabel}
+          onClick={() => onSetAiMultiplier(member.id, nextAi)}
+          title={aiTitle}
           aria-label={aiLabel}
-          aria-expanded={aiOpen}
-          aria-controls={aiOpen ? aiMenuId : undefined}
           className={aiOn ? `${styles.aiButton} ${styles.aiButtonOn}` : styles.aiButton}
         >
           {aiOn && <BoltIcon />}
@@ -141,31 +118,6 @@ export function MemberCard({ member, currentFeature, currentTask, roleConfig, on
         {/* Tlačítko odebrání jednotky */}
         <button type="button" onClick={() => onRemove(member.id)} title="Remove unit" className={styles.mini}>×</button>
       </div>
-
-      {/* Volby AI (feat-019) — inline pod horním řádkem, zarovnané doprava. Stejně jako picker
-          specializací bez absolutního pozicování: karta má overflow: hidden, bublina by se usekla.
-          Výběr volby nastaví multiplikátor, menu zavře a vrátí fokus na tlačítko AI. */}
-      {aiOpen && (
-        <div id={aiMenuId} role="group" aria-label="AI speed-up options" className={styles.aiMenu} onKeyDown={handleAiKeyDown}>
-          {AI_OPTIONS.filter(v => v > 1 || aiOn).map(v => {
-            const selected = v === ai
-            // Třídy volby: základ + „off“ (slovo, tlumenější) + vybraná volba (accent)
-            const className = [styles.aiOption, v === 1 && styles.aiOptionOff, selected && styles.aiOptionSelected]
-              .filter(Boolean).join(' ')
-            return (
-              <button
-                key={v}
-                type="button"
-                aria-pressed={selected}
-                onClick={() => { onSetAiMultiplier(member.id, v); closeAiMenu() }}
-                className={className}
-              >
-                {v === 1 ? 'off' : `${v}×`}
-              </button>
-            )
-          })}
-        </div>
-      )}
 
       {/* Řádek 2: specializační chipy + tlačítko přidání role */}
       <div className={styles.roles}>
