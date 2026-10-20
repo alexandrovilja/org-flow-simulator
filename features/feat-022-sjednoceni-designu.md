@@ -1,7 +1,9 @@
 # Feature: Sjednocení designu v celém nástroji
 
 ## Status
-ready
+done
+
+*Hotovo 2026-10-20 v jednom PR (#26, 30f17a7), včetně code review (9 nálezů opraveno). Smoke test produkce prošel: písma a velikosti ve všech módech, akordeony bez emoji, čísla v Done v mono, 404 z tokenů.*
 
 ## Problem
 Převod na design system Org Flow (feat-021) přestyloval komponenty design systému, ale části obrazovky, které žádnou komponentou nejsou, zůstaly ve starém stylu. Vedle nového vzhledu jsou proto vidět zbytky starého a nástroj nepůsobí jednotně:
