@@ -7,6 +7,8 @@ done
 
 *Hotovo 2026-10-20 v pěti PR: tokeny a písma (#19), horní lišta a ovládání (#20), Kanban (#21), tým a metriky (#22), overlaye, tmavé téma a nastavení (#23); oprava horní lišty pro projektor 1024 px.*
 
+*Oprava chyby (2026-10-20): vybraná volba segmentového přepínače byla pod kurzorem nečitelná (text v barvě výplně), viz Příklad 12 a 13.*
+
 ## Problem
 Aplikace se promítá na workshopech, ale její vzhled na to není stavěný:
 
@@ -26,7 +28,7 @@ Rozložení obrazovek a chování zůstávají stejné, mění se vzhled podle d
 - **Horní lišta:** antracitová (`surface-bar`), 56 px. Vlevo značka (glyf tří uzlů) a název ORG FLOW SIMULATOR se žlutým heslem. Uprostřed záložky Compare / Advanced / Cash Flow bez emoji, aktivní má žlutou linku (`highlight`). Vpravo „?“, Reset, přepínač rychlosti a tlačítko **Run** v elektrické modři (`action`), které před prvním spuštěním pulzuje. Za běhu je to fialové **Pause** (`accent`), po doběhnutí zelené **✓ Done** (`done`). Na užší obrazovce (projektor 1024 × 768) zůstane vlevo jen glyf značky a název s heslem se schová (pro čtečky obrazovky zůstává), aby se značka, záložky a ovládání nepřekrývaly.
 - **Písmo:** Archivo místo Inter (titulky 800 verzálkami), JetBrains Mono pro popisky a čísla, Kalam jen pro poznámku kouče. Nic menšího než 10 px.
 - **Barvy podle tokenů:** neutrální šedé plochy, fialová pro In progress a výběr. Stavy Done (zelená), čekání (okr) a rework (červená). Role čipy s bílým textem v osmi slotech: Design `role-rose`, Frontend/Payments `role-blue`, Backend/Platform `role-brick`, Testing/Integration Testing `role-green`, DevOps/CRM `role-ochre`, Data/Client Acquisition `role-teal`, vlastní specializace `role-violet` a `role-slate`.
-- **Jednotné komponenty:** jeden segmentový přepínač pro typ týmu, preset, křivku výnosu i rychlost. Hranatá tlačítka. Karty features, jednotek a dlaždice metrik podle design systému. Tooltipy nápovědy na antracitu.
+- **Jednotné komponenty:** jeden segmentový přepínač pro typ týmu, preset, křivku výnosu i rychlost. Vybraná volba vypadá pod kurzorem stejně jako bez něj; najetí myší zvýrazní jen nevybrané volby. Hranatá tlačítka. Karty features, jednotek a dlaždice metrik podle design systému. Tooltipy nápovědy na antracitu.
 - **Výsledek v Compare:** rám s písmenem vítězného týmu, titulkem „Team B was 42% faster“, větou proč a ručně psanou poznámkou kouče. Bez emoji; týmy se nerozlišují barvou.
 - **Tmavé téma Workshop dark:** nové tlačítko ☾/☀ v horní liště vedle „?“. Výchozí stav se řídí nastavením systému (`prefers-color-scheme`), volba uživatele se pamatuje.
 
@@ -87,6 +89,16 @@ Rozložení obrazovek a chování zůstávají stejné, mění se vzhled podle d
 - When: se v módu Compare, Advanced i Cash Flow vykreslí horní lišta
 - Then: viditelná značka končí před záložkami, záložky končí před ovládáním vpravo a stránka se vodorovně neroluje; při 1280 px je vidět celý název ORG FLOW SIMULATOR
 
+**Příklad 12: Vybraná volba přepínače pod kurzorem zůstane čitelná**
+- Given: Compare, Advanced i Cash Flow s otevřenými akordeony nastavení, ve světlém i tmavém tématu
+- When: kouč najede myší na vybranou volbu každého přepínače (rychlost na liště, typ týmu v obou sloupcích Compare, preset jednotek, křivka výnosu, režim WIP, Coordination overhead)
+- Then: výplň i barva textu zůstanou stejné jako bez najetí (v panelu `ink` a `surface-panel`, na liště `ink-on-bar` a `surface-bar`) a kontrast textu proti výplni je aspoň 4,5:1
+
+**Příklad 13: Nevybraná volba na najetí reaguje jako dřív**
+- Given: světlé téma; v Advanced vybraný preset Teams a rychlost 1×
+- When: kouč najede myší na „People“ a pak na „2×“
+- Then: text „People“ změní barvu z `ink-3` na `ink`, text „2×“ z `ink-on-bar` na `ink-inverse`; výplň obou zůstane průhledná
+
 ## Out of Scope
 —
 
@@ -106,6 +118,7 @@ Rozložení obrazovek a chování zůstávají stejné, mění se vzhled podle d
 - **Bez probliknutí tématu (rozhodnuto):** malý inline skript v `<head>` v `layout.tsx` nastaví `data-theme` z uložené volby (nebo `prefers-color-scheme`) ještě před vykreslením. Je to jediná vědomá výjimka z pravidla „localStorage jen přes `storage.ts`“; skript musí mít komentář s odůvodněním a používat stejný klíč jako `storage.ts`.
 - **Testy:** kontrast (příklad 2) jako Vitest test, který čte hodnoty z `globals.css` a počítá poměr podle WCAG (vlastní malá funkce, bez knihovny). Velikost písma (příklad 6) a téma (příklad 5) jako Playwright E2E. Existující testy v `tests/unit/simulation/` používají barvy rolí jen jako data (`oklch(…)`), takže by měly projít beze změny.
 - **Dotčené soubory:** `globals.css`, `layout.tsx`, `engine.ts`, `xlsImport.ts`, `storage.ts`, `Simulator.tsx` a prakticky všechny komponenty v `src/components/` a jejich `.module.css`.
+- **Oprava přepínače pod kurzorem (Příklad 12 a 13):** v `src/components/SegmentedControl.module.css` má pravidlo pro najetí `.segment:hover:not(:disabled)` specificitu (0,3,0) a přebije vybranou volbu `.segment[aria-pressed='true']` (0,2,0); na liště totéž (`.bar …:hover` 0,4,0 proti 0,3,0). Vybraná volba tak pod kurzorem dostala barvu textu pro nevybranou: kontrast 1:1 v panelu (obě témata), 1,35:1 na liště. Oprava: pravidla pro najetí omezit na `[aria-pressed='false']`; bez `!important` a bez nového tokenu, mění se jen tento CSS modul. Artefakt design systému chybu nemá (`.of-seg button:hover` a `[aria-pressed="true"]` mají stejnou specificitu a vybraná volba je v kaskádě později), chyba vznikla až přidáním `:not(:disabled)` při převodu. Testy jako Playwright E2E v `tests/e2e/feat-021-design-system.spec.ts` (jsdom nepočítá styly z CSS modulů ani `:hover`), barvy číst až po doběhnutí přechodu (0,2 s) přes `getAnimations()` (hned po najetí je barva ještě výchozí a chyba by se neprojevila; `expect.poll` by tak prošel dřív, než se barva změní), kontrast počítá nový pomocník `contrastRatio` v `tests/e2e/helpers.ts`. Audit najetím na všech 288 stavů tlačítek (3 módy × 2 témata) našel tuto chybu jen u přepínačů.
 
 ## Open Questions
 —
