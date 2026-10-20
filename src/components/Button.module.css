@@ -33,7 +33,7 @@
   cursor: default;
 }
 
-/* Run / Start: jediná primární výzva na obrazovce (elektrická modř) */
+/* Run: jediná primární výzva na obrazovce (elektrická modř) */
 .primary {
   height: var(--size-cta);
   padding: 0 var(--space-20);

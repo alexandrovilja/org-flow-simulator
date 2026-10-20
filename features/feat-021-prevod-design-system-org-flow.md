@@ -9,6 +9,8 @@ done
 
 *Oprava chyby (2026-10-20): vybraná volba segmentového přepínače byla pod kurzorem nečitelná (text v barvě výplně), viz Příklad 12 a 13.*
 
+*Změna (2026-10-20): ovládání běhu v horní liště je ve všech třech módech stejné jako v Compare — pořadí „?“, „↺ Reset“, rychlost 0.5× / 1× / 10×, „▶ Run“. V Advanced a Cash Flow mizí „Start“, „Resume“, „Reset backlog“ a rychlost 2×. Upraveno UI / Design (Horní lišta, nový bod Ovládání běhu), Příklad 13 a Technical Notes, nové Příklady 14–17.*
+
 ## Problem
 Aplikace se promítá na workshopech, ale její vzhled na to není stavěný:
 
@@ -26,6 +28,11 @@ Design system Org Flow (paleta Antracit a elektrická modř) tohle řeší jedn�
 Rozložení obrazovek a chování zůstávají stejné, mění se vzhled podle design systému Org Flow (artefakt https://claude.ai/artifact/EvHZ56JjHa9D9etc85fy3Q). Schválený UI návrh (fáze 3): maketa `docs/design-system-mockup.html`. Texty UI zůstávají anglicky.
 
 - **Horní lišta:** antracitová (`surface-bar`), 56 px. Vlevo značka (glyf tří uzlů) a název ORG FLOW SIMULATOR se žlutým heslem. Uprostřed záložky Compare / Advanced / Cash Flow bez emoji, aktivní má žlutou linku (`highlight`). Vpravo „?“, Reset, přepínač rychlosti a tlačítko **Run** v elektrické modři (`action`), které před prvním spuštěním pulzuje. Za běhu je to fialové **Pause** (`accent`), po doběhnutí zelené **✓ Done** (`done`). Na užší obrazovce (projektor 1024 × 768) zůstane vlevo jen glyf značky a název s heslem se schová (pro čtečky obrazovky zůstává), aby se značka, záložky a ovládání nepřekrývaly.
+- **Ovládání běhu je ve všech módech stejné (změna 2026-10-20):** Advanced a Cash Flow přebírají ovládání z Compare. Vpravo za přepínačem tématu je vždy v tomto pořadí:
+  1. **„?“** — znovu spustí tutoriál módu. Má ho Compare a Advanced; Cash Flow tutoriál nemá, proto tam „?“ chybí a ostatní prvky zůstávají ve stejném pořadí.
+  2. **„↺ Reset“** — stejný popisek ve všech módech (v Advanced a Cash Flow dřív „↺ Reset backlog“). Co Reset vrací, se nemění: Compare vrátí oba týmy na Single / Double se stejným backlogem, Advanced a Cash Flow obnoví výchozí backlog (feat-001, Příklad 4; v Cash Flow navíc doběhnutý běh poslouží jako předchozí pro delta badge, feat-015). V Advanced a Cash Flow zůstává tooltip „Restore the initial backlog and clear in-progress / done“.
+  3. **Rychlost 0.5× / 1× / 10×**, výchozí 1×. Volba 2× v Advanced a Cash Flow mizí. Každý mód si dál drží vlastní rychlost.
+  4. **Tlačítko běhu:** „▶ Run“ (`action`, před prvním spuštěním pulzuje), za běhu „❙❙ Pause“ (`accent`), po pauze znovu „▶ Run“ bez pulzu a simulace pokračuje od stejného bodu, po zpracování celého backlogu „✓ Done“ (`done`), vypnuté. Popisky „▶ Start“ a „▶ Resume“ mizí. Po Resetu je tlačítko znovu pulzující „▶ Run“.
 - **Písmo:** Archivo místo Inter (titulky 800 verzálkami), JetBrains Mono pro popisky a čísla, Kalam jen pro poznámku kouče. Nic menšího než 10 px.
 - **Barvy podle tokenů:** neutrální šedé plochy, fialová pro In progress a výběr. Stavy Done (zelená), čekání (okr) a rework (červená). Role čipy s bílým textem v osmi slotech: Design `role-rose`, Frontend/Payments `role-blue`, Backend/Platform `role-brick`, Testing/Integration Testing `role-green`, DevOps/CRM `role-ochre`, Data/Client Acquisition `role-teal`, vlastní specializace `role-violet` a `role-slate`.
 - **Jednotné komponenty:** jeden segmentový přepínač pro typ týmu, preset, křivku výnosu i rychlost. Vybraná volba vypadá pod kurzorem stejně jako bez něj; najetí myší zvýrazní jen nevybrané volby. Hranatá tlačítka. Karty features, jednotek a dlaždice metrik podle design systému. Tooltipy nápovědy na antracitu.
@@ -96,8 +103,29 @@ Rozložení obrazovek a chování zůstávají stejné, mění se vzhled podle d
 
 **Příklad 13: Nevybraná volba na najetí reaguje jako dřív**
 - Given: světlé téma; v Advanced vybraný preset Teams a rychlost 1×
-- When: kouč najede myší na „People“ a pak na „2×“
-- Then: text „People“ změní barvu z `ink-3` na `ink`, text „2×“ z `ink-on-bar` na `ink-inverse`; výplň obou zůstane průhledná
+- When: kouč najede myší na „People“ a pak na „10×“
+- Then: text „People“ změní barvu z `ink-3` na `ink`, text „10×“ z `ink-on-bar` na `ink-inverse`; výplň obou zůstane průhledná
+- Note: dřív se příklad ověřoval na rychlosti „2×“, ta byla změnou 2026-10-20 zrušena
+
+**Příklad 14: Stejné ovládání běhu ve všech třech módech (změna 2026-10-20)**
+- Given: Compare, Advanced i Cash Flow před prvním spuštěním
+- When: se vykreslí ovládání v pravé části horní lišty
+- Then: za přepínačem tématu je v tomto pořadí „?“ (jen Compare a Advanced), „↺ Reset“, přepínač rychlosti s volbami „0.5×“, „1×“, „10×“ (vybraná „1×“) a pulzující „▶ Run“; v žádném módu není tlačítko „Start“, „Resume“ ani „Reset backlog“ a žádná volba „2×“
+
+**Příklad 15: Stavy tlačítka běhu v Advanced a Cash Flow**
+- Given: Advanced před prvním spuštěním (v Cash Flow totéž)
+- When: kouč klikne na „▶ Run“, pak na „❙❙ Pause“, pak znovu na „▶ Run“ a nechá simulaci doběhnout
+- Then: nejdřív je „▶ Run“ ve výplni `action` a pulzuje; za běhu „❙❙ Pause“ ve výplni `accent`; po pauze znovu „▶ Run“, už bez pulzu, a simulační čas od pauzy neběží; po dalším kliknutí pokračuje od stejného bodu; po zpracování celého backlogu „✓ Done“ ve výplni `done` a tlačítko je vypnuté
+
+**Příklad 16: Reset vrátí tlačítko běhu na začátek**
+- Given: Advanced po doběhnutí simulace, tlačítko ukazuje „✓ Done“ (v Cash Flow totéž)
+- When: kouč klikne na „↺ Reset“
+- Then: tlačítko je znovu pulzující „▶ Run“ a backlog je obnovený jako dřív (feat-001, Příklad 4)
+
+**Příklad 17: Tutoriál Advanced popisuje nové ovládání**
+- Given: tutoriál módu Advanced
+- When: dojde na krok ovládání (`experiment-controls`) a na poslední krok (`experiment-run`)
+- Then: zvýrazněná oblast kroku ovládání obsahuje „?“, „↺ Reset“, rychlost i tlačítko běhu (stejně jako `compare-controls` v Compare); text kroku ovládání je „Simulation controls: choose speed (0.5×, 1×, or 10×) or reset the run to restore the original backlog and start fresh.“ a text posledního kroku „Click ▶ Run to start the simulation. Adjust the team, reset, and re-run as many times as you like.“
 
 ## Out of Scope
 —
@@ -119,6 +147,15 @@ Rozložení obrazovek a chování zůstávají stejné, mění se vzhled podle d
 - **Testy:** kontrast (příklad 2) jako Vitest test, který čte hodnoty z `globals.css` a počítá poměr podle WCAG (vlastní malá funkce, bez knihovny). Velikost písma (příklad 6) a téma (příklad 5) jako Playwright E2E. Existující testy v `tests/unit/simulation/` používají barvy rolí jen jako data (`oklch(…)`), takže by měly projít beze změny.
 - **Dotčené soubory:** `globals.css`, `layout.tsx`, `engine.ts`, `xlsImport.ts`, `storage.ts`, `Simulator.tsx` a prakticky všechny komponenty v `src/components/` a jejich `.module.css`.
 - **Oprava přepínače pod kurzorem (Příklad 12 a 13):** v `src/components/SegmentedControl.module.css` má pravidlo pro najetí `.segment:hover:not(:disabled)` specificitu (0,3,0) a přebije vybranou volbu `.segment[aria-pressed='true']` (0,2,0); na liště totéž (`.bar …:hover` 0,4,0 proti 0,3,0). Vybraná volba tak pod kurzorem dostala barvu textu pro nevybranou: kontrast 1:1 v panelu (obě témata), 1,35:1 na liště. Oprava: pravidla pro najetí omezit na `[aria-pressed='false']`; bez `!important` a bez nového tokenu, mění se jen tento CSS modul. Artefakt design systému chybu nemá (`.of-seg button:hover` a `[aria-pressed="true"]` mají stejnou specificitu a vybraná volba je v kaskádě později), chyba vznikla až přidáním `:not(:disabled)` při převodu. Testy jako Playwright E2E v `tests/e2e/feat-021-design-system.spec.ts` (jsdom nepočítá styly z CSS modulů ani `:hover`), barvy číst až po doběhnutí přechodu (0,2 s) přes `getAnimations()` (hned po najetí je barva ještě výchozí a chyba by se neprojevila; `expect.poll` by tak prošel dřív, než se barva změní), kontrast počítá nový pomocník `contrastRatio` v `tests/e2e/helpers.ts`. Audit najetím na všech 288 stavů tlačítek (3 módy × 2 témata) našel tuto chybu jen u přepínačů.
+- **Jednotné ovládání běhu (Příklad 14–17, změna 2026-10-20):**
+  - Jedna komponenta pro všechny tři módy: `SpeedControl` (`src/components/SpeedControl.tsx`) vykreslí prvky v pořadí Compare — „?“, „↺ Reset“, rychlost, tlačítko běhu. „?“ jen když dostane nový nepovinný prop `onRestartTutorial` (Cash Flow ho nepředá). Nepovinný prop `resetTitle` nese tooltip Resetu (Advanced a Cash Flow ho předají, Compare ne). Komponenta dál vrací fragment.
+  - Rychlosti na jednom místě: `SPEEDS` v `SpeedControl.tsx` = `[0.5, 1, 10]` a typ `SimSpeed = 0.5 | 1 | 10` v `src/types/simulation.ts` (sdílený typ nepatří do souboru komponenty, viz `docs/conventions.md`). Konstanta `COMPARE_SPEEDS` v `Simulator.tsx` zmizí.
+  - Tlačítko běhu: popisek „▶ Run“ před startem i po pauze (`pulse` jen dokud `hasStarted` je `false`), „❙❙ Pause“ za běhu, „✓ Done“ vypnuté, když je `finished`. Prop `hasStarted` dál řídí jen pulz.
+  - Compare přestane skládat vlastní tlačítka (`compareRunButton` a ruční `SegmentedControl` v `Simulator.tsx`) a použije `SpeedControl` s `finished` = oba běhy doběhly. Rychlost drží ve všech třech módech stejný hook `useSimSpeed` (`src/hooks/useSimSpeed.ts`): vrací `speed` (pro přepínač), `speedRef` (čte ho smyčka RAF) a `setSpeed`, který přepíše ref hned a stav při překreslení. Dřív Compare přepisoval ref ručně a Advanced s Cash Flow ho synchronizovaly až v `useEffect` po překreslení; teď platí nová rychlost ve všech módech od dalšího snímku.
+  - Obal `controls` s cílem tutoriálu dál vykresluje `Simulator.tsx`: `compare-controls` beze změny, `experiment-controls` nově obaluje celé ovládání včetně „?“ (dnes jen Run, rychlost a Reset), Cash Flow obal bez cíle. Cíle tlačítka běhu (`compare-run-button`, `experiment-run-button`, `cashflow-run-button`) zůstávají.
+  - Handlery běhu a Resetu v `Simulator.tsx` se nemění; mění se jen pořadí, popisky a sada rychlostí.
+  - Texty tutoriálu v `src/lib/tutorialSteps.ts`: kroky `experiment-controls` a `experiment-run` podle Příkladu 17. Text Compare (`compare-controls`) už rychlosti 0.5×, 1×, 10× uvádí.
+  - Testy: Vitest + RTL nad `SpeedControl` (pořadí, popisky, rychlosti, „?“ jen s callbackem, tooltip Resetu, cíl tutoriálu ve stavech Run / Pause / Done), nad `useSimSpeed` (ref se přepíše hned, stabilní setter, nezávislé módy) a integrační test `Simulator` po módech (Příklad 14–16); texty tutoriálu jako unit test nad `TUTORIAL_STEPS`. Existující testy, které klikají na „Start“ / „Resume“ / „Reset backlog“ nebo vybírají rychlost „2×“, se přepíšou na „Run“ / „Reset“ / „10×“: unit `feat-001-done-count-panels`, `feat-017-simulator-integration`, `feat-018-simulator-integration`, `feat-019-simulator-integration`; E2E `helpers.ts` (`runButton` bez „Start“), `feat-015-cash-flow-mod`, `feat-021-design-system` (Příklad 13 na „10×“), `feat-022-sjednoceni-designu`, `feat-023-jednotne-pismo`.
 
 ## Open Questions
 —
@@ -132,3 +169,5 @@ Rozložení obrazovek a chování zůstávají stejné, mění se vzhled podle d
 - **feat-013-zprehledneni-aplikace:** přestyluje se `HelpIcon` a karta tutoriálu.
 - **feat-016-coordination-overhead:** tokeny reworku se přejmenují (`--rework-ink` → `--rework`, `--rework-bg` → `--rework-soft`).
 - **feat-019-ai-multiplikator-vykonu:** AI odznak bude fialový (`--accent`).
+- **feat-001-simulace-prubehu-vyvoje, feat-003-konfigurace-backlogu, feat-004-analyza-lead-time, feat-015-cash-flow-mod (změna 2026-10-20):** ovládání běhu v Advanced a Cash Flow je stejné jako v Compare („▶ Run“ místo „Start“ / „Resume“, „↺ Reset“ místo „Reset backlog“, rychlosti 0.5× / 1× / 10×); popisky v jejich příkladech jsou upravené.
+- **feat-013-zprehledneni-aplikace (změna 2026-10-20):** texty kroků tutoriálu Advanced o ovládání a tlačítku běhu (Příklad 17).

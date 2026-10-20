@@ -344,3 +344,8 @@ export interface UnitPreset {
  *  sandbox, Cash Flow ukazuje finanční dopad cycle time a WIP. Sdílí ho Simulator a horní lišta
  *  (TopBar), která podle něj zvýrazní aktivní záložku. */
 export type AppMode = 'compare' | 'experiment' | 'cashflow'
+
+/** Rychlost běhu simulace z přepínače v horní liště: násobek reálného času (0.5× = zpomaleně,
+ *  10× = zrychleně). Sdílí ho `SpeedControl` (nabízí právě tyto hodnoty), hook `useSimSpeed`
+ *  a Simulator, aby stav rychlosti v žádném módu nemohl obsahovat hodnotu, kterou přepínač nenabízí. */
+export type SimSpeed = 0.5 | 1 | 10

@@ -3,7 +3,7 @@
  * Ověřují v reálném prohlížeči to, co jsdom neumí: vypočtené barvy, velikosti písma, načtená písma
  * a téma přes znovunačtení stránky.
  *
- * Schválený kontrakt: features/feat-021-prevod-design-system-org-flow.md (příklady 3, 5, 6, 7, 8, 10–13).
+ * Schválený kontrakt: features/feat-021-prevod-design-system-org-flow.md (příklady 3, 5, 6, 7, 8, 10–13 a 15).
  *
  * Spuštění lokálně: npx playwright test tests/e2e/feat-021-design-system.spec.ts
  */
@@ -126,6 +126,32 @@ test.describe('feat-021: design system Org Flow', () => {
     await expect.poll(() => bg(done)).toBe(RGB.done)
   })
 
+  test('Příklad 15: Advanced a Cash Flow — Run pulzuje v action, za běhu je Pause v accent, po pauze je Run bez pulzu', async ({ page }) => {
+    await page.goto(BASE)
+    for (const mode of ['Advanced', 'Cash Flow']) {
+      await page.getByRole('tab', { name: mode }).click()
+      const run = runButton(page, 'Run')
+      await expect(run, mode).toBeVisible()
+      expect(await bg(run), `${mode}: výplň Run`).toBe(RGB.action)
+      expect(await run.evaluate(e => getComputedStyle(e).animationName), `${mode}: pulz před startem`).not.toBe('none')
+
+      await run.click()
+      const pause = runButton(page, 'Pause')
+      await expect(pause, mode).toBeVisible()
+      // Výplň se mění 0,15s přechodem (stejné tlačítko, jiná varianta) — počkáme na cílovou barvu
+      await expect.poll(() => bg(pause), `${mode}: výplň Pause`).toBe(RGB.accent)
+
+      await pause.click()
+      // Kurzor zůstal nad tlačítkem, které se právě přejmenovalo na Run — odsuneme ho, ať se čte barva bez najetí
+      await page.mouse.move(0, 0)
+      const resumed = runButton(page, 'Run')
+      await expect(resumed, mode).toBeVisible()
+      await expect.poll(() => bg(resumed), `${mode}: výplň Run po pauze`).toBe(RGB.action)
+      // Po pauze se tlačítko jmenuje zase Run, ale už nepulzuje (pulz je jen před prvním spuštěním)
+      expect(await resumed.evaluate(e => getComputedStyle(e).animationName), `${mode}: bez pulzu po pauze`).toBe('none')
+    }
+  })
+
   test('Příklad 5: téma se řídí systémem, přepínač ho změní a volba přežije znovunačtení', async ({ page }) => {
     await page.emulateMedia({ colorScheme: 'dark' })
     await page.goto(BASE)
@@ -147,12 +173,12 @@ test.describe('feat-021: design system Org Flow', () => {
     expect(await tooSmallText(page), 'Compare').toEqual([])
 
     await page.getByRole('tab', { name: 'Advanced' }).click()
-    await runButton(page, 'Start').click()
+    await runButton(page, 'Run').click()
     await page.waitForTimeout(1500)
     expect(await tooSmallText(page), 'Advanced').toEqual([])
 
     await page.getByRole('tab', { name: 'Cash Flow' }).click()
-    await runButton(page, 'Start').click()
+    await runButton(page, 'Run').click()
     await page.waitForTimeout(1500)
     expect(await tooSmallText(page), 'Cash Flow').toEqual([])
   })
@@ -184,7 +210,7 @@ test.describe('feat-021: design system Org Flow', () => {
     expect(await bg(speedGroup.getByRole('button', { name: '1×', exact: true }))).toBe(RGB.inkOnBar)
 
     await page.getByRole('tab', { name: 'Advanced' }).click()
-    const advancedSpeed = groupWith(page, '2×')
+    const advancedSpeed = groupWith(page, '10×')
     expect(await bg(advancedSpeed.getByRole('button', { name: '1×', exact: true }))).toBe(RGB.inkOnBar)
   })
 
@@ -254,7 +280,7 @@ test.describe('feat-021: design system Org Flow', () => {
     await page.goto(BASE)
     await page.getByRole('tab', { name: 'Advanced' }).click()
     const presetGroup = groupWith(page, 'People')
-    const speedGroup = groupWith(page, '2×')
+    const speedGroup = groupWith(page, '10×')
     await expect(presetGroup.getByRole('button', { name: 'Teams', exact: true })).toHaveAttribute('aria-pressed', 'true')
     await expect(speedGroup.getByRole('button', { name: '1×', exact: true })).toHaveAttribute('aria-pressed', 'true')
 
@@ -266,10 +292,10 @@ test.describe('feat-021: design system Org Flow', () => {
     expect(await settledColors(people)).toEqual({ bg: RGB.transparent, color: RGB.ink })
 
     // Lišta: text nevybrané volby z ink-on-bar na ink-inverse (bílá)
-    const twoX = speedGroup.getByRole('button', { name: '2×', exact: true })
+    const tenX = speedGroup.getByRole('button', { name: '10×', exact: true })
     await page.mouse.move(0, 0)
-    expect(await settledColors(twoX)).toEqual({ bg: RGB.transparent, color: RGB.inkOnBar })
-    await twoX.hover()
-    expect(await settledColors(twoX)).toEqual({ bg: RGB.transparent, color: RGB.white })
+    expect(await settledColors(tenX)).toEqual({ bg: RGB.transparent, color: RGB.inkOnBar })
+    await tenX.hover()
+    expect(await settledColors(tenX)).toEqual({ bg: RGB.transparent, color: RGB.white })
   })
 })

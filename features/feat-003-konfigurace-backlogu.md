@@ -11,7 +11,7 @@ Jako agilní kouč chci nastavit velikost backlogu a míru variability (velikost
 
 ## UI / Design
 - Konfigurační sekce je v levém panelu pod backlogem
-- **Tlačítko "♻ Generate new backlog"** — vygeneruje nový backlog s aktuálním nastavením a novým seedem; umístěno jako první prvek v sekci, plná šířka, tmavé pozadí (`var(--ink)`); zároveň vyčistí stav `finished` a znovu aktivuje tlačítko Play
+- **Tlačítko "♻ Generate new backlog"** — vygeneruje nový backlog s aktuálním nastavením a novým seedem; umístěno jako první prvek v sekci, plná šířka, tmavé pozadí (`var(--ink)`); zároveň vyčistí stav `finished` a znovu aktivuje tlačítko Run
 - Čtyři ovládací prvky (Slider komponenty), každý má `?` badge s nápovědou (tooltip):
   - **Backlog size** (10–1000) — kolik features backlog obsahuje
   - **Item size variability** (0–1) — jak moc se liší pracnost jednotlivých features (0 = všechny stejně velké, 1 = velký rozptyl)
@@ -33,7 +33,7 @@ Jako agilní kouč chci nastavit velikost backlogu a míru variability (velikost
 
 **Příklad 3: Reset backlogu po generování**
 - Given: Kouč vygeneroval nový backlog a simulace proběhla
-- When: Klikne na "Reset backlog"
+- When: Klikne na „↺ Reset“ (dřív „Reset backlog“, změna 2026-10-20, viz feat-021 Příklad 14)
 - Then: Backlog se vrátí do stavu při posledním generování (stejný seed, stejné features); statistiky se vyčistí
 
 **Příklad 4: Min. specializations = 3**

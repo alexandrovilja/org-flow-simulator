@@ -10,8 +10,6 @@ import {
 import type { AppMode, SimSettings, SimState, Feature, Role, RoleMeta, FocusMode, WipMode, UnitPreset, ActivePresetId, RevenueProfile, AiMultiplier } from '@/types/simulation'
 import { StatTile } from '@/components/StatTile'
 import { SpeedControl } from '@/components/SpeedControl'
-import { Button } from '@/components/Button'
-import { SegmentedControl } from '@/components/SegmentedControl'
 import { TopBar } from '@/components/TopBar'
 import { WinnerBanner } from '@/components/WinnerBanner'
 import { DoneRow } from '@/components/DoneRow'
@@ -21,6 +19,7 @@ import { CashFlowPanel } from '@/components/CashFlowPanel'
 import { BacklogSettingsPanel } from '@/components/BacklogSettingsPanel'
 import { InProgressTeamPanel } from '@/components/InProgressTeamPanel'
 import { useCashFlowSimSetup } from '@/hooks/useCashFlowSimSetup'
+import { useSimSpeed } from '@/hooks/useSimSpeed'
 import { formatTime } from '@/lib/formatTime'
 import { formatEuro } from '@/lib/formatCurrency'
 import { computeRevenueComparison } from '@/lib/revenueComparison'
@@ -39,8 +38,8 @@ import styles from './Simulator.module.css'
 // ── Types ────────────────────────────────────────────────────────────────────
 
 
-/** Rychlosti, které nabízí přepínač v Compare (násobek reálného času). */
-const COMPARE_SPEEDS = [0.5, 1, 10] as const
+/** Tooltip tlačítka Reset v Advanced a Cash Flow (Compare Reset tooltip nemá — resetuje oba týmy). */
+const RESET_BACKLOG_TITLE = 'Restore the initial backlog and clear in-progress / done'
 
 // ── Experiment mode defaults ─────────────────────────────────────────────────
 
@@ -112,12 +111,11 @@ export function Simulator() {
   const compareRngBRef   = useRef<(() => number) | null>(null)
   const [comparePaused, setComparePaused]       = useState(true)
   const [compareHasStarted, setCompareHasStarted] = useState(false)
-  const [compareSpeed, setCompareSpeed]         = useState<0.5 | 1 | 10>(1)
+  // Rychlost každého módu drží stejný hook; jeho ref čte smyčka RAF (nová rychlost platí hned)
+  const { speed: compareSpeed, speedRef: compareSpeedRef, setSpeed: setCompareSpeed } = useSimSpeed()
   const [compareTypeA, setCompareTypeA] = useState<TeamType>('single')
   const [compareTypeB, setCompareTypeB] = useState<TeamType>('double')
   const comparePausedRef = useRef(true)
-  // Direct ref — updated synchronously in the click handler so RAF sees the new speed immediately.
-  const compareSpeedRef  = useRef<0.5 | 1 | 10>(1)
   useEffect(() => { comparePausedRef.current = comparePaused }, [comparePaused])
 
   // Initialise compare states once on mount with default types (single vs double).
@@ -144,11 +142,9 @@ export function Simulator() {
     setCashFlowHasStarted(false)
   }, [])
   const cf = useCashFlowSimSetup(CASHFLOW_SETTINGS, handleCashFlowStateReplaced)
-  const [cashFlowSpeed, setCashFlowSpeed]           = useState<number>(1)
+  const { speed: cashFlowSpeed, speedRef: cashFlowSpeedRef, setSpeed: setCashFlowSpeed } = useSimSpeed()
   const cashFlowPausedRef = useRef(true)
-  const cashFlowSpeedRef  = useRef(1)
   useEffect(() => { cashFlowPausedRef.current = cashFlowPaused }, [cashFlowPaused])
-  useEffect(() => { cashFlowSpeedRef.current   = cashFlowSpeed }, [cashFlowSpeed])
 
   // Run comparison (feat-015) — stejný vzor jako Advanced mód (lastFinishedRef/prevStats):
   // zachytí se jen když běh přirozeně doběhne (state.finished, auto-pauza je vždy okamžitá),
@@ -172,7 +168,7 @@ export function Simulator() {
 
   // ── Experiment mode state ─────────────────────────────────────────────────
   const [settings, setSettings] = useState<SimSettings>(DEFAULT_SETTINGS)
-  const [speed, setSpeed]       = useState(1)
+  const { speed, speedRef, setSpeed } = useSimSpeed()
   const [paused, setPaused]     = useState(true)
   const [hasStarted, setHasStarted] = useState(false)
 
@@ -221,10 +217,8 @@ export function Simulator() {
     stateRef.current.team = initTeam
   }
   const settingsRef  = useRef(settings)
-  const speedRef     = useRef(speed)
   const pausedRef    = useRef(paused)
   useEffect(() => { settingsRef.current = settings }, [settings])
-  useEffect(() => { speedRef.current    = speed    }, [speed])
   useEffect(() => { pausedRef.current   = paused   }, [paused])
 
   // ── Unified RAF loop ───────────────────────────────────────────────────────
@@ -734,17 +728,8 @@ export function Simulator() {
     setCompareHasStarted(true)
   }
 
-  // Tlačítko běhu v Compare: po doběhnutí obou běhů „✓ Done“, jinak Run (před startem pulzuje) / Pause
-  const compareRunButton = bothFinished && compareHasStarted ? (
-    <Button variant="done" disabled data-tutorial-target="compare-run-button">✓ Done</Button>
-  ) : comparePaused ? (
-    <Button variant="primary" pulse={!compareHasStarted} onClick={handleToggleCompareRun} data-tutorial-target="compare-run-button">
-      ▶ Run
-    </Button>
-  ) : (
-    <Button variant="running" onClick={handleToggleCompareRun} data-tutorial-target="compare-run-button">❙❙ Pause</Button>
-  )
-
+  // Ovládání běhu je ve všech třech módech stejné (SpeedControl, feat-021 Příklad 14); liší se jen
+  // tím, co Reset vrací, a tím, že Cash Flow nemá tutoriál, a tak ani tlačítko „?“.
   const header = (
     <TopBar mode={mode} onSelectMode={handleSelectMode}>
       {mode === 'cashflow' ? (
@@ -766,45 +751,40 @@ export function Simulator() {
             setCashFlowHasStarted(false)
             cf.forceUpdate()
           }}
+          resetTitle={RESET_BACKLOG_TITLE}
           runButtonTarget="cashflow-run-button"
         />
       ) : mode === 'compare' ? (
         // data-tutorial-target lets the spotlight overlay focus on the compare simulation controls
         <div data-tutorial-target="compare-controls" className={styles.controls}>
-          {/* ? Tutorial relaunch — always visible, opens the tutorial for this mode */}
-          <Button onBar iconOnly onClick={() => handleTutorialRelaunch('compare')} title="Restart tutorial" aria-label="Restart tutorial">?</Button>
-          <Button onBar onClick={handleCompareReset}>↺ Reset</Button>
-          {/* Speed selector — 0.5×, 1×, 10× (stejný SegmentedControl jako všude, feat-021 Příklad 8) */}
-          <SegmentedControl
-            tone="bar"
-            options={COMPARE_SPEEDS.map(sp => ({ value: String(sp), label: `${sp}×` }))}
-            value={String(compareSpeed)}
-            onChange={v => {
-              const sp = COMPARE_SPEEDS.find(s => String(s) === v)
-              if (sp === undefined) return
-              compareSpeedRef.current = sp
-              setCompareSpeed(sp)
-            }}
+          <SpeedControl
+            speed={compareSpeed}
+            paused={comparePaused}
+            hasStarted={compareHasStarted}
+            // „✓ Done“ až po doběhnutí obou běhů; před prvním spuštěním tlačítko vždy ukazuje Run
+            finished={bothFinished && compareHasStarted}
+            onSpeedChange={setCompareSpeed}
+            onTogglePause={handleToggleCompareRun}
+            onReset={handleCompareReset}
+            onRestartTutorial={() => handleTutorialRelaunch('compare')}
+            runButtonTarget="compare-run-button"
           />
-          {compareRunButton}
         </div>
       ) : (
-        <div className={styles.controls}>
-          {/* ? Tutorial relaunch — opens the experiment mode tutorial */}
-          <Button onBar iconOnly onClick={() => handleTutorialRelaunch('experiment')} title="Restart tutorial" aria-label="Restart tutorial">?</Button>
-          {/* data-tutorial-target lets the spotlight overlay focus on speed/reset controls */}
-          <div data-tutorial-target="experiment-controls" className={styles.controls}>
-            <SpeedControl
-              speed={speed}
-              paused={paused}
-              hasStarted={hasStarted}
-              finished={s.finished}
-              onSpeedChange={setSpeed}
-              onTogglePause={() => { setPaused(p => !p); setHasStarted(true) }}
-              onReset={() => { handleReset(); setPaused(true); setHasStarted(false) }}
-              runButtonTarget="experiment-run-button"
-            />
-          </div>
+        // data-tutorial-target lets the spotlight overlay focus on the whole control row, including „?“
+        <div data-tutorial-target="experiment-controls" className={styles.controls}>
+          <SpeedControl
+            speed={speed}
+            paused={paused}
+            hasStarted={hasStarted}
+            finished={s.finished}
+            onSpeedChange={setSpeed}
+            onTogglePause={() => { setPaused(p => !p); setHasStarted(true) }}
+            onReset={() => { handleReset(); setPaused(true); setHasStarted(false) }}
+            onRestartTutorial={() => handleTutorialRelaunch('experiment')}
+            resetTitle={RESET_BACKLOG_TITLE}
+            runButtonTarget="experiment-run-button"
+          />
         </div>
       )}
     </TopBar>

@@ -22,7 +22,7 @@ Změna se týká jen karty jednotky (`MemberCard`) v Team panelu v režimech **E
 - **Za běhu:** nastavení lze měnit před startem i během simulace; změna platí okamžitě, i pro právě rozpracovaný úkol. Progress bar úkolu se u jednotky s AI plní úměrně rychleji.
 - **Přístupnost:** přístupný název tlačítka je „AI speed-up“, se zapnutým AI „AI speed-up: 2×“ / „AI speed-up: 5×“ — viditelná hodnota je součástí názvu, aby ji čtečka ohlásila. Tlačítko jde ovládat klávesnicí (Enter / mezerník přepne na další hodnotu) a fokus na něm po kliknutí zůstává, takže se dá přepínat opakovaně.
 - Každé kliknutí je skutečná změna týmu, preset se proto přepne na „custom“ (i když se kolečkem vrátí na 1×).
-- Ikona blesku odlišuje AI multiplikátor od přepínače rychlosti simulace (0.5× / 1× / 2× / 10×), který používá stejný zápis „N×“.
+- Ikona blesku odlišuje AI multiplikátor od přepínače rychlosti simulace (0.5× / 1× / 10×), který používá stejný zápis „N×“.
 - **Tooltip dlaždice Coordination overhead** (Cash Flow, feat-016) dostane na konec větu: „Units using AI process this extra work faster, so the share can be higher than the time it actually took.“ Výpočet dlaždice se nemění (viz Open Questions, varianta A).
 - Schválený UI návrh (fáze 3): mockup `docs/feat-019-ui-mockup.html`. Menu voleb v mockupu je historické (nahrazeno přepínáním kliknutím, změna 2026-10-20).
 

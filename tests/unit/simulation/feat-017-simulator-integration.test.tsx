@@ -70,7 +70,7 @@ async function advanceUntilDone(): Promise<void> {
 
 /** Spustí běh a nechá ho doběhnout do konce (tlačítko pak ukazuje „✓ Done“). */
 async function runToEnd(): Promise<void> {
-  click(/Start|Resume/)
+  click(/Run$/)
   await advanceUntilDone()
 }
 
@@ -94,7 +94,7 @@ describe('feat-017 Příklad 7: srovnání stejného backlogu napříč profily 
 
   it('změna přes dialog během běhu: když běh mezitím doběhne, „Change and reset“ ho uloží jako předchozí', async () => {
     openCashFlowSettings()
-    click(/Start/)
+    click(/Run$/)
     await advance(500) // běh už začal, ale nedoběhl
     click('S-curve')
     expect(screen.getByRole('dialog', { name: 'Change revenue curve?' })).toBeTruthy()
@@ -109,20 +109,20 @@ describe('feat-017 Příklad 7: srovnání stejného backlogu napříč profily 
 })
 
 describe('feat-017: dialog změny křivky a tlačítko Reset (Simulator)', () => {
-  it('Reset backlogu zavře otevřený dialog (ten by se ptal na zahozený běh)', async () => {
+  it('Reset zavře otevřený dialog (ten by se ptal na zahozený běh)', async () => {
     openCashFlowSettings()
-    click(/Start/)
+    click(/Run$/)
     await advance(500)
     click('J-curve')
     expect(screen.getByRole('dialog')).toBeTruthy()
 
-    click(/Reset backlog/)
+    click(/Reset$/)
     expect(screen.queryByRole('dialog')).toBeNull()
   })
 
-  it('Cancel dialog zavře, profil i běh zůstanou (Start tlačítko dál ukazuje běžící běh)', async () => {
+  it('Cancel dialog zavře, profil i běh zůstanou (tlačítko běhu dál ukazuje Pause)', async () => {
     openCashFlowSettings()
-    click(/Start/)
+    click(/Run$/)
     await advance(500)
     click('J-curve')
     click('Cancel')

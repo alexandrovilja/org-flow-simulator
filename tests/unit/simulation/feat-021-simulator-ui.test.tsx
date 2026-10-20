@@ -101,9 +101,9 @@ describe('feat-021 Příklad 8: jednotný segmentový přepínač', () => {
   it('Advanced: rychlost je SegmentedControl se stisknutým „1×“', () => {
     render(<Simulator />)
     fireEvent.click(tab('Advanced'))
-    const [speed] = groupsWith('2×')
+    const [speed] = groupsWith('10×')
     expectSegmented(speed, '1×')
-    fireEvent.click(within(speed).getByRole('button', { name: '2×' }))
-    expectSegmented(groupsWith('2×')[0], '2×')
+    fireEvent.click(within(speed).getByRole('button', { name: '10×' }))
+    expectSegmented(groupsWith('10×')[0], '10×')
   })
 })

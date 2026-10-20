@@ -17,7 +17,7 @@ import type { SimSettings } from '@/types/simulation'
 //    nastaví jednotce `aiMultiplier` a překreslí UI. Každé kliknutí se počítá jako ruční úprava týmu
 //    (preset přejde na „custom“, i když se kolečkem vrátí na 1×), takže další volba presetu ukáže
 //    potvrzovací dialog.
-//  - Aplikace presetu vytvoří tým s AI 1× (Příklad 7). Reset backlogu nastavení AI zachová (Příklad 6).
+//  - Aplikace presetu vytvoří tým s AI 1× (Příklad 7). Reset nastavení AI zachová (Příklad 6).
 //  - Advanced a Cash Flow mají každý vlastní tým, nastavení AI se mezi nimi nepřenáší.
 //  - Tooltip dlaždice Coordination overhead (Cash Flow) dostane na konec větu o jednotkách s AI.
 
@@ -122,7 +122,7 @@ describe('feat-019 Příklad 5: nastavení AI v Simulatoru', () => {
   it('Příklad 4 v UI: změna AI za běhu nezahodí rozpracovanost úkolu jednotky', async () => {
     render(<Simulator />)
     tab(/Advanced/)
-    click(/Start/)
+    click(/Run$/)
     await advance(300)
     // Jednotka, která právě pracuje (má na kartě progress bar)
     const idx = aiButtons().findIndex(b => progressFill(b) !== null)
@@ -148,13 +148,13 @@ describe('feat-019 Příklad 6: Generate new backlog zachová nastavení AI', ()
 })
 
 describe('feat-019 Příklad 6: Reset zachová nastavení AI', () => {
-  it('Advanced: po běhu a „Reset backlog“ má jednotka stále 5×', async () => {
+  it('Advanced: po běhu a „Reset“ má jednotka stále 5×', async () => {
     render(<Simulator />)
     tab(/Advanced/)
     setAi(0, '5×')
-    click(/Start/)
+    click(/Run$/)
     await advance(1000)
-    click(/Reset backlog/)
+    click(/Reset$/)
     expect(aiButtons()[0].textContent).toBe('5×')
   })
 })

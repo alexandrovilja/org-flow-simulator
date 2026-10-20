@@ -3,6 +3,8 @@
 ## Status
 implemented
 
+*Změna (2026-10-20): ovládání běhu je ve všech módech stejné jako v Compare — pořadí „?“, „↺ Reset“, rychlost, „▶ Run“; tlačítko „Play“ (v UI „Start“ / „Resume“) je „▶ Run“, „Reset backlog“ je „↺ Reset“ a rychlost 2× se ruší. Upraveno UI / Design a Příklady 1, 2, 4 a 5; podrobnosti ve feat-021, Příklady 14–17.*
+
 ## Problem
 Agilní koučové potřebují živou, přesvědčivou demonstraci toho, jak práce skutečně protéká týmem — ne statický diagram nebo slidy. Bez spustitelné simulace nemohou klientům ukázat dopad různých rozhodnutí (velikost WIP, specializace, počet lidí) v reálném čase během workshopu.
 
@@ -11,10 +13,11 @@ Jako agilní kouč chci spustit animovanou simulaci průtoku backlogu týmem, ab
 
 ## UI / Design
 - Hlavní layout se třemi sloupci: **Backlog** (vlevo), **In-Progress + Tým** (uprostřed), **Done + Lead Time** (vpravo)
-- Horní lišta obsahuje ovládání simulace:
-  - Tlačítko **Play/Pause** — spustí nebo pozastaví simulaci; deaktivuje se (disabled), jakmile je zpracována poslední položka backlogu (stav `finished`)
-  - Volba rychlosti: **0.5×, 1×, 2×, 10×** — zrychlí simulační čas (zobrazena jako skupina tlačítek)
-  - Tlačítko **Reset backlog** — vrátí backlog a tým do původního stavu (bez regenerace) a zároveň vyčistí stav `finished`, čímž se Play znovu aktivuje
+- Horní lišta obsahuje ovládání simulace, stejné ve všech třech módech a v tomto pořadí (změna 2026-10-20):
+  - Tlačítko **?** — znovu spustí tutoriál módu (Compare a Advanced; Cash Flow tutoriál nemá, a tak ani „?“)
+  - Tlačítko **↺ Reset** — vrátí backlog a tým do původního stavu (bez regenerace) a zároveň vyčistí stav `finished`, čímž se Run znovu aktivuje
+  - Volba rychlosti: **0.5×, 1×, 10×** — zrychlí simulační čas (zobrazena jako skupina tlačítek)
+  - Tlačítko **▶ Run / ❙❙ Pause** — spustí nebo pozastaví simulaci; před prvním spuštěním pulzuje; jakmile je zpracována poslední položka backlogu (stav `finished`), ukáže „✓ Done“ a je vypnuté (disabled)
 - Každá feature je zobrazena jako karta s progress barem rozdělením na segmenty dle úkolů (FE, BE, DSGN, QA…)
 - Přiřazení pracovníka k úkolu je viditelné jako iniciála v segmentu karty
 - Hotové features se průběžně přesouvají do pravého panelu (Done)
@@ -23,13 +26,13 @@ Jako agilní kouč chci spustit animovanou simulaci průtoku backlogu týmem, ab
 
 **Příklad 1: Spuštění simulace**
 - Given: Aplikace je načtena s výchozím týmem a backlogem
-- When: Kouč klikne na tlačítko Play
+- When: Kouč klikne na tlačítko „▶ Run“
 - Then: Features se začnou pohybovat — členové týmu přebírají úkoly z backlogu, progress bary se plní, hotové features přecházejí do Done
 
 **Příklad 2: Pauza a pokračování**
 - Given: Simulace běží
-- When: Kouč klikne na Pause
-- Then: Animace se zastaví, stav se zachová; kliknutím na Play simulace pokračuje od stejného bodu
+- When: Kouč klikne na „❙❙ Pause“
+- Then: Animace se zastaví, stav se zachová a tlačítko ukáže znovu „▶ Run“; kliknutím na něj simulace pokračuje od stejného bodu
 
 **Příklad 3: Zrychlení simulace**
 - Given: Simulace běží rychlostí 1×
@@ -38,13 +41,13 @@ Jako agilní kouč chci spustit animovanou simulaci průtoku backlogu týmem, ab
 
 **Příklad 4: Reset backlogu**
 - Given: Simulace běžela a v Done panelu je několik hotových features
-- When: Kouč klikne na "Reset backlog"
+- When: Kouč klikne na „↺ Reset“
 - Then: Stav se vrátí na snapshot z počátku (stejné features, stejné úkoly), statistiky se vyčistí; seed zůstane stejný — regenerace nenastane
 
 **Příklad 5: Automatické zastavení po zpracování posledního itemu**
 - Given: Simulace běží, v backlogu a in-progress zbývá jen jedna poslední feature
 - When: Poslední feature přejde do Done
-- Then: Simulace se automaticky zastaví; tlačítko Play se deaktivuje; kouč nemůže simulaci znovu spustit bez resetu nebo generování nového backlogu
+- Then: Simulace se automaticky zastaví; tlačítko běhu ukáže „✓ Done“ a je vypnuté; kouč nemůže simulaci znovu spustit bez resetu nebo generování nového backlogu
 
 **Příklad 6: Počet v panelu Done odpovídá všem hotovým features (revize 2026-10-13)**
 - Given: backlog má 100 features (výchozí velikost v Compare, Advanced i Cash Flow)

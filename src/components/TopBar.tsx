@@ -23,7 +23,7 @@ interface TopBarProps {
   mode: AppMode
   /** Kliknutí na záložku; Simulator rozhodne, co přepnutí módu obnáší (např. reset Compare). */
   onSelectMode: (mode: AppMode) => void
-  /** Ovládání vpravo — v každém módu jiné (Compare: Reset, rychlost, Run; Advanced / Cash Flow: SpeedControl). */
+  /** Ovládání běhu vpravo — ve všech módech stejný SpeedControl (Cash Flow bez „?“), liší se jen obsluha Resetu. */
   children: ReactNode
 }
 
