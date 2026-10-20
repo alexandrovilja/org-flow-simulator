@@ -3,7 +3,7 @@
  * Ověřují v reálném prohlížeči to, co jsdom neumí: vypočtené barvy, velikosti písma, načtená písma
  * a téma přes znovunačtení stránky.
  *
- * Schválený kontrakt: features/feat-021-prevod-design-system-org-flow.md (příklady 3, 5, 6, 7, 8, 10).
+ * Schválený kontrakt: features/feat-021-prevod-design-system-org-flow.md (příklady 3, 5, 6, 7, 8, 10, 11).
  *
  * Spuštění lokálně: npx playwright test tests/e2e/feat-021-design-system.spec.ts
  */
@@ -82,6 +82,32 @@ async function chipColors(page: Page, labels: string[]): Promise<Record<string, 
   }, labels)
 }
 
+/**
+ * Rozložení horní lišty: kde končí viditelná značka, kde jsou záložky a kde začíná ovládání vpravo.
+ * Značku tvoří prvky s šířkou nad 2 px — schovaný název (1 px pro čtečky obrazovky) se nepočítá.
+ *
+ * @returns Pravý okraj značky, rozsah záložek, levý okraj ovládání, šířka názvu a šířka stránky
+ */
+async function topBarLayout(page: Page): Promise<{ brandRight: number; tabsLeft: number; tabsRight: number; controlsLeft: number; nameWidth: number; scrollWidth: number }> {
+  return page.evaluate(() => {
+    const header = document.querySelector('header')!
+    const [brand, tabs, controls] = Array.from(header.children) as HTMLElement[]
+    const visible = (els: Element[]) => els.map(e => e.getBoundingClientRect()).filter(r => r.width > 2 && r.height > 2)
+    const brandBoxes = visible(Array.from(brand.querySelectorAll('*')))
+    const controlBoxes = visible(Array.from(controls.children))
+    const tabsBox = tabs.getBoundingClientRect()
+    const name = Array.from(brand.querySelectorAll('span')).find(e => e.textContent === 'Org Flow Simulator')
+    return {
+      brandRight: Math.max(...brandBoxes.map(r => r.right)),
+      tabsLeft: tabsBox.left,
+      tabsRight: tabsBox.right,
+      controlsLeft: Math.min(...controlBoxes.map(r => r.left)),
+      nameWidth: name ? name.getBoundingClientRect().width : 0,
+      scrollWidth: document.documentElement.scrollWidth,
+    }
+  })
+}
+
 test.describe('feat-021: design system Org Flow', () => {
   test.beforeEach(async ({ page }) => {
     // Tutorial overlay by jinak na první návštěvě (i prvním přepnutí do Advanced) blokovala kliknutí
@@ -103,12 +129,13 @@ test.describe('feat-021: design system Org Flow', () => {
     await run.click()
     const pause = runButton(page, 'Pause')
     await expect(pause).toBeVisible()
-    expect(await bg(pause)).toBe(RGB.accent)
+    // Výplň se mění 0,15s přechodem (stejné tlačítko, jiná varianta) — počkáme na cílovou barvu
+    await expect.poll(() => bg(pause)).toBe(RGB.accent)
 
     const done = runButton(page, 'Done')
     await expect(done).toBeVisible({ timeout: 220_000 })
     await expect(done).toBeDisabled()
-    expect(await bg(done)).toBe(RGB.done)
+    await expect.poll(() => bg(done)).toBe(RGB.done)
   })
 
   test('Příklad 5: téma se řídí systémem, přepínač ho změní a volba přežije znovunačtení', async ({ page }) => {
@@ -171,6 +198,22 @@ test.describe('feat-021: design system Org Flow', () => {
     await page.getByRole('tab', { name: 'Advanced' }).click()
     const advancedSpeed = groupWith(page, '2×')
     expect(await bg(advancedSpeed.getByRole('button', { name: '1×', exact: true }))).toBe(RGB.inkOnBar)
+  })
+
+  test('Příklad 11: horní lišta se na projektoru 1024 px nepřekrývá, při 1280 px má celý název', async ({ page }) => {
+    for (const width of [1024, 1280]) {
+      await page.setViewportSize({ width, height: 768 })
+      await page.goto(BASE)
+      for (const mode of ['Compare', 'Advanced', 'Cash Flow']) {
+        await page.getByRole('tab', { name: mode }).click()
+        const bar = await topBarLayout(page)
+        const where = `${width} px, ${mode}`
+        expect(bar.brandRight, `značka končí před záložkami (${where})`).toBeLessThanOrEqual(bar.tabsLeft)
+        expect(bar.tabsRight, `záložky končí před ovládáním (${where})`).toBeLessThanOrEqual(bar.controlsLeft)
+        expect(bar.scrollWidth, `bez vodorovného rolování (${where})`).toBeLessThanOrEqual(width)
+        if (width === 1280) expect(bar.nameWidth, `celý název je vidět (${where})`).toBeGreaterThan(100)
+      }
+    }
   })
 
   test('Příklad 10: písma Archivo a JetBrains Mono jsou přibalená, nic se nestahuje z Google Fonts', async ({ page }) => {
