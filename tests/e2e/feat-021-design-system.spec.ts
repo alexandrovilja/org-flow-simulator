@@ -3,13 +3,13 @@
  * Ověřují v reálném prohlížeči to, co jsdom neumí: vypočtené barvy, velikosti písma, načtená písma
  * a téma přes znovunačtení stránky.
  *
- * Schválený kontrakt: features/feat-021-prevod-design-system-org-flow.md (příklady 3, 5, 6, 7, 8, 10, 11).
+ * Schválený kontrakt: features/feat-021-prevod-design-system-org-flow.md (příklady 3, 5, 6, 7, 8, 10–13).
  *
  * Spuštění lokálně: npx playwright test tests/e2e/feat-021-design-system.spec.ts
  */
 
 import { test, expect, type Page, type Locator } from '@playwright/test'
-import { BASE, groupWith, runButton, skipTutorial, topBarLayout } from './helpers'
+import { BASE, contrastRatio, groupWith, openAccordions, runButton, skipTutorial, topBarLayout } from './helpers'
 
 /** Barvy tokenů jako je vrací getComputedStyle (rgb). Hodnoty z design systému Org Flow. */
 const RGB = {
@@ -17,8 +17,10 @@ const RGB = {
   accent: 'rgb(122, 59, 240)',       // #7a3bf0
   done: 'rgb(9, 127, 67)',           // #097f43
   ink: 'rgb(18, 18, 18)',            // #121212
+  ink3: 'rgb(105, 105, 105)',        // #696969 — text nevybraného segmentu v panelu
   inkOnBar: 'rgb(222, 222, 222)',   // #dedede — aktivní segment na antracitové liště
   white: 'rgb(255, 255, 255)',
+  transparent: 'rgba(0, 0, 0, 0)',
   roleRose: 'rgb(191, 64, 110)',     // #bf406e
   roleBlue: 'rgb(16, 117, 172)',     // #1075ac
   roleBrick: 'rgb(161, 74, 28)',     // #a14a1c
@@ -29,6 +31,31 @@ const RGB = {
 
 /** Vypočtená barva pozadí prvku. */
 const bg = (el: Locator) => el.evaluate(e => getComputedStyle(e).backgroundColor)
+
+/**
+ * Výplň a barva textu prvku po doběhnutí přechodů. Segmenty mění barvy 0,15–0,2s přechodem, takže
+ * hodnota přečtená hned po najetí myší by byla ještě ta výchozí a chyba by se neprojevila.
+ * getAnimations() navíc vynutí přepočet stylů, takže zachytí i přechod, který najetí právě spustilo.
+ *
+ * @param el - Měřený prvek
+ * @returns Barva pozadí a textu (rgb) po doběhnutí všech přechodů
+ */
+const settledColors = (el: Locator) => el.evaluate(async e => {
+  await Promise.all(e.getAnimations().map(a => a.finished.catch(() => undefined)))
+  const style = getComputedStyle(e)
+  return { bg: style.backgroundColor, color: style.color }
+})
+
+/**
+ * Vybrané volby všech přepínačů v jednotlivých módech ve výchozím stavu s otevřenými akordeony
+ * nastavení (Příklad 12). Seznam hlídá, že test opravdu prošel každý přepínač: rychlost na liště,
+ * typ týmu v obou sloupcích Compare, preset jednotek, křivku výnosu, režim WIP a Coordination overhead.
+ */
+const SELECTED_SEGMENTS: Record<'Compare' | 'Advanced' | 'Cash Flow', string[]> = {
+  Compare: ['1×', 'Single', 'Double'],
+  Advanced: ['1×', 'Teams', 'Reduce WIP'],
+  'Cash Flow': ['1×', 'Teams', 'Flat', 'Reduce WIP', 'Off'],
+}
 
 /**
  * Najde viditelné prvky s vlastním textem menším než 10 px.
@@ -191,5 +218,58 @@ test.describe('feat-021: design system Org Flow', () => {
     expect(monoFont).toMatch(/JetBrains[ _]Mono/)
     expect(await page.evaluate(() => Array.from(document.fonts).some(f => /JetBrains[ _]Mono/.test(f.family)))).toBe(true)
     expect(googleRequests).toEqual([])
+  })
+
+  for (const scheme of ['light', 'dark'] as const) {
+    test(`Příklad 12: vybraná volba každého přepínače má pod kurzorem stejné barvy a kontrast aspoň 4,5:1 (${scheme})`, async ({ page }) => {
+      // Bez uložené volby se téma řídí systémem (Příklad 5)
+      await page.emulateMedia({ colorScheme: scheme })
+      await page.goto(BASE)
+      await expect(page.locator('html')).toHaveAttribute('data-theme', scheme)
+
+      for (const [mode, labels] of Object.entries(SELECTED_SEGMENTS)) {
+        await page.getByRole('tab', { name: mode }).click()
+        if (mode !== 'Compare') await openAccordions(page)
+        const selected = page.getByRole('group').getByRole('button', { pressed: true })
+        // Každý přepínač módu má právě jednu vybranou volbu a test je projde všechny
+        expect((await selected.allTextContents()).sort(), `vybrané volby (${mode})`).toEqual([...labels].sort())
+
+        for (const segment of await selected.all()) {
+          const where = `${scheme}, ${mode}, „${await segment.textContent()}“`
+          // Kurzor pryč z přepínačů, ať se výchozí barvy čtou bez najetí
+          await page.mouse.move(0, 0)
+          const idle = await settledColors(segment)
+          await segment.hover()
+          const hovered = await settledColors(segment)
+          // Měkké ověření: při chybě test vypíše všechny dotčené přepínače, ne jen první
+          expect.soft(hovered, `barvy pod kurzorem = bez kurzoru (${where})`).toEqual(idle)
+          expect.soft(contrastRatio(hovered.color, hovered.bg), `kontrast pod kurzorem (${where})`).toBeGreaterThanOrEqual(4.5)
+        }
+      }
+    })
+  }
+
+  test('Příklad 13: nevybraná volba na najetí změní jen barvu textu, výplň zůstane průhledná', async ({ page }) => {
+    await page.emulateMedia({ colorScheme: 'light' })
+    await page.goto(BASE)
+    await page.getByRole('tab', { name: 'Advanced' }).click()
+    const presetGroup = groupWith(page, 'People')
+    const speedGroup = groupWith(page, '2×')
+    await expect(presetGroup.getByRole('button', { name: 'Teams', exact: true })).toHaveAttribute('aria-pressed', 'true')
+    await expect(speedGroup.getByRole('button', { name: '1×', exact: true })).toHaveAttribute('aria-pressed', 'true')
+
+    // Panel: text nevybrané volby z ink-3 na ink
+    const people = presetGroup.getByRole('button', { name: 'People', exact: true })
+    await page.mouse.move(0, 0)
+    expect(await settledColors(people)).toEqual({ bg: RGB.transparent, color: RGB.ink3 })
+    await people.hover()
+    expect(await settledColors(people)).toEqual({ bg: RGB.transparent, color: RGB.ink })
+
+    // Lišta: text nevybrané volby z ink-on-bar na ink-inverse (bílá)
+    const twoX = speedGroup.getByRole('button', { name: '2×', exact: true })
+    await page.mouse.move(0, 0)
+    expect(await settledColors(twoX)).toEqual({ bg: RGB.transparent, color: RGB.inkOnBar })
+    await twoX.hover()
+    expect(await settledColors(twoX)).toEqual({ bg: RGB.transparent, color: RGB.white })
   })
 })

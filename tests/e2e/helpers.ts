@@ -1,6 +1,6 @@
 /**
- * Sdílené pomocné funkce pro E2E testy (feat-021, feat-022): adresa aplikace, přeskočení tutoriálu
- * a hledání ovládacích prvků v horní liště. Playwright tenhle soubor nespouští jako test
+ * Sdílené pomocné funkce pro E2E testy (feat-021, feat-022): adresa aplikace, přeskočení tutoriálu,
+ * hledání ovládacích prvků v horní liště a kontrast barev. Playwright tenhle soubor nespouští jako test
  * (nekončí na .spec.ts), jen ho importují testy.
  */
 
@@ -113,6 +113,30 @@ export async function typographyViolations(page: Page): Promise<string[]> {
     }
     return out
   }, { familySource: `^"?_*${MONO.source}`, scale: TYPE_SCALE_PX, emojiSource: EMOJI_LIKE_SOURCE, allowed: ALLOWED_GLYPHS })
+}
+
+/**
+ * Kontrastní poměr dvou neprůhledných barev podle WCAG 2.x (1 = žádný kontrast, 21 = černá na bílé).
+ * Počítá se v Node, ne v prohlížeči: stačí mu barvy, které vrátil getComputedStyle.
+ *
+ * @param a - Barva ve tvaru `rgb(r, g, b)`
+ * @param b - Druhá barva ve stejném tvaru
+ * @returns Poměr světlejší ku tmavší barvě, např. 4.5
+ */
+export function contrastRatio(a: string, b: string): number {
+  const luminance = (color: string) => {
+    const [r, g, bl, alpha = 1] = (color.match(/[\d.]+/g) ?? []).map(Number)
+    // Poloprůhledná barva by se musela nejdřív složit s podkladem — tady by výsledek tiše lhal
+    if (alpha < 1) throw new Error(`contrastRatio: barva ${color} není neprůhledná`)
+    // sRGB → lineární světlo (vzorec WCAG), pak vážený součet podle citlivosti oka
+    const linear = [r, g, bl].map(v => {
+      const c = v / 255
+      return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4
+    })
+    return 0.2126 * linear[0] + 0.7152 * linear[1] + 0.0722 * linear[2]
+  }
+  const [lighter, darker] = [luminance(a), luminance(b)].sort((x, y) => y - x)
+  return (lighter + 0.05) / (darker + 0.05)
 }
 
 /**

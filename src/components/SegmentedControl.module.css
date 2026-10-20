@@ -39,7 +39,9 @@
   transition: background 0.2s ease, color 0.15s ease;
 }
 
-.segment:hover:not(:disabled) {
+/* Najetí myší zvýrazní jen nevybranou volbu. Bez [aria-pressed='false'] by toto pravidlo (vyšší
+   specificita) přebilo barvu textu vybrané volby a text by splynul s výplní (feat-021, Příklad 12) */
+.segment[aria-pressed='false']:hover:not(:disabled) {
   color: var(--ink);
 }
 
@@ -63,7 +65,8 @@
   color: var(--ink-on-bar);
 }
 
-.bar .segment:hover:not(:disabled) {
+/* Na liště totéž: vybraná volba si pod kurzorem nechá tmavý text na světlé výplni */
+.bar .segment[aria-pressed='false']:hover:not(:disabled) {
   color: var(--ink-inverse);
 }
 
