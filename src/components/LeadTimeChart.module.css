@@ -1,0 +1,107 @@
+/* Graf lead time (feat-021): body v accent, průměr čárkovaně v ink, p85 plnou čarou ve wait. */
+
+/* Prázdný stav: čárkovaný rámeček s větou ve stylu „body-sm“ */
+.empty {
+  height: 130px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: var(--border-hair) dashed var(--line-control);
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--ink-3);
+}
+
+.chart {
+  position: relative;
+}
+
+/* Popisky os: mono 10 px v ink-3 */
+.axisY,
+.axisX {
+  position: absolute;
+  display: flex;
+  justify-content: space-between;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  line-height: 12px;
+  color: var(--ink-3);
+}
+
+.axisY {
+  left: 0;
+  flex-direction: column;
+  text-align: right;
+}
+
+.axisX {
+  bottom: 0;
+}
+
+/* Plocha grafu */
+.plot {
+  position: absolute;
+  background: var(--surface-subtle);
+  border: var(--border-hair) solid var(--line);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
+.grid {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: var(--line-2);
+}
+
+/* Referenční čáry; pozice y je inline (vypočtená z hodnoty) */
+.ref {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 0;
+}
+
+.avg {
+  border-top: var(--border-hair) dashed var(--ink);
+}
+
+.p85 {
+  border-top: var(--border-hair) solid var(--wait);
+}
+
+/* Popisek čáry leží nad ní, s podkladem plochy, aby ho body nepřekryly */
+.refLabel {
+  position: absolute;
+  top: -13px;
+  z-index: 1;
+  padding: 0 var(--space-4);
+  background: var(--surface-subtle);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  line-height: 12px;
+  font-weight: 600;
+}
+
+.avg .refLabel {
+  left: var(--space-4);
+  color: var(--ink);
+}
+
+.p85 .refLabel {
+  right: var(--space-4);
+  color: var(--wait);
+}
+
+/* Jeden bod = jedna dokončená feature; pozice inline */
+.dot {
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  border-radius: var(--radius-pill);
+  background: var(--accent);
+  transform: translate(-50%, -50%);
+  box-shadow: 0 0 0 1.5px var(--surface-subtle);
+}

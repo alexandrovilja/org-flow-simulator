@@ -1,0 +1,35 @@
+/* Čip specializace (feat-021): plná výplň v barvě role (--role inline), bílý text, hranatý. */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-4);
+  height: var(--size-control-sm);
+  padding: 0 var(--space-6);
+  border-radius: var(--radius-xs);
+  background: var(--role);
+  color: var(--ink-inverse);
+  font-family: var(--font-sans);
+  font-size: 11px;
+  line-height: 1;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+  white-space: nowrap;
+}
+
+/* Odebírací × — 12px čtverec s průsvitnou bílou na výplni role */
+.remove {
+  width: 12px;
+  height: 12px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-xs);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: color-mix(in srgb, var(--ink-inverse) 25%, transparent);
+  color: var(--ink-inverse);
+  font-family: var(--font-sans);
+  font-size: 10px;
+  line-height: 1;
+  cursor: pointer;
+}

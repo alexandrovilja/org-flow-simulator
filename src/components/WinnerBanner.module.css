@@ -1,0 +1,76 @@
+/* Rám výsledku v Compare (feat-021): inkoustový rám, písmeno vítěze, titulek „display-lg“,
+   věta proč a jedna ručně psaná poznámka kouče. Týmy se nerozlišují barvou. */
+.frame {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: var(--space-20);
+  padding: var(--space-20) var(--space-24);
+  background: var(--surface-panel);
+  border: var(--border-frame) solid var(--line-ink);
+  border-radius: var(--radius-xl);
+}
+
+/* Čtvercový odznak s písmenem vítězného týmu */
+.badge {
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--ink);
+  color: var(--surface-panel);
+  font-family: var(--font-display);
+  font-size: 24px;
+  line-height: 1;
+  font-weight: 800;
+}
+
+/* Nadpisek ve stylu „eyebrow“ v highlight-ink */
+.eyebrow {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  line-height: 16px;
+  font-weight: 500;
+  letter-spacing: 1.1px;
+  text-transform: uppercase;
+  color: var(--highlight-ink);
+}
+
+/* Styl „display-lg“: Archivo 800 verzálkami */
+.title {
+  margin: var(--space-2) 0 var(--space-4);
+  font-family: var(--font-display);
+  font-size: 36px;
+  line-height: 36px;
+  font-weight: 800;
+  letter-spacing: -0.4px;
+  text-transform: uppercase;
+  color: var(--ink);
+}
+
+/* Procento zlepšení v barvě done */
+.gain {
+  font-style: normal;
+  color: var(--done);
+}
+
+.reason {
+  margin: 0;
+  font-size: 13px;
+  line-height: 20px;
+  color: var(--ink-2);
+}
+
+/* Hlas kouče: Kalam na teplém papíře, lehce pootočený */
+.note {
+  max-width: 220px;
+  padding: var(--space-8) var(--space-12);
+  background: var(--surface-paper);
+  color: var(--ink-2);
+  font-family: var(--font-hand);
+  font-size: 20px;
+  line-height: 22px;
+  font-weight: 700;
+  transform: rotate(-1.5deg);
+}

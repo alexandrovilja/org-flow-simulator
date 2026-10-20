@@ -97,3 +97,212 @@
   color: var(--done);
   font-variant-numeric: tabular-nums;
 }
+
+/* ── Metriky: tři dlaždice vedle sebe ─────────────────────────────────── */
+.metrics {
+  padding: var(--space-12) var(--space-16);
+  border-top: var(--border-hair) solid var(--line-2);
+  flex-shrink: 0;
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: var(--space-8);
+}
+
+/* Dlaždice srovnání týmů (vzhled jako StatTile) */
+.metric {
+  padding: var(--space-8) 10px;
+  border-radius: var(--radius-md);
+  background: var(--surface-panel);
+  border: var(--border-hair) solid var(--line);
+  cursor: help;
+  transition: background 0.4s ease, border-color 0.4s ease;
+}
+
+/* Po doběhnutí: tým, který v metrice vyhrál, má done na done-soft */
+.metricBetter {
+  background: var(--done-soft);
+  border-color: var(--done);
+}
+
+/* Styl „label“ */
+.metricLabel {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  line-height: 12px;
+  font-weight: 600;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+
+/* Styl „metric“ */
+.metricValue {
+  margin-top: var(--space-4);
+  font-family: var(--font-mono);
+  font-size: 20px;
+  line-height: 24px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+  transition: color 0.4s ease;
+}
+
+.metricBetter .metricValue {
+  color: var(--done);
+}
+
+/* Delta oproti druhému týmu: lepší zeleně, horší neutrálně (je to srovnání, ne chyba) */
+.metricDelta {
+  margin-top: var(--space-2);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  line-height: 12px;
+  font-weight: 600;
+  color: var(--ink-2);
+}
+
+.metricDeltaBetter {
+  color: var(--done);
+}
+
+.metricVs {
+  margin-left: var(--space-4);
+  font-weight: 400;
+  color: var(--ink-3);
+}
+
+/* ── Složení týmu ─────────────────────────────────────────────────────── */
+.composition {
+  padding: var(--space-12) var(--space-16) var(--space-16);
+  border-top: var(--border-hair) solid var(--line-2);
+  flex-shrink: 0;
+}
+
+/* Nadpisek sekce ve stylu „eyebrow“ */
+.sectionTitle {
+  margin-bottom: var(--space-8);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  line-height: 16px;
+  font-weight: 500;
+  letter-spacing: 1.1px;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+
+.members {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-8);
+}
+
+/* Karta člena jen pro čtení (Compare) — kompaktní obdoba MemberCard */
+.member {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding: var(--space-6) var(--space-8);
+  background: var(--surface-panel);
+  border: var(--border-hair) solid var(--line);
+  border-radius: var(--radius-md);
+}
+
+.memberTop {
+  display: flex;
+  align-items: center;
+  gap: var(--space-6);
+}
+
+.avatar {
+  width: var(--size-avatar);
+  height: var(--size-avatar);
+  flex-shrink: 0;
+  border-radius: var(--radius-pill);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--ink);
+  color: var(--surface-panel);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.memberName {
+  font-size: 13px;
+  line-height: 20px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+}
+
+.work {
+  min-height: 30px;
+}
+
+.workLine {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  margin-bottom: var(--space-2);
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+/* Čtvereček v odstínu rozpracované feature (--hue inline) */
+.swatch {
+  width: 8px;
+  height: 8px;
+  flex-shrink: 0;
+  border-radius: var(--radius-xs);
+  background: oklch(68% 0.13 var(--hue));
+}
+
+.workName {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  line-height: 16px;
+  color: var(--ink-2);
+}
+
+/* Progress bar úkolu — výplň v barvě role (--role inline) */
+.progress {
+  height: 6px;
+  border-radius: var(--radius-xs);
+  overflow: hidden;
+  background: var(--track);
+}
+
+.progressFill {
+  height: 100%;
+  background: var(--role);
+}
+
+/* „idle“ ve stylu „label“ s tlumenou tečkou */
+.idle {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  line-height: 12px;
+  font-weight: 600;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+
+.idleDot {
+  width: 6px;
+  height: 6px;
+  border-radius: var(--radius-pill);
+  background: var(--ink-4);
+}

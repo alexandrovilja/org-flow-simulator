@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { formatPercent } from '@/lib/formatPercent'
+import styles from './StatTile.module.css'
 
 interface StatTileProps {
   label: string
@@ -49,79 +50,50 @@ export function StatTile({ label, value, unit, hint, tooltip, variant, finished,
   const deltaText = delta === undefined ? '' : formatPercent(Math.abs(delta))
   const isUnchanged = delta !== undefined && deltaText === '0.0'
 
-  const borderColor = isTimer && finished ? 'var(--done)' : 'var(--line)'
-  const bg = isTimer && finished ? 'oklch(97% 0.02 155)' : 'var(--surface-panel)'
+  // Delta: zlepšení zeleně (done), zhoršení červeně (rework), „beze změny“ neutrálně — šipka nese význam vždy
+  const deltaClass = isUnchanged ? styles.deltaFlat : (higherIsBetter ? (delta ?? 0) > 0 : (delta ?? 0) < 0) ? styles.deltaGood : styles.deltaBad
+  const tileClass = [
+    styles.tile,
+    isTimer && styles.timer,
+    isTimer && finished && styles.finished,
+    tooltip && styles.withTooltip,
+  ].filter(Boolean).join(' ')
 
   return (
-    <div title={tooltip} data-testid={`stat-tile-${label}`} style={{
-      background: bg,
-      border: `1px solid ${borderColor}`,
-      borderRadius: 6,
-      padding: isTimer ? '10px 12px' : '8px 10px',
-      display: 'flex', flexDirection: 'column', gap: isTimer ? 4 : 2,
-      minWidth: 0,
-      cursor: tooltip ? 'help' : 'default',
+    <div
+      title={tooltip}
+      data-testid={`stat-tile-${label}`}
+      className={tileClass}
       // '1 / -1' roztáhne dlaždici přes všechny sloupce nadřazeného gridu
       // (aktuálně repeat(2, 1fr) v Simulator.tsx — při změně gridu upravit i toto)
-      gridColumn: wide ? '1 / -1' : undefined,
-      transition: 'background 0.3s, border-color 0.3s',
-    }}>
-      <div style={{
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-      }}>
-        <span style={{
-          fontSize: 10, color: 'var(--ink-3)',
-          textTransform: 'uppercase', letterSpacing: 0.5, fontWeight: 500,
-          display: 'inline-flex', alignItems: 'center', gap: 4,
-        }}>
+      style={wide ? { gridColumn: '1 / -1' } : undefined}
+    >
+      <div className={styles.head}>
+        <span className={styles.label}>
           {label}
-          {tooltip && !isTimer && (
-            <span style={{
-              display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-              width: 11, height: 11, borderRadius: '50%',
-              background: 'var(--line)', color: 'var(--ink-3)',
-              fontSize: 8, fontWeight: 700,
-            }}>?</span>
-          )}
+          {tooltip && !isTimer && <span className={styles.helpBadge} aria-hidden="true">?</span>}
         </span>
         {isTimer && (
           finished
-            ? <span style={{ fontSize: 10, color: 'var(--done)', fontWeight: 600, letterSpacing: 0.3 }}>✓ Complete</span>
-            : <span style={{
-                width: 6, height: 6, borderRadius: '50%',
-                background: 'var(--done)',
-                display: 'inline-block',
-                animation: 'timer-pulse 1.2s ease-in-out infinite',
-              }} />
+            ? <span className={styles.complete}>✓ Complete</span>
+            : <span className={styles.live} />
         )}
       </div>
-      <span className="mono" style={{
-        fontSize: isTimer ? 22 : 18,
-        fontWeight: 600,
-        color: isTimer && finished ? 'var(--done)' : 'var(--ink)',
-        lineHeight: 1.1,
-        transition: 'color 0.3s',
-        letterSpacing: isTimer ? -0.5 : 0,
-      }}>
+      {/* Třída „mono“ zůstává: E2E test feat-015 podle ní hledá hodnotu časovače */}
+      <span className={`mono ${styles.value}`}>
         {value}
-        {unit && <span style={{ fontSize: 11, color: 'var(--ink-3)', marginLeft: 2, fontWeight: 500 }}>{unit}</span>}
+        {unit && <span className={styles.unit}>{unit}</span>}
       </span>
       {children}
-      {hint && <span style={{ fontSize: 10, color: 'var(--ink-3)' }}>{hint}</span>}
+      {hint && <span className={styles.hint}>{hint}</span>}
       {/* Delta indikátor porovnávající aktuální hodnotu s předchozím během.
           Šipka vždy odpovídá skutečnému směru změny; barva závisí na higherIsBetter
           (výchozí: záporné delta = pokles = zlepšení = zelená; obráceně pro higherIsBetter). */}
       {delta !== undefined && (
-        <span style={{
-          fontSize: 10,
-          fontWeight: 600,
-          // Změna, která se zaokrouhlí na 0.0 %, je „beze změny“ — neutrální šedá, ne zelená/červená
-          color: isUnchanged ? 'var(--ink-3)' : (higherIsBetter ? delta > 0 : delta < 0) ? 'var(--done)' : 'oklch(58% 0.2 25)',
-          letterSpacing: 0.2,
-        }}>
+        <span className={`${styles.delta} ${deltaClass}`}>
           {isUnchanged ? `→ ${deltaText}%` : delta < 0 ? `↓ ${deltaText}%` : `↑ ${deltaText}%`}
           {' '}
-          <span style={{ fontWeight: 400, color: 'var(--ink-3)' }}>vs prev run</span>
+          <span className={styles.deltaNote}>vs prev run</span>
         </span>
       )}
       {details !== undefined && (
@@ -130,18 +102,11 @@ export function StatTile({ label, value, unit, hint, tooltip, variant, finished,
             type="button"
             aria-expanded={expanded}
             onClick={() => setExpanded(e => !e)}
-            style={{
-              alignSelf: 'flex-start', background: 'none', border: 'none', padding: 0,
-              fontSize: 10, color: 'var(--ink-3)', cursor: 'pointer', textDecoration: 'underline',
-            }}
+            className={styles.detailsButton}
           >
             Details {expanded ? '▴' : '▾'}
           </button>
-          {expanded && (
-            <div style={{ fontSize: 10, color: 'var(--ink-2)', display: 'flex', flexDirection: 'column', gap: 2 }}>
-              {details}
-            </div>
-          )}
+          {expanded && <div className={styles.details}>{details}</div>}
         </>
       )}
     </div>

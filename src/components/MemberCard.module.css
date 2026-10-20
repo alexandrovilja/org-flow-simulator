@@ -1,33 +1,114 @@
-/* Tlačítko AI na kartě jednotky (feat-019).
-   Bez AI průhledný čtverec 16 × 16 px — stejná velikost a rámeček jako křížek pro odebrání jednotky. */
-.aiButton {
+/* Karta člena nebo týmu (feat-021): avatar, jméno, AI a ×, role čipy a právě zpracovávaný task. */
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+  min-height: 0;
+  overflow: hidden;
+  padding: var(--space-8) 10px;
+  background: var(--surface-panel);
+  border: var(--border-hair) solid var(--line);
+  border-radius: var(--radius-md);
+}
+
+/* Člen čeká na předání: teplý podklad a okraj v barvě wait */
+.waiting {
+  background: var(--wait-soft);
+  border-color: var(--wait);
+}
+
+.top {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--space-6);
+}
+
+/* Kolečko s písmenem jednotky */
+.avatar {
+  width: var(--size-avatar);
+  height: var(--size-avatar);
   flex-shrink: 0;
-  width: 16px;
-  height: 16px;
+  border-radius: var(--radius-pill);
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 2px;
+  background: var(--ink);
+  color: var(--surface-panel);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+}
+
+/* Editovatelné jméno ve stylu „body-strong“ */
+.name {
+  flex: 1;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  outline: none;
+  background: transparent;
+  color: var(--ink);
+  font-family: var(--font-sans);
+  font-size: 13px;
+  line-height: 20px;
+  font-weight: 600;
+}
+
+.name:focus-visible {
+  outline: var(--border-active) solid var(--focus);
+  outline-offset: 2px;
+}
+
+/* Malé čtvercové tlačítko v kartě (× odebrání jednotky) */
+.mini {
+  flex-shrink: 0;
+  width: var(--size-control-sm);
+  height: var(--size-control-sm);
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: var(--border-hair) solid var(--line-control);
+  border-radius: var(--radius-xs);
+  color: var(--ink-3);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+/* Tlačítko AI na kartě jednotky (feat-019).
+   Bez AI průhledný čtverec stejné velikosti a rámečku jako křížek pro odebrání jednotky. */
+.aiButton {
+  flex-shrink: 0;
+  width: var(--size-control-sm);
+  height: var(--size-control-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
   padding: 0;
   background: transparent;
-  border: 1px solid var(--line);
-  border-radius: 3px;
+  border: var(--border-hair) solid var(--line-control);
+  border-radius: var(--radius-xs);
   color: var(--ink-3);
-  font-family: inherit;
-  font-size: 9px;
+  font-family: var(--font-mono);
+  font-size: 10px;
   font-weight: 600;
   line-height: 1;
   cursor: pointer;
 }
 
-/* Zapnuté AI (2× / 5×): plně modrý odznak s bílým bleskem a hodnotou.
+/* Zapnuté AI (2× / 5×): plný odznak v barvě accent s bleskem a hodnotou.
    Stejná výška jako v klidu, šířka podle obsahu. Musí být za .aiButton, aby ji přebila. */
 .aiButtonOn {
   width: auto;
-  padding: 0 4px 0 3px;
+  padding: 0 var(--space-4) 0 3px;
   background: var(--accent);
   border-color: var(--accent);
-  color: white;
+  color: var(--on-accent);
 }
 
 /* Ikona blesku v odznaku — barvu bere z textu tlačítka (currentColor) */
@@ -41,23 +122,23 @@
 .aiMenu {
   display: flex;
   justify-content: flex-end;
-  gap: 4px;
+  gap: var(--space-4);
 }
 
 /* Jedna volba menu (2× / 5× / off) — malý čtvereček stejné výšky jako tlačítko AI */
 .aiOption {
-  height: 16px;
-  min-width: 16px;
+  height: var(--size-control-sm);
+  min-width: var(--size-control-sm);
   padding: 0 3px;
   display: flex;
   align-items: center;
   justify-content: center;
   background: transparent;
-  border: 1px solid var(--line-2);
-  border-radius: 3px;
+  border: var(--border-hair) solid var(--line-control);
+  border-radius: var(--radius-xs);
   color: var(--ink-2);
-  font-family: inherit;
-  font-size: 9px;
+  font-family: var(--font-mono);
+  font-size: 10px;
   font-weight: 600;
   line-height: 1;
   cursor: pointer;
@@ -65,14 +146,163 @@
 
 /* „off“ je slovo, potřebuje víc místa; tlumenější než volby zrychlení */
 .aiOptionOff {
-  padding: 0 4px;
+  padding: 0 var(--space-4);
   color: var(--ink-3);
   font-weight: 500;
 }
 
-/* Aktuálně vybraná volba — stejná modrá jako odznak */
+/* Aktuálně vybraná volba — stejná barva jako odznak */
 .aiOptionSelected {
   background: var(--accent);
   border-color: var(--accent);
-  color: white;
+  color: var(--on-accent);
+}
+
+.roles {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+}
+
+/* Přidání specializace: čárkovaný čtverec se znakem + */
+.addRole {
+  height: var(--size-control-sm);
+  min-width: var(--size-control-sm);
+  padding: 0 var(--space-4);
+  background: transparent;
+  border: var(--border-hair) dashed var(--line-control);
+  border-radius: var(--radius-xs);
+  color: var(--ink-3);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1;
+  cursor: pointer;
+}
+
+/* Picker specializací — inline pod čipy */
+.picker {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-4) var(--space-6);
+  background: var(--surface-subtle);
+  border: var(--border-hair) solid var(--line-2);
+  border-radius: var(--radius-sm);
+}
+
+/* Volba v pickeru vypadá jako čip role (barva přes --role inline) */
+.pickRole {
+  height: var(--size-control-sm);
+  padding: 0 var(--space-8);
+  border: 0;
+  border-radius: var(--radius-xs);
+  background: var(--role);
+  color: var(--ink-inverse);
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+  cursor: pointer;
+}
+
+.pickerClose {
+  margin-left: auto;
+  padding: 0 var(--space-2);
+  border: 0;
+  background: transparent;
+  color: var(--ink-3);
+  font-size: 11px;
+  cursor: pointer;
+}
+
+/* Řádek práce má pevnou minimální výšku, aby karta neposkakovala mezi idle a prací */
+.task {
+  min-height: 40px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.taskLine {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+/* Čtvereček v odstínu rozpracované feature (--hue inline) */
+.swatch {
+  width: 8px;
+  height: 8px;
+  flex-shrink: 0;
+  border-radius: var(--radius-xs);
+  background: oklch(68% 0.13 var(--hue));
+}
+
+/* Styl „code“ */
+.taskName {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  line-height: 16px;
+  color: var(--ink-2);
+}
+
+/* Styl „micro“ — název role v ink-3 */
+.taskRole {
+  flex-shrink: 0;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  line-height: 12px;
+  font-weight: 600;
+  color: var(--ink-3);
+}
+
+/* Progress bar úkolu — výška je inline (viz MemberCard.tsx), výplň v barvě role (--role) */
+.progress {
+  border-radius: var(--radius-xs);
+  overflow: hidden;
+  background: var(--track);
+}
+
+.progressFill {
+  height: 100%;
+  background: var(--role);
+}
+
+/* Stav bez práce: „idle“, „waiting…“, „no roles“ — mono verzálky (styl „label“) */
+.state {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  line-height: 12px;
+  font-weight: 600;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+
+.stateWaiting {
+  color: var(--wait);
+}
+
+.dot {
+  width: 6px;
+  height: 6px;
+  flex-shrink: 0;
+  border-radius: var(--radius-pill);
+  background: var(--ink-4);
+}
+
+.stateWaiting .dot {
+  background: var(--wait);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--wait) 30%, transparent);
 }

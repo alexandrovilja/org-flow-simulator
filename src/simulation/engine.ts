@@ -11,12 +11,13 @@ export const ROLES: Role[] = ['FE', 'BE', 'DSGN', 'QA', 'OPS', 'DATA']
  *  Generické labely (Frontend, Backend…) místo tech-specifických (React, Java…)
  *  jsou srozumitelnější pro agile coaches v kontextu workshopu. */
 export const ROLE_META: Record<Role, RoleMeta> = {
-  FE:   { label: 'Frontend', color: 'oklch(70% 0.14 250)', level: 1, required: false },
-  BE:   { label: 'Backend',  color: 'oklch(66% 0.14 285)', level: 1, required: false },
-  DSGN: { label: 'Design',   color: 'oklch(72% 0.13 25)',  level: 1, required: false },
-  QA:   { label: 'Testing',  color: 'oklch(68% 0.13 145)', level: 1, required: false },
-  OPS:  { label: 'DevOps',   color: 'oklch(68% 0.13 75)',  level: 1, required: false },
-  DATA: { label: 'Data',     color: 'oklch(64% 0.14 320)', level: 1, required: false },
+  // Barvy podle slotů design systému (feat-021): 1 Design, 2 Frontend, 3 Backend, 4 Testing, 5 DevOps, 6 Data
+  FE:   { label: 'Frontend', color: 'var(--role-blue)',  level: 1, required: false },
+  BE:   { label: 'Backend',  color: 'var(--role-brick)', level: 1, required: false },
+  DSGN: { label: 'Design',   color: 'var(--role-rose)',  level: 1, required: false },
+  QA:   { label: 'Testing',  color: 'var(--role-green)', level: 1, required: false },
+  OPS:  { label: 'DevOps',   color: 'var(--role-ochre)', level: 1, required: false },
+  DATA: { label: 'Data',     color: 'var(--role-teal)',  level: 1, required: false },
 }
 
 /** Jména týmů přiřazovaná v pořadí při přidání nové jednotky v Teams presetu.
@@ -35,12 +36,13 @@ export const PRESETS: UnitPreset[] = [
     addLabel: 'Add team',
     roles: ['DSGN', 'ACQ', 'PAY', 'PLAT', 'CRM', 'ITST'],
     roleMeta: {
-      DSGN: { label: 'Design',               color: 'oklch(72% 0.13 25)',  level: 1, required: false },
-      ACQ:  { label: 'Client Acquisition',   color: 'oklch(70% 0.14 160)', level: 1, required: false },
-      PAY:  { label: 'Payments',             color: 'oklch(70% 0.14 250)', level: 1, required: false },
-      PLAT: { label: 'Platform',             color: 'oklch(66% 0.14 285)', level: 1, required: false },
-      CRM:  { label: 'CRM',                  color: 'oklch(68% 0.13 75)',  level: 1, required: false },
-      ITST: { label: 'Integration Testing',  color: 'oklch(68% 0.13 145)', level: 1, required: false },
+      // Stejné sloty jako People (feat-021): Payments = Frontend, Platform = Backend, CRM = DevOps…
+      DSGN: { label: 'Design',               color: 'var(--role-rose)',  level: 1, required: false },
+      ACQ:  { label: 'Client Acquisition',   color: 'var(--role-teal)',  level: 1, required: false },
+      PAY:  { label: 'Payments',             color: 'var(--role-blue)',  level: 1, required: false },
+      PLAT: { label: 'Platform',             color: 'var(--role-brick)', level: 1, required: false },
+      CRM:  { label: 'CRM',                  color: 'var(--role-ochre)', level: 1, required: false },
+      ITST: { label: 'Integration Testing',  color: 'var(--role-green)', level: 1, required: false },
     },
     // Výchozí stav: každý tým má jednu specializaci — demonstrace silosové struktury
     members: [

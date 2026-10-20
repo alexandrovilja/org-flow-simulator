@@ -8,6 +8,9 @@ import { FeatureCard } from '@/components/FeatureCard'
 import { SegmentedControl } from '@/components/SegmentedControl'
 import { EmptyNote } from '@/components/EmptyNote'
 import styles from './ComparePanel.module.css'
+import { RoleChip } from '@/components/RoleChip'
+import { memberInitial } from '@/lib/memberInitial'
+import type { CssVariables } from '@/types/css'
 import { featureMaxWork } from '@/lib/featureSize'
 import type { SimState, SimStats } from '@/types/simulation'
 
@@ -152,9 +155,8 @@ export function ComparePanel({
       {/* data-tutorial-target lets the spotlight overlay focus on this team's result metrics */}
       <div
         data-tutorial-target={tutorialTargetPrefix ? `${tutorialTargetPrefix}-results` : undefined}
-        style={{ padding: '8px 12px', borderTop: '1px solid var(--line)', flexShrink: 0 }}
+        className={styles.metrics}
       >
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 6 }}>
           <MetricTile
             label="Total Time"
             value={state.simTime > 0 || state.finished ? formatTime(state.simTime) : '—'}
@@ -179,17 +181,16 @@ export function ComparePanel({
             tooltip="Average Work In Progress — lower usually means lower lead time (Little's Law)."
             bothFinished={bothFinished}
           />
-        </div>
       </div>
 
       {/* ── Team composition — pinned at bottom ── */}
       {/* data-tutorial-target lets the spotlight overlay focus on this team's member roster */}
       <div
         data-tutorial-target={tutorialTargetPrefix ? `${tutorialTargetPrefix}-composition` : undefined}
-        style={{ padding: '10px 14px', borderTop: '1px solid var(--line)', flexShrink: 0 }}
+        className={styles.composition}
       >
         <SectionTitle>Team composition</SectionTitle>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 5 }}>
+        <div className={styles.members}>
           {state.team.map(m => {
             const ct = m.currentTask
               ? state.inProgress.find(f => f.id === m.currentTask!.featureId)
@@ -199,55 +200,36 @@ export function ComparePanel({
               ? state.inProgress.find(f => f.id === m.currentTask!.featureId) ?? null
               : null
             const fillPct = ct ? (ct.progress / ct.work) * 100 : 0
+            const swatchStyle: CssVariables | undefined = cf ? { '--hue': cf.hue } : undefined
+            const progressStyle: CssVariables | undefined = ct ? { '--role': ROLE_META[ct.role]?.color ?? 'var(--accent)' } : undefined
 
             return (
-              <div key={m.id} style={{
-                background: 'var(--surface-panel)', border: '1px solid var(--line)',
-                borderRadius: 6, padding: '6px 8px',
-                display: 'flex', flexDirection: 'column', gap: 4,
-              }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <div style={{
-                    width: 18, height: 18, borderRadius: '50%',
-                    background: 'var(--ink)', color: 'white',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontSize: 9, fontWeight: 600, flexShrink: 0,
-                  }}>
-                    {m.name[0]?.toUpperCase()}
-                  </div>
-                  <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink)' }}>{m.name}</span>
+              <div key={m.id} className={styles.member}>
+                <div className={styles.memberTop}>
+                  <div className={styles.avatar}>{memberInitial(m.name)}</div>
+                  <span className={styles.memberName}>{m.name}</span>
                 </div>
                 {/* Role chips — read-only */}
-                <div style={{ display: 'flex', gap: 3, flexWrap: 'wrap' }}>
+                <div className={styles.chips}>
                   {m.roles.map(r => (
-                    <span key={r} style={{
-                      padding: '1px 6px', borderRadius: 3,
-                      fontSize: 10, fontWeight: 600, color: 'white',
-                      background: ROLE_META[r]?.color ?? 'var(--ink-3)',
-                    }}>
-                      {ROLE_META[r]?.label ?? r}
-                    </span>
+                    <RoleChip key={r} role={r} color={ROLE_META[r]?.color ?? 'var(--ink-3)'} label={ROLE_META[r]?.label} />
                   ))}
                 </div>
                 {/* Progress or idle */}
-                <div style={{ minHeight: 28 }}>
+                <div className={styles.work}>
                   {cf && ct ? (
                     <>
-                      <div style={{
-                        fontSize: 10, color: 'var(--ink-2)',
-                        display: 'flex', alignItems: 'center', gap: 4,
-                        whiteSpace: 'nowrap', overflow: 'hidden', marginBottom: 2,
-                      }}>
-                        <span style={{ width: 6, height: 6, borderRadius: 2, background: `oklch(70% 0.14 ${cf.hue})`, flexShrink: 0 }} />
-                        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', flex: 1 }} className="mono">{cf.name}</span>
+                      <div className={styles.workLine}>
+                        <span className={styles.swatch} style={swatchStyle} />
+                        <span className={styles.workName}>{cf.name}</span>
                       </div>
-                      <div style={{ height: 6, background: 'var(--line)', borderRadius: 3, overflow: 'hidden' }}>
-                        <div style={{ height: '100%', width: `${fillPct}%`, background: ROLE_META[ct.role]?.color ?? 'var(--accent)' }} />
+                      <div className={styles.progress} style={progressStyle}>
+                        <div className={styles.progressFill} style={{ width: `${fillPct}%` }} />
                       </div>
                     </>
                   ) : (
-                    <div style={{ fontSize: 10, color: 'var(--ink-3)', fontStyle: 'italic', display: 'flex', alignItems: 'center', gap: 4 }}>
-                      <span style={{ width: 5, height: 5, borderRadius: '50%', background: 'var(--line-2)' }} />
+                    <div className={styles.idle}>
+                      <span className={styles.idleDot} />
                       idle
                     </div>
                   )}
@@ -264,15 +246,9 @@ export function ComparePanel({
 
 // ── Small shared sub-components ───────────────────────────────────────────────
 
+/** Nadpisek sekce sloupce („Team composition“) ve stylu „eyebrow“. */
 function SectionTitle({ children }: { children: React.ReactNode }) {
-  return (
-    <div style={{
-      fontSize: 10, fontWeight: 600, textTransform: 'uppercase',
-      letterSpacing: 0.5, color: 'var(--ink-3)', marginBottom: 7,
-    }}>
-      {children}
-    </div>
-  )
+  return <div className={styles.sectionTitle}>{children}</div>
 }
 
 interface MetricTileProps {
@@ -297,31 +273,16 @@ function MetricTile({ label, value, delta, vsLabel, tooltip, deltaLabel, bothFin
 
   const isBetter = bothFinished && delta !== undefined && delta < 0
 
-  const tileBg     = isBetter ? 'oklch(94% 0.04 150)' : 'var(--surface-page)'
-  const tileBorder = isBetter ? 'oklch(82% 0.09 150)' : 'var(--line)'
-  const valueColor = isBetter ? 'var(--done)' : 'var(--ink)'
-
   return (
-    <div title={tooltip} style={{
-      padding: '8px 10px', borderRadius: 7, cursor: 'help',
-      background: tileBg, border: `1px solid ${tileBorder}`,
-      transition: 'background 0.4s, border-color 0.4s',
-    }}>
-      <div style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.4, color: 'var(--ink-3)' }}>
-        {label}
-      </div>
-      <div style={{ fontSize: 18, fontWeight: 800, letterSpacing: -0.5, marginTop: 2, fontVariantNumeric: 'tabular-nums', color: valueColor, transition: 'color 0.4s' }}>
-        {value}
-      </div>
+    <div title={tooltip} className={[styles.metric, isBetter && styles.metricBetter].filter(Boolean).join(' ')}>
+      <div className={styles.metricLabel}>{label}</div>
+      <div className={styles.metricValue}>{value}</div>
       {delta !== undefined && (
-        <div style={{
-          fontSize: 11, fontWeight: 700, marginTop: 2,
-          color: delta < 0 ? 'var(--done)' : 'var(--ink)',
-        }}>
+        <div className={[styles.metricDelta, delta < 0 && styles.metricDeltaBetter].filter(Boolean).join(' ')}>
           {delta < 0
             ? `↓ ${Math.abs(delta).toFixed(0)}% ${dl.better}`
             : `↑ ${delta.toFixed(0)}% ${dl.worse}`}
-          <span style={{ fontWeight: 400, color: 'var(--ink-3)', marginLeft: 3 }}>{vsLabel}</span>
+          <span className={styles.metricVs}>{vsLabel}</span>
         </div>
       )}
     </div>

@@ -1,4 +1,6 @@
 import type { Role } from '@/types/simulation'
+import type { CssVariables } from '@/types/css'
+import styles from './RoleChip.module.css'
 
 interface RoleChipProps {
   role: Role
@@ -12,31 +14,22 @@ interface RoleChipProps {
 }
 
 /**
- * Barevný chip reprezentující jednu specializaci.
+ * Barevný chip reprezentující jednu specializaci (design system Org Flow, feat-021).
  * Používá se v MemberCard pro zobrazení přiřazených rolí.
  * Barva i label přicházejí od volajícího (z roleConfig) — chip sám nic nevyhledává,
- * takže funguje i pro uživatelsky přidané specializace.
+ * takže funguje i pro uživatelsky přidané specializace. Barva jde do CSS proměnné --role,
+ * vzhled (výška, písmo, bílý text) je v RoleChip.module.css.
+ *
+ * @param props - Role, její barva, volitelný popisek a možnost odebrání
+ * @returns Vykreslený čip
  */
 export function RoleChip({ role, color, label, removable, onRemove }: RoleChipProps) {
+  const style: CssVariables = { '--role': color }
   return (
-    <span style={{
-      display: 'inline-flex', alignItems: 'center', gap: 4,
-      background: color,
-      color: 'white',
-      fontSize: 10, fontWeight: 600,
-      padding: '2px 6px', borderRadius: 3,
-      letterSpacing: 0.3,
-    }}>
+    <span className={styles.chip} style={style}>
       {label ?? role}
       {removable && (
-        <button onClick={onRemove} style={{
-          background: 'rgba(255,255,255,0.25)',
-          border: 'none', color: 'white',
-          width: 12, height: 12, borderRadius: 2,
-          padding: 0, lineHeight: 1, fontSize: 10,
-          display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-          cursor: 'pointer',
-        }} title="Remove role">×</button>
+        <button type="button" onClick={onRemove} className={styles.remove} title="Remove role">×</button>
       )}
     </span>
   )

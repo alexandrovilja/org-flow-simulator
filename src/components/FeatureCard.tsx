@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { ROLE_META } from '@/simulation/engine'
 import { featureTotalWork } from '@/lib/featureSize'
 import { CoordinationChips } from '@/components/CoordinationChips'
+import { memberInitial } from '@/lib/memberInitial'
 import type { Feature, Member, Role, RoleMeta } from '@/types/simulation'
 import type { CssVariables } from '@/types/css'
 import styles from './FeatureCard.module.css'
@@ -60,7 +61,8 @@ export function FeatureCard({ feature, team = [], compact = false, neutral = fal
   const initialFor = (id: number | null) => {
     if (id == null) return null
     const m = team.find(m => m.id === id)
-    return m ? m.name[0] : null
+    // U týmů „Team X“ písmeno týmu, u lidí první písmeno jména (feat-021)
+    return m ? memberInitial(m.name) : null
   }
 
   const cardClass = [styles.card, neutral && styles.neutral, compact ? styles.compact : styles.tall].filter(Boolean).join(' ')
