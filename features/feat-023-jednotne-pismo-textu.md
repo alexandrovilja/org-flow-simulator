@@ -1,7 +1,9 @@
 # Feature: Jednotné písmo: celá aplikace v JetBrains Mono
 
 ## Status
-in-progress
+done
+
+*Hotovo 2026-10-20 v jednom PR (#28, 5a511ee), včetně code review (8 nálezů opraveno). Smoke test produkce prošel (JetBrains Mono všude, žádné Archivo ani Kalam, ligatury vypnuté, karty jednotek ve dvou sloupcích při ~1070 px). Artefakt design systému je aktualizovaný (verze 8: jediná rodina `mono`, annotation v mono, README, mapping a komponenty).*
 
 ## Problem
 Po feat-021 a feat-022 jsou titulky, záložky a tlačítka sjednocené, ale v aplikaci se dál střídají dvě písma a texty uvnitř panelů vedle sebe působí nejednotně:
