@@ -3,6 +3,8 @@ import { REVENUE_TICK_INTERVAL_SEC, doneCount, plateauRevenuePerTick } from '@/s
 import { StatTile } from '@/components/StatTile'
 import { PanelHeader } from '@/components/PanelHeader'
 import { CoordinationChips } from '@/components/CoordinationChips'
+import { DoneRow } from '@/components/DoneRow'
+import { EmptyNote } from '@/components/EmptyNote'
 import { formatEuro } from '@/lib/formatCurrency'
 import { formatTime } from '@/lib/formatTime'
 import { formatPercent } from '@/lib/formatPercent'
@@ -139,46 +141,39 @@ export function CashFlowPanel({
         {/* Počet všech hotových features, ne jen zobrazených karet (feat-001, Příklad 6) */}
         <PanelHeader title="Done" count={doneCount(state)} />
         <div style={{ flex: 1, overflow: 'auto', padding: '6px 14px 14px', display: 'flex', flexDirection: 'column', gap: 6 }}>
-          {done.length === 0 && (
-            <div style={{ fontSize: 11, color: 'var(--ink-3)', fontStyle: 'italic', padding: '8px 0' }}>No completed features yet.</div>
-          )}
+          {done.length === 0 && <EmptyNote>No completed features yet.</EmptyNote>}
           {done.map(f => (
-            <div key={f.id} style={{
-              display: 'flex', alignItems: 'center', gap: 8, padding: '6px 8px',
-              background: `oklch(96% 0.03 ${f.hue})`,
-              border: `1px solid oklch(82% 0.06 ${f.hue})`,
-              borderRadius: 5,
-            }}>
-              <span style={{ width: 4, alignSelf: 'stretch', background: `oklch(60% 0.14 ${f.hue})`, borderRadius: 2 }} />
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div className="mono" style={{ fontSize: 10, color: 'var(--ink-2)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{f.name}</div>
-                <div style={{ fontSize: 9, color: 'var(--ink-3)', display: 'flex', alignItems: 'center', gap: 4 }}>
-                  {/* Ustálený výnos (feat-017) — stejné číslo jako badge v Backlogu; pulse vpravo ukazuje skutečný přírůstek ticku */}
-                  {formatEuro(plateauRevenuePerTick(f))}/tick
-                  {/* Čipy coordination overhead (feat-016) — v Done listu bez pulse, událost už nevzniká */}
-                  {showCoordination && <CoordinationChips joins={f.joinCount} reworks={f.reworkCount} />}
-                </div>
-                {/* Progress bar odpočtu do dalšího revenue ticku — vlastní nezávislý cyklus této featury. */}
-                <div style={{ height: 3, background: 'var(--line)', borderRadius: 2, marginTop: 4, overflow: 'hidden' }}>
-                  <div style={{
-                    height: '100%',
-                    width: `${Math.min(100, ((state.simTime - f.lastRevenueTickAt) / REVENUE_TICK_INTERVAL_SEC) * 100)}%`,
-                    background: 'var(--done)',
-                  }} />
-                </div>
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 1, minWidth: 44 }}>
-                <span className="mono" style={{ fontSize: 12, fontWeight: 700, color: 'var(--done)' }}>{formatEuro(f.totalRevenue)}</span>
+            <DoneRow
+              key={f.id}
+              hue={f.hue}
+              name={f.name}
+              detail={<>
+                {/* Ustálený výnos (feat-017) — stejné číslo jako badge v Backlogu; pulse vpravo ukazuje skutečný přírůstek ticku */}
+                {formatEuro(plateauRevenuePerTick(f))}/tick
+                {/* Čipy coordination overhead (feat-016) — v Done listu bez pulse, událost už nevzniká */}
+                {showCoordination && <CoordinationChips joins={f.joinCount} reworks={f.reworkCount} />}
+              </>}
+              aside={<div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 1, minWidth: 44 }}>
+                <span style={{ fontSize: 12, fontWeight: 700 }}>{formatEuro(f.totalRevenue)}</span>
                 {f.lastTickRevenue !== null && (
-                  <span key={f.lastRevenueTickAt} className="mono" style={{
-                    fontSize: 9, fontWeight: 600, color: 'var(--done)',
+                  <span key={f.lastRevenueTickAt} style={{
+                    fontSize: 10, fontWeight: 600,
                     animation: 'revenue-pulse 1.6s ease-out forwards',
                   }}>
                     +{formatEuro(f.lastTickRevenue)}
                   </span>
                 )}
+              </div>}
+            >
+              {/* Progress bar odpočtu do dalšího revenue ticku — vlastní nezávislý cyklus této featury. */}
+              <div style={{ height: 3, background: 'var(--track)', borderRadius: 'var(--radius-xs)', marginTop: 'var(--space-4)', overflow: 'hidden' }}>
+                <div style={{
+                  height: '100%',
+                  width: `${Math.min(100, ((state.simTime - f.lastRevenueTickAt) / REVENUE_TICK_INTERVAL_SEC) * 100)}%`,
+                  background: 'var(--done)',
+                }} />
               </div>
-            </div>
+            </DoneRow>
           ))}
         </div>
       </div>

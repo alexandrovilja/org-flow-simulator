@@ -1,23 +1,24 @@
-/* Společný vzhled obou čipů coordination overhead (feat-016) — malý monospace štítek s rámečkem. */
+/* Společný vzhled obou čipů coordination overhead (feat-016, vzhled feat-021) — malý monospace
+   štítek s rámečkem ve stylu „micro“ (nejmenší písmo v aplikaci je 10 px). */
 .chip {
   display: inline-flex;
   align-items: center;
-  gap: 2px;
-  font-family: 'JetBrains Mono', ui-monospace, Menlo, monospace;
-  font-size: 9.5px;
+  gap: var(--space-2);
+  font-family: var(--font-mono);
+  font-size: 10px;
   font-weight: 600;
-  line-height: 1;
-  padding: 2px 5px;
-  border-radius: 3px;
-  border: 1px solid;
+  line-height: 12px;
+  padding: var(--space-2) 5px;
+  border-radius: var(--radius-xs);
+  border: var(--border-hair) solid;
   white-space: nowrap;
 }
 
 /* ⇄ předání — neutrální, aby nekonkuroval revenue badge. */
 .handoff {
   color: var(--ink-2);
-  background: rgba(22, 22, 26, 0.04);
-  border-color: var(--line-2);
+  background: var(--surface-subtle);
+  border-color: var(--line);
 }
 
 /* ↺ rework — výraznější teplá červená, rework je dražší událost. */
@@ -35,16 +36,23 @@
   animation: chip-pulse-rework 1.4s ease-out;
 }
 
-/* Pulse při novém předání — zvětšení + rozplývající se prstenec. */
+/* Pulse při novém předání — zvětšení + rozplývající se prstenec v barvě ink-2. */
 @keyframes chip-pulse-handoff {
-  0%   { transform: scale(1);    box-shadow: 0 0 0 0 rgba(22, 22, 26, 0.35); }
-  15%  { transform: scale(1.22); box-shadow: 0 0 0 0 rgba(22, 22, 26, 0.35); }
-  100% { transform: scale(1);    box-shadow: 0 0 0 6px rgba(22, 22, 26, 0); }
+  0%   { transform: scale(1);    box-shadow: 0 0 0 0 color-mix(in srgb, var(--ink-2) 35%, transparent); }
+  15%  { transform: scale(1.22); box-shadow: 0 0 0 0 color-mix(in srgb, var(--ink-2) 35%, transparent); }
+  100% { transform: scale(1);    box-shadow: 0 0 0 6px color-mix(in srgb, var(--ink-2) 0%, transparent); }
 }
 
-/* Výraznější pulse při reworku — navíc krátce ztmavne pozadí. */
+/* Výraznější pulse při reworku — prstenec v barvě reworku, pozadí krátce sytější. */
 @keyframes chip-pulse-rework {
-  0%   { transform: scale(1);    box-shadow: 0 0 0 0 oklch(55% 0.18 30 / 0.5); background: var(--rework-soft); }
-  15%  { transform: scale(1.22); box-shadow: 0 0 0 0 oklch(55% 0.18 30 / 0.5); background: oklch(88% 0.08 30); }
-  100% { transform: scale(1);    box-shadow: 0 0 0 7px oklch(55% 0.18 30 / 0); background: var(--rework-soft); }
+  0%   { transform: scale(1);    box-shadow: 0 0 0 0 color-mix(in srgb, var(--rework) 50%, transparent); background: var(--rework-soft); }
+  15%  { transform: scale(1.22); box-shadow: 0 0 0 0 color-mix(in srgb, var(--rework) 50%, transparent); background: var(--rework-line); }
+  100% { transform: scale(1);    box-shadow: 0 0 0 7px color-mix(in srgb, var(--rework) 0%, transparent); background: var(--rework-soft); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .handoff.pulse,
+  .rework.pulse {
+    animation: none;
+  }
 }

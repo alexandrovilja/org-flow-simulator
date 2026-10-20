@@ -13,6 +13,8 @@ import { SpeedControl } from '@/components/SpeedControl'
 import { Button } from '@/components/Button'
 import { SegmentedControl } from '@/components/SegmentedControl'
 import { TopBar } from '@/components/TopBar'
+import { DoneRow } from '@/components/DoneRow'
+import { EmptyNote } from '@/components/EmptyNote'
 import { PanelHeader } from '@/components/PanelHeader'
 import { ComparePanel } from '@/components/ComparePanel'
 import { CashFlowPanel } from '@/components/CashFlowPanel'
@@ -1034,25 +1036,17 @@ export function Simulator() {
           {/* Počet všech hotových features, ne jen zobrazených karet (feat-001, Příklad 6) */}
           <PanelHeader title="Done" count={doneCount(s)} />
           <div style={{ flex: 1, overflow: 'auto', padding: '6px 14px 14px', display: 'flex', flexDirection: 'column', gap: 6 }}>
-            {s.done.length === 0 && (
-              <div style={{ fontSize: 11, color: 'var(--ink-3)', fontStyle: 'italic', padding: '8px 0' }}>No completed features yet.</div>
-            )}
+            {s.done.length === 0 && <EmptyNote>No completed features yet.</EmptyNote>}
             {s.done.map(f => {
               const lt = (f.finishedAt ?? 0) - f.createdAt
               return (
-                <div key={f.id} style={{
-                  display: 'flex', alignItems: 'center', gap: 8, padding: '6px 8px',
-                  background: `oklch(96% 0.03 ${f.hue})`,
-                  border: `1px solid oklch(82% 0.06 ${f.hue})`,
-                  borderRadius: 5,
-                }}>
-                  <span style={{ width: 4, alignSelf: 'stretch', background: `oklch(60% 0.14 ${f.hue})`, borderRadius: 2 }} />
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div className="mono" style={{ fontSize: 10, color: 'var(--ink-2)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{f.name}</div>
-                    <div style={{ fontSize: 9, color: 'var(--ink-3)' }}>{f.tasks.length} task{f.tasks.length > 1 ? 's' : ''}</div>
-                  </div>
-                  <span className="mono" style={{ fontSize: 11, fontWeight: 600, color: 'var(--done)' }}>{lt.toFixed(1)}s</span>
-                </div>
+                <DoneRow
+                  key={f.id}
+                  hue={f.hue}
+                  name={f.name}
+                  detail={`${f.tasks.length} task${f.tasks.length > 1 ? 's' : ''}`}
+                  aside={<span style={{ fontSize: 11, fontWeight: 600 }}>{lt.toFixed(1)}s</span>}
+                />
               )
             })}
           </div>
