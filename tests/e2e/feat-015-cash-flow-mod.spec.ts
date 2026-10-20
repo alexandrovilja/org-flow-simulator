@@ -30,9 +30,10 @@ test.describe('Cash Flow mód (feat-015)', () => {
     await expect(page.getByText(/€\d+\/tick/).first()).toBeVisible()
   })
 
-  test('panel metrik obsahuje dlaždici Total Revenue', async ({ page }) => {
+  test('panel metrik obsahuje dlaždici Revenue (time-matched)', async ({ page }) => {
+    // Dlaždice Total Revenue byla přejmenována na Revenue (time-matched) (feat-018).
     // StatTile label obsahuje i "?" tooltip ikonu ve stejném elementu — exact match by selhal.
-    await expect(page.getByText(/Total Revenue/)).toBeVisible()
+    await expect(page.getByText(/Revenue \(time-matched\)/)).toBeVisible()
   })
 
   test('po kliknutí na Start se Total Time změní z 00:00.0', async ({ page }) => {
