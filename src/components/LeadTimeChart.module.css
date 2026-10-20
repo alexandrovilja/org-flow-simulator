@@ -13,8 +13,11 @@
   color: var(--ink-3);
 }
 
+/* Okraje vlevo a vpravo předává komponenta jako --pad-left a --pad-right: stejné hodnoty používají
+   osy, které jsou umístěné absolutně */
 .chart {
   position: relative;
+  padding: 0 var(--pad-right) 0 var(--pad-left);
 }
 
 /* Popisky os: mono 10 px v ink-3 */

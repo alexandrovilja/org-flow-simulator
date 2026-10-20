@@ -10,7 +10,7 @@ import { mulberry32, makeInitialState, ROLE_META, PRESETS } from '@/simulation/e
 import type { SimSettings, RevenueProfile } from '@/types/simulation'
 
 // feat-017, schválený UI návrh (fáze 3, docs/feat-017-ui-mockup.html):
-//  - přepínač „Revenue curve“ (Flat | J-curve | S-curve) je uvnitř akordeonu „♻ Backlog“ pod
+//  - přepínač „Revenue curve“ (Flat | J-curve | S-curve) je uvnitř akordeonu „Backlog“ pod
 //    „Generate new backlog“ a nad slidery; vykresluje se jen když panel dostane `onRevenueProfileChange`
 //    (Cash Flow), Advanced ho nepředává;
 //  - pod přepínačem je jediný náhled tvaru křivky (RevenueCurvePreview), na kartách featur mini-graf není;
@@ -114,9 +114,9 @@ describe('feat-017: RevenueCurvePreview (náhled tvaru křivky)', () => {
 // ───────────────────────────────────────────────────────────────────────────────
 
 describe('feat-017: přepínač „Revenue curve“ v BacklogSettingsPanel', () => {
-  it('je uvnitř otevřeného akordeonu ♻ Backlog: pod „Generate new backlog“ a nad slidery', () => {
+  it('je uvnitř otevřeného akordeonu Backlog: pod „Generate new backlog“ a nad slidery', () => {
     renderPanel(cashFlowProps())
-    const generate = screen.getByText('♻ Generate new backlog')
+    const generate = screen.getByText('Generate new backlog')
     const label = screen.getByText('Revenue curve')
     const firstSlider = screen.getByText('Backlog size')
     expect(screen.getByRole('button', { name: 'Flat' })).toBeTruthy()

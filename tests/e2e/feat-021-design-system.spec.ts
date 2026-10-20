@@ -9,8 +9,7 @@
  */
 
 import { test, expect, type Page, type Locator } from '@playwright/test'
-
-const BASE = process.env.BASE_URL ?? 'http://localhost:3000'
+import { BASE, groupWith, runButton, skipTutorial } from './helpers'
 
 /** Barvy tokenů jako je vrací getComputedStyle (rgb). Hodnoty z design systému Org Flow. */
 const RGB = {
@@ -30,14 +29,6 @@ const RGB = {
 
 /** Vypočtená barva pozadí prvku. */
 const bg = (el: Locator) => el.evaluate(e => getComputedStyle(e).backgroundColor)
-
-/** Tlačítko Run / Pause / Done v horní liště (podle konce přístupného názvu, glyf může předcházet). */
-const runButton = (page: Page, label: 'Run' | 'Pause' | 'Done' | 'Start') =>
-  page.getByRole('button', { name: new RegExp(`${label}$`) })
-
-/** Segmentový přepínač, který obsahuje tlačítko s daným textem. */
-const groupWith = (page: Page, buttonName: string) =>
-  page.getByRole('group').filter({ has: page.getByRole('button', { name: buttonName, exact: true }) })
 
 /**
  * Najde viditelné prvky s vlastním textem menším než 10 px.
@@ -110,11 +101,7 @@ async function topBarLayout(page: Page): Promise<{ brandRight: number; tabsLeft:
 
 test.describe('feat-021: design system Org Flow', () => {
   test.beforeEach(async ({ page }) => {
-    // Tutorial overlay by jinak na první návštěvě (i prvním přepnutí do Advanced) blokovala kliknutí
-    await page.addInitScript(() => {
-      localStorage.setItem('tutorial-completed', 'true')
-      localStorage.setItem('tutorial-seen-modes', JSON.stringify(['compare', 'experiment']))
-    })
+    await skipTutorial(page)
   })
 
   test('Příklad 3: Run pulzuje v action, za běhu je Pause v accent, po doběhnutí ✓ Done v done', async ({ page }) => {

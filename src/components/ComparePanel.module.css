@@ -1,5 +1,13 @@
 /* Sloupec Compare (feat-021): hlavička týmu, Kanban se třemi sloupci podle stavu toku. */
 
+/* Celý sloupec jednoho týmu: hlavička nahoře, Kanban a tým pod ní, nic nepřetéká */
+.root {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+
 /* Hlavička týmu: nadpis typu týmu vlevo, přepínač typu vpravo */
 .teamHeader {
   display: flex;
@@ -11,12 +19,12 @@
   flex-shrink: 0;
 }
 
-/* Styl „heading“ zmenšený pro sloupec: Archivo 800 verzálkami */
+/* Styl „heading“: Archivo 800, 20/22, verzálky */
 .teamTitle {
   margin: 0;
   font-family: var(--font-display);
-  font-size: 16px;
-  line-height: 20px;
+  font-size: 20px;
+  line-height: 22px;
   font-weight: 800;
   text-transform: uppercase;
   color: var(--ink);

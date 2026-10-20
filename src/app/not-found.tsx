@@ -1,18 +1,20 @@
 import Link from 'next/link'
+import styles from './not-found.module.css'
 
+/**
+ * Stránka 404 ve stylu design systému Org Flow (feat-022): „404“ ve stylu display-xl, krátká
+ * zpráva a odkaz zpět na simulátor. Barvy a písma bere ze stylů v CSS modulu, takže se mění
+ * s tématem stejně jako zbytek aplikace.
+ *
+ * @returns Vykreslená stránka 404
+ */
 export default function NotFound() {
   return (
-    <div style={{
-      height: '100vh',
-      display: 'flex', flexDirection: 'column',
-      alignItems: 'center', justifyContent: 'center',
-      fontFamily: 'system-ui, sans-serif',
-      color: '#16161a',
-    }}>
-      <h1 style={{ fontSize: 48, fontWeight: 700, margin: 0 }}>404</h1>
-      <p style={{ color: '#8a8a92', marginTop: 8 }}>Page not found</p>
+    <div className={styles.page}>
+      <h1 className={styles.code}>404</h1>
+      <p className={styles.message}>Page not found</p>
       {/* Use Next.js Link for internal navigation so client-side routing works */}
-      <Link href="/" style={{ marginTop: 16, color: 'oklch(58% 0.13 240)', textDecoration: 'none', fontSize: 14 }}>
+      <Link href="/" className={styles.back}>
         ← Back to simulator
       </Link>
     </div>

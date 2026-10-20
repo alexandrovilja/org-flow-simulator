@@ -1,0 +1,69 @@
+/* Prvky pravého sloupce Cash Flow (feat-022), které Advanced nemá: rozpad coordination overhead a
+   odpočet do dalšího výnosu. Rozložení sloupce samotného je v ResultsAside.module.css. */
+/* Rozpadový pruh coordination overhead: handoff (ink-3) + rework (rework) na dráze line */
+.breakdownBar {
+  display: flex;
+  height: 4px;
+  border-radius: var(--radius-xs);
+  overflow: hidden;
+  background: var(--line);
+  margin: var(--space-4) 0 var(--space-2);
+}
+
+/* Šířka segmentu handoff je vypočítaná, nastavuje ji inline `width` */
+.handoffFill {
+  background: var(--ink-3);
+}
+
+/* Zbytek pruhu patří reworku; bez reworku zůstane dráha prázdná */
+.reworkSlot {
+  flex: 1;
+}
+
+.reworkFill {
+  background: var(--rework);
+}
+
+/* Legenda pod pruhem — styl „micro“, mono, aby čísla držela tabulkové číslice */
+.legend {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  line-height: 12px;
+  font-weight: 600;
+  color: var(--ink-3);
+}
+
+.dot {
+  width: 6px;
+  height: 6px;
+  border-radius: var(--radius-xs);
+}
+
+.dotHandoff {
+  background: var(--ink-3);
+}
+
+.dotRework {
+  background: var(--rework);
+}
+
+.legendSeparator {
+  margin: 0 var(--space-2);
+}
+
+/* Odpočet do dalšího výnosu: tenká dráha, šířka výplně je vypočítaná (inline `width`) */
+.countdown {
+  height: 3px;
+  background: var(--track);
+  border-radius: var(--radius-xs);
+  margin-top: var(--space-4);
+  overflow: hidden;
+}
+
+.countdownFill {
+  height: 100%;
+  background: var(--done);
+}

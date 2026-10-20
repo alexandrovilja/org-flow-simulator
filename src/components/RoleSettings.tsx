@@ -204,8 +204,9 @@ export function RoleSettings({ roleConfig, onChange, onAdd, onDelete }: RoleSett
                     type="button"
                     onClick={() => setConfirmDelete(roleId)}
                     title={`Delete ${meta.label}`}
+                    aria-label={`Delete ${meta.label}`}
                     className={styles.deleteButton}
-                  >🗑</button>
+                  >×</button>
                 )}
               </div>
             </div>

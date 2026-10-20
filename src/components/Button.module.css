@@ -88,6 +88,17 @@
   color: var(--ink-2);
 }
 
+/* Přidání položky (+ Add unit): stejný obrys jako ostatní ovládání, ale čárkovaný a tlumený */
+.dashed {
+  background: transparent;
+  border-style: dashed;
+  color: var(--ink-3);
+}
+.dashed:hover:not(:disabled) {
+  background: var(--surface-subtle);
+  color: var(--ink);
+}
+
 /* Hlavní akce na antracitové kartě tutoriálu: bílá výplň, text v barvě lišty */
 .light {
   background: var(--ink-inverse);

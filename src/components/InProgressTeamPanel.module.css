@@ -1,0 +1,53 @@
+/* Střední sloupec Advanced a Cash Flow (feat-022): karty rozpracovaných features nahoře,
+   jednotky týmu dole. Dřív inline styly v InProgressTeamPanel.tsx. */
+.panel {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+  background: var(--surface-page);
+}
+
+/* Horní část: In progress; roluje se sama, spodní hranu tvoří linka */
+.inProgress {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  border-bottom: var(--border-hair) solid var(--line);
+  background: var(--surface-panel);
+}
+
+/* Karty features v mřížce, která se přizpůsobí šířce (auto-scaled) */
+.cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: var(--space-8);
+  align-content: start;
+  min-height: 64px;
+  overflow-y: auto;
+  padding: var(--space-8) var(--space-16) var(--space-16);
+}
+
+/* Spodní část: hlavička Units, karty jednotek a tlačítko přidání */
+.team {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  padding-bottom: var(--space-12);
+  background: var(--surface-panel);
+}
+
+.members {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-auto-rows: min-content;
+  gap: var(--space-6);
+  align-content: start;
+  padding: 0 var(--space-16);
+}
+
+/* Tlačítko „+ Add …“: v sloupci flexu se roztáhne přes celou šířku mezi okraji */
+.addUnit {
+  margin: var(--space-8) var(--space-16) 0;
+}

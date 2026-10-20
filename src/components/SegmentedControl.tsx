@@ -75,7 +75,7 @@ export function SegmentedControl<T extends string>({ options, value, onChange, h
       {/* Floating hint below the control. Width and wrapping stay inline: long hints must wrap
           inside the 320px settings sidebar (max-content keeps short hints on one line) */}
       {hint && visible && (
-        <div className={styles.hint} style={{ width: 'max-content', maxWidth: 260, whiteSpace: 'normal' }}>
+        <div className={styles.hint}>
           {hint}
         </div>
       )}

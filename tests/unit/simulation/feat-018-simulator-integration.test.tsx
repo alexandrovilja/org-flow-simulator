@@ -41,13 +41,13 @@ function setBacklogSize(size: number): void {
 }
 
 /**
- * Otevře Cash Flow, rozbalí „♻ Backlog“ (kvůli přepínači křivky), vygeneruje backlog
+ * Otevře Cash Flow, rozbalí „Backlog“ (kvůli přepínači křivky), vygeneruje backlog
  * o TEST_BACKLOG_SIZE featurách a nastaví rychlost 10×.
  */
 function openCashFlowSettings(): void {
   render(<Simulator />)
   tab(/Cash Flow/)
-  click('♻ Backlog')
+  click('Backlog')
   setBacklogSize(TEST_BACKLOG_SIZE)
   click(/Generate new backlog/)
   click('10×')

@@ -41,12 +41,16 @@
   text-overflow: ellipsis;
 }
 
+/* Druhý řádek (počet tasků, výnos za tick): styl „micro“, mono jako všechna čísla */
 .detail {
   display: flex;
   align-items: center;
   gap: var(--space-4);
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
   font-size: 10px;
   line-height: 12px;
+  font-weight: 600;
   color: var(--ink-3);
 }
 
@@ -56,7 +60,44 @@
   align-items: flex-end;
   gap: 1px;
   flex-shrink: 0;
+  min-width: 44px;
   font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
   color: var(--done);
+}
+
+/* Hodnota vpravo: styl „code“ s řezem 600 */
+.value {
+  font-size: 11px;
+  line-height: 16px;
+  font-weight: 600;
+}
+
+/* Přírůstek výnosu: styl „micro“; po vzniku se na 1,6 s objeví a vybledne */
+.delta {
+  font-size: 10px;
+  line-height: 12px;
+  font-weight: 600;
+  animation: revenue-pulse 1.6s ease-out forwards;
+}
+
+/* Cash Flow — „+€X“ se po každém ticku výnosu krátce objeví a vybledne. */
+@keyframes revenue-pulse {
+  0%   { opacity: 0; transform: translateY(3px) scale(0.9); }
+  15%  { opacity: 1; transform: translateY(0) scale(1); }
+  75%  { opacity: 1; transform: translateY(0) scale(1); }
+  100% { opacity: 0; transform: translateY(-3px) scale(0.95); }
+}
+
+/* Omezený pohyb: bez posunu a zvětšení, přírůstek jen vybledne. Animaci nelze úplně vypnout, jinak by
+   „+€X“ zůstalo pod každým výnosem vidět napořád (výchozí opacity je 1). */
+@keyframes revenue-fade {
+  0%, 75% { opacity: 1; }
+  100%    { opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .delta {
+    animation-name: revenue-fade;
+  }
 }

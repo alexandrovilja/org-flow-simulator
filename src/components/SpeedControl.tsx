@@ -30,11 +30,12 @@ interface SpeedControlProps {
  * aplikace (Příklad 8), tlačítka sdílený Button.
  *
  * @param props - Stav běhu (`speed`, `paused`, `hasStarted`, `finished`), callbacky a cíl tutoriálu
- * @returns Skupina ovládacích prvků pro antracitovou lištu
+ * @returns Ovládací prvky jako fragment: řadí je rodič (kontejner `controls` v liště, nebo obal
+ *   `experiment-controls` v Advanced), takže komponenta nemá vlastní flex obal
  */
 export function SpeedControl({ speed, paused, hasStarted, finished, onSpeedChange, onTogglePause, onReset, runButtonTarget }: SpeedControlProps) {
   return (
-    <div style={{ display: 'flex', gap: 'var(--space-8)', alignItems: 'center' }}>
+    <>
       {finished ? (
         <Button variant="done" disabled data-tutorial-target={runButtonTarget}>✓ Done</Button>
       ) : paused ? (
@@ -52,6 +53,6 @@ export function SpeedControl({ speed, paused, hasStarted, finished, onSpeedChang
         onChange={v => onSpeedChange(Number(v))}
       />
       <Button onBar onClick={onReset} title="Restore the initial backlog and clear in-progress / done">↺ Reset backlog</Button>
-    </div>
+    </>
   )
 }

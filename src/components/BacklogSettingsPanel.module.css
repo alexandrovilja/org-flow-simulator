@@ -87,7 +87,7 @@
   color: var(--ink-3);
 }
 
-/* Jedna sekce akordeonu (♻ Backlog, ⚙ Specializations, 👥 Team) */
+/* Jedna sekce akordeonu (Backlog, Specializations, Team) */
 .accordion {
   padding-top: var(--space-8);
   border-top: var(--border-hair) solid var(--line);
@@ -100,14 +100,18 @@
   padding: 0 var(--space-8);
   display: flex;
   align-items: center;
+  justify-content: space-between;
   border: var(--border-hair) solid var(--line);
   border-radius: var(--radius-none);
   background: var(--surface-subtle);
   color: var(--ink-2);
-  font-family: var(--font-sans);
-  font-size: 12px;
+  /* Styl „eyebrow“ jako hlavičky panelů: JetBrains Mono 11/16, verzálky s prostrkáním */
+  font-family: var(--font-mono);
+  font-size: 11px;
   line-height: 16px;
   font-weight: 500;
+  letter-spacing: 1.1px;
+  text-transform: uppercase;
   text-align: left;
   cursor: pointer;
   transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
@@ -122,7 +126,16 @@
   border-color: var(--line-control);
   background: var(--surface-page);
   color: var(--ink);
-  font-weight: 700;
+}
+
+/* Šipka ▸ / ▾ vpravo; bez prostrkání, aby se glyf nerozjel */
+.accordionCaret {
+  letter-spacing: 0;
+}
+
+/* Skrytý nativní výběr souboru; otevírá ho tlačítko „Import XLS“ */
+.hiddenInput {
+  display: none;
 }
 
 .accordionBody {

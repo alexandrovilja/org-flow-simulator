@@ -15,8 +15,7 @@ import { SegmentedControl } from '@/components/SegmentedControl'
 import { TopBar } from '@/components/TopBar'
 import { WinnerBanner } from '@/components/WinnerBanner'
 import { DoneRow } from '@/components/DoneRow'
-import { EmptyNote } from '@/components/EmptyNote'
-import { PanelHeader } from '@/components/PanelHeader'
+import { ResultsAside } from '@/components/ResultsAside'
 import { ComparePanel } from '@/components/ComparePanel'
 import { CashFlowPanel } from '@/components/CashFlowPanel'
 import { BacklogSettingsPanel } from '@/components/BacklogSettingsPanel'
@@ -26,7 +25,7 @@ import { formatTime } from '@/lib/formatTime'
 import { formatEuro } from '@/lib/formatCurrency'
 import { computeRevenueComparison } from '@/lib/revenueComparison'
 import { featureMaxWork } from '@/lib/featureSize'
-import { parseXlsFile, type ImportResult } from '@/lib/xlsImport'
+import { parseXlsFile, formatImportSummary, type ImportResult } from '@/lib/xlsImport'
 import { addRole, deleteRole } from '@/simulation/roleManagement'
 import {
   makeCompareStates, COMPARE_SETTINGS,
@@ -35,6 +34,7 @@ import type { TeamType } from '@/simulation/compareMode'
 import { isTutorialCompleted, markTutorialCompleted, hasSeenMode, markModeSeen, getActivePresetId, setActivePresetId } from '@/lib/storage'
 import { TutorialOverlay } from '@/components/TutorialOverlay'
 import type { TutorialMode } from '@/types/tutorial'
+import styles from './Simulator.module.css'
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -436,7 +436,7 @@ export function Simulator() {
       try {
         result = parseXlsFile(buffer)
       } catch (err) {
-        setImportMsg({ ok: false, text: err instanceof Error ? err.message : 'Nepodařilo se načíst soubor.' })
+        setImportMsg({ ok: false, text: err instanceof Error ? err.message : 'Could not load the file.' })
         return
       }
 
@@ -467,16 +467,13 @@ export function Simulator() {
       setHasStarted(false)
       forceUpdate(n => n + 1)
 
-      const taskCount = result.features.reduce((n, f) => n + f.tasks.length, 0)
-      const msg = `Importováno: ${result.features.length} features, ${taskCount} tasků, ${result.team.length} členů týmu.`
-      const fullMsg = result.warnings.length > 0 ? `${msg} ${result.warnings.join(' ')}` : msg
-      setImportMsg({ ok: true, text: fullMsg })
+      setImportMsg({ ok: true, text: formatImportSummary(result) })
       setTimeout(() => setImportMsg(null), 4000)
 
       // Switch to experiment mode if not already there
       setMode('experiment')
     }).catch(() => {
-      setImportMsg({ ok: false, text: 'Soubor se nepodařilo přečíst.' })
+      setImportMsg({ ok: false, text: 'Could not read the file.' })
     })
   }, [])
 
@@ -773,7 +770,7 @@ export function Simulator() {
         />
       ) : mode === 'compare' ? (
         // data-tutorial-target lets the spotlight overlay focus on the compare simulation controls
-        <div data-tutorial-target="compare-controls" style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-8)' }}>
+        <div data-tutorial-target="compare-controls" className={styles.controls}>
           {/* ? Tutorial relaunch — always visible, opens the tutorial for this mode */}
           <Button onBar iconOnly onClick={() => handleTutorialRelaunch('compare')} title="Restart tutorial" aria-label="Restart tutorial">?</Button>
           <Button onBar onClick={handleCompareReset}>↺ Reset</Button>
@@ -792,11 +789,11 @@ export function Simulator() {
           {compareRunButton}
         </div>
       ) : (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-8)' }}>
+        <div className={styles.controls}>
           {/* ? Tutorial relaunch — opens the experiment mode tutorial */}
           <Button onBar iconOnly onClick={() => handleTutorialRelaunch('experiment')} title="Restart tutorial" aria-label="Restart tutorial">?</Button>
           {/* data-tutorial-target lets the spotlight overlay focus on speed/reset controls */}
-          <div data-tutorial-target="experiment-controls">
+          <div data-tutorial-target="experiment-controls" className={styles.controls}>
             <SpeedControl
               speed={speed}
               paused={paused}
@@ -817,29 +814,22 @@ export function Simulator() {
 
   if (mode === 'compare') {
     return (
-      <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', background: 'var(--surface-page)' }}>
+      <div className={styles.compare}>
         {header}
 
         {/* Rám výsledku po doběhnutí obou běhů (feat-021, Příklad 9) — kdo byl rychlejší, o kolik a proč */}
         {bothFinished && compareHasStarted && (
-          <div style={{ margin: 'var(--space-12) var(--space-16) 0', flexShrink: 0 }}>
+          <div className={styles.winner}>
             <WinnerBanner stateA={sA} statsA={statsA} stateB={sB} statsB={statsB} />
           </div>
         )}
 
         {/* Two-column comparison — each team in its own bordered card */}
-        <div
-          style={{
-            flex: 1, display: 'grid', gridTemplateColumns: '1fr 1fr',
-            gap: 12,
-            margin: '8px 16px 16px',
-            minHeight: 0,
-          }}
-        >
+        <div className={styles.compareColumns}>
           {/* data-tutorial-target lets the spotlight overlay frame the entire Team A column */}
           <div
             data-tutorial-target="compare-team-a-panel"
-            style={{ borderRadius: 12, overflow: 'hidden', border: '1px solid var(--line)', background: 'var(--surface-panel)' }}
+            className={styles.teamColumn}
           >
             <ComparePanel
               teamType={compareTypeA}
@@ -855,7 +845,7 @@ export function Simulator() {
           {/* data-tutorial-target lets the spotlight overlay frame the entire Team B column */}
           <div
             data-tutorial-target="compare-team-b-panel"
-            style={{ borderRadius: 12, overflow: 'hidden', border: '1px solid var(--line)', background: 'var(--surface-panel)' }}
+            className={styles.teamColumn}
           >
             <ComparePanel
               teamType={compareTypeB}
@@ -883,14 +873,7 @@ export function Simulator() {
 
   if (mode === 'cashflow') {
     return (
-      <div style={{
-        height: '100vh',
-        display: 'grid',
-        gridTemplateColumns: '320px 1fr 280px',
-        gridTemplateRows: 'auto 1fr',
-        gap: 0,
-        background: 'var(--surface-page)',
-      }}>
+      <div className={styles.threeColumns}>
         {header}
 
         <BacklogSettingsPanel
@@ -966,14 +949,7 @@ export function Simulator() {
   // ── Experiment layout (original 3-column layout, unchanged) ───────────────
 
   return (
-    <div style={{
-      height: '100vh',
-      display: 'grid',
-      gridTemplateColumns: '320px 1fr 280px',
-      gridTemplateRows: 'auto 1fr',
-      gap: 0,
-      background: 'var(--surface-page)',
-    }}>
+    <div className={styles.threeColumns}>
       {header}
 
       {/* LEFT: BACKLOG + CONTROLS */}
@@ -1021,45 +997,34 @@ export function Simulator() {
         tutorialTargetPrefix="experiment"
       />
 
-      {/* RIGHT: LEAD TIME + DONE */}
-      {/* data-tutorial-target lets the tutorial spotlight the metrics and chart area */}
-      <aside data-tutorial-target="experiment-chart" style={{ borderLeft: '1px solid var(--line)', background: 'var(--surface-panel)', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
-        {/* data-tutorial-target lets the spotlight cover the stats/metrics tiles only */}
-        <div data-tutorial-target="experiment-results" style={{ padding: '12px 14px 14px', borderBottom: '1px solid var(--line)', display: 'flex', flexDirection: 'column', gap: 10 }}>
-          <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 8 }}>
-            <h3 style={{ margin: 0, fontSize: 12, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5, color: 'var(--ink-2)' }}>Metrics</h3>
-            <span style={{ fontSize: 10, color: 'var(--ink-3)' }}>{stats.count} feature{stats.count !== 1 ? 's' : ''} sampled</span>
-          </div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 6 }}>
-            <StatTile label="Total Time" value={totalTimeDisplay} variant="timer" finished={s.finished} wide tooltip="Elapsed simulation time." delta={timeDelta} />
-            <StatTile label="Avg Cycle Time" value={stats.count ? stats.avg.toFixed(1) : '—'} unit={stats.count ? 's' : undefined} tooltip="Mean cycle time across all completed features (from work start to delivery)." delta={ltDelta} />
-            <StatTile label="Avg WIP" value={avgWip !== null ? avgWip.toFixed(1) : '—'} tooltip="Average Work In Progress — lower usually means lower cycle time (Little's Law)." delta={wipDelta} />
-            <StatTile label="Total Wait" value={totalWait > 0 ? totalWait.toFixed(1) : '—'} unit={totalWait > 0 ? 's' : undefined} tooltip="Total idle time across all units with roles." delta={waitDelta} />
-            <StatTile label="Avg Handoffs" value={stats.count > 0 ? stats.avgHandoffs.toFixed(1) : '—'} tooltip="Average number of handoffs per feature." delta={handoffsDelta} />
-          </div>
-        </div>
-
-        {/* data-tutorial-target lets the spotlight cover the done list only */}
-        <div data-tutorial-target="experiment-done" style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
-          {/* Počet všech hotových features, ne jen zobrazených karet (feat-001, Příklad 6) */}
-          <PanelHeader title="Done" count={doneCount(s)} />
-          <div style={{ flex: 1, overflow: 'auto', padding: '6px 14px 14px', display: 'flex', flexDirection: 'column', gap: 6 }}>
-            {s.done.length === 0 && <EmptyNote>No completed features yet.</EmptyNote>}
-            {s.done.map(f => {
-              const lt = (f.finishedAt ?? 0) - f.createdAt
-              return (
-                <DoneRow
-                  key={f.id}
-                  hue={f.hue}
-                  name={f.name}
-                  detail={`${f.tasks.length} task${f.tasks.length > 1 ? 's' : ''}`}
-                  aside={<span style={{ fontSize: 11, fontWeight: 600 }}>{lt.toFixed(1)}s</span>}
-                />
-              )
-            })}
-          </div>
-        </div>
-      </aside>
+      {/* RIGHT: LEAD TIME + DONE — data-tutorial-target nechá spotlight tutoriálu zvýraznit celý panel,
+          jen dlaždice metrik, nebo jen seznam Done */}
+      <ResultsAside
+        sampleCount={stats.count}
+        doneCount={doneCount(s)}
+        isEmpty={s.done.length === 0}
+        tutorialTargets={{ aside: 'experiment-chart', metrics: 'experiment-results', done: 'experiment-done' }}
+        tiles={<>
+          <StatTile label="Total Time" value={totalTimeDisplay} variant="timer" finished={s.finished} wide tooltip="Elapsed simulation time." delta={timeDelta} />
+          <StatTile label="Avg Cycle Time" value={stats.count ? stats.avg.toFixed(1) : '—'} unit={stats.count ? 's' : undefined} tooltip="Mean cycle time across all completed features (from work start to delivery)." delta={ltDelta} />
+          <StatTile label="Avg WIP" value={avgWip !== null ? avgWip.toFixed(1) : '—'} tooltip="Average Work In Progress — lower usually means lower cycle time (Little's Law)." delta={wipDelta} />
+          <StatTile label="Total Wait" value={totalWait > 0 ? totalWait.toFixed(1) : '—'} unit={totalWait > 0 ? 's' : undefined} tooltip="Total idle time across all units with roles." delta={waitDelta} />
+          <StatTile label="Avg Handoffs" value={stats.count > 0 ? stats.avgHandoffs.toFixed(1) : '—'} tooltip="Average number of handoffs per feature." delta={handoffsDelta} />
+        </>}
+      >
+        {s.done.map(f => {
+          const lt = (f.finishedAt ?? 0) - f.createdAt
+          return (
+            <DoneRow
+              key={f.id}
+              hue={f.hue}
+              name={f.name}
+              detail={`${f.tasks.length} task${f.tasks.length > 1 ? 's' : ''}`}
+              value={`${lt.toFixed(1)}s`}
+            />
+          )
+        })}
+      </ResultsAside>
 
       {/* Tutorial overlay — shown on first visit to experiment mode or when ? is clicked */}
       {showTutorial && (

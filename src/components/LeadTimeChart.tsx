@@ -1,3 +1,4 @@
+import type { CssVariables } from '@/types/css'
 import type { LeadTimeEntry, SimStats } from '@/types/simulation'
 import styles from './LeadTimeChart.module.css'
 
@@ -36,8 +37,11 @@ export function LeadTimeChart({ leadTimes, stats }: LeadTimeChartProps) {
 
   const yLineFor = (val: number) => `${(1 - val / maxY) * 100}%`
 
+  // Okraje grafu sdílí osy (pozice v JS) a plocha (padding v CSS) — předáme je jako CSS proměnné
+  const chartStyle: CssVariables = { height: H, '--pad-left': `${padLeft}px`, '--pad-right': `${padRight}px` }
+
   return (
-    <div className={styles.chart} style={{ height: H, paddingLeft: padLeft, paddingRight: padRight }}>
+    <div className={styles.chart} style={chartStyle}>
       {/* Osa Y: maximum, polovina, nula */}
       <div className={styles.axisY} style={{ top: padTop, bottom: padBottom, width: padLeft - 4 }}>
         <span>{maxY.toFixed(0)}s</span>

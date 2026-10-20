@@ -38,11 +38,11 @@ function setBacklogSize(size: number): void {
   fireEvent.change(screen.getByRole('slider', { name: 'Backlog size' }), { target: { value: String(size) } })
 }
 
-/** Otevře Cash Flow, rozbalí „♻ Backlog“, vygeneruje backlog o TEST_BACKLOG_SIZE featurách a nastaví rychlost 10×. */
+/** Otevře Cash Flow, rozbalí „Backlog“, vygeneruje backlog o TEST_BACKLOG_SIZE featurách a nastaví rychlost 10×. */
 function openCashFlowSettings(): void {
   render(<Simulator />)
   tab(/Cash Flow/)
-  click('♻ Backlog')
+  click('Backlog')
   setBacklogSize(TEST_BACKLOG_SIZE)
   click(/Generate new backlog/)
   click('10×')
