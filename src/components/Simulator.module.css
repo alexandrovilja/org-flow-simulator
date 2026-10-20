@@ -1,0 +1,51 @@
+/* Rozložení obrazovek simulátoru (feat-022): dřív inline styly v Simulator.tsx, teď tokeny
+   z globals.css. Compare = dva sloupce týmů, Advanced a Cash Flow = tři sloupce
+   (nastavení · Kanban + jednotky · metriky). */
+
+/* Compare: lišta, rám výsledku a dva sloupce pod sebou přes celou výšku okna */
+.compare {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--surface-page);
+}
+
+/* Rám výsledku nad sloupci po doběhnutí obou běhů */
+.winner {
+  margin: var(--space-12) var(--space-16) 0;
+  flex-shrink: 0;
+}
+
+/* Dva sloupce týmů; okraj --space-16 a mezera --space-12 podle compare screenu design systému */
+.compareColumns {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-12);
+  margin: var(--space-8) var(--space-16) var(--space-16);
+  min-height: 0;
+}
+
+/* Každý tým v ohraničeném panelu */
+.teamColumn {
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  border: var(--border-hair) solid var(--line);
+  background: var(--surface-panel);
+}
+
+/* Advanced a Cash Flow: nastavení (sidebar) · střed · metriky (aside); lišta přes všechny sloupce */
+.threeColumns {
+  height: 100vh;
+  display: grid;
+  grid-template-columns: var(--size-sidebar) 1fr var(--size-aside);
+  grid-template-rows: auto 1fr;
+  background: var(--surface-page);
+}
+
+/* Řada ovládání běhu vpravo v liště (?, Reset, rychlost, Run) */
+.controls {
+  display: flex;
+  align-items: center;
+  gap: var(--space-8);
+}

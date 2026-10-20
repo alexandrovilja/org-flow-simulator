@@ -84,7 +84,7 @@ export function ComparePanel({
   )
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
+    <div className={styles.root}>
 
       {/* ── Team header ── */}
       {/* data-tutorial-target lets the spotlight overlay focus on this team's type picker */}

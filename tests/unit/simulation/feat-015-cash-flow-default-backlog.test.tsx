@@ -41,14 +41,14 @@ describe('feat-015 Příklad 2 a 3: výchozí backlog Cash Flow má 100 featur',
   it('slider „Backlog size“ v Cash Flow ukazuje výchozí hodnotu „100 items“', () => {
     render(<Simulator />)
     tab(/Cash Flow/)
-    click('♻ Backlog')
+    click('Backlog')
     expect(screen.getByText(`${EXPECTED_BACKLOG_SIZE} items`)).toBeTruthy()
   })
 
   it('„Generate new backlog“ ve výchozím nastavení znovu vygeneruje 100 featur', () => {
     render(<Simulator />)
     tab(/Cash Flow/)
-    click('♻ Backlog')
+    click('Backlog')
     click(/Generate new backlog/)
     expect(backlogHeaderCount()).toBe(EXPECTED_BACKLOG_SIZE)
   })

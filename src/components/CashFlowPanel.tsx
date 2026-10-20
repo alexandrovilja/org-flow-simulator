@@ -1,14 +1,14 @@
 import { useEffect, useRef, useState } from 'react'
 import { REVENUE_TICK_INTERVAL_SEC, doneCount, plateauRevenuePerTick } from '@/simulation/engine'
 import { StatTile } from '@/components/StatTile'
-import { PanelHeader } from '@/components/PanelHeader'
+import { ResultsAside } from '@/components/ResultsAside'
 import { CoordinationChips } from '@/components/CoordinationChips'
 import { DoneRow } from '@/components/DoneRow'
-import { EmptyNote } from '@/components/EmptyNote'
 import { formatEuro } from '@/lib/formatCurrency'
 import { formatTime } from '@/lib/formatTime'
 import { formatPercent } from '@/lib/formatPercent'
 import type { RevenueComparison } from '@/lib/revenueComparison'
+import styles from './CashFlowPanel.module.css'
 import type { SimState, SimStats } from '@/types/simulation'
 
 /** Vstupní props komponenty CashFlowPanel — pravý sloupec (Metriky + Done) Cash Flow módu. */
@@ -78,105 +78,86 @@ export function CashFlowPanel({
     : (!state.finished && state.simTime > 0 ? 'live total' : undefined)
 
   return (
-    <aside style={{ borderLeft: '1px solid var(--line)', background: 'var(--surface-panel)', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
-      <div style={{ padding: '12px 14px 14px', borderBottom: '1px solid var(--line)', display: 'flex', flexDirection: 'column', gap: 10 }}>
-        <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 8 }}>
-          <h3 style={{ margin: 0, fontSize: 12, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5, color: 'var(--ink-2)' }}>Metrics</h3>
-          <span style={{ fontSize: 10, color: 'var(--ink-3)' }}>{stats.count} feature{stats.count !== 1 ? 's' : ''} sampled</span>
-        </div>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 6 }}>
-          <StatTile label="Total Time" value={totalTimeDisplay} variant="timer" finished={state.finished} wide tooltip="Elapsed simulation time." delta={timeDelta} />
-          <StatTile label="Avg Cycle Time" value={stats.count ? stats.avg.toFixed(1) : '—'} unit={stats.count ? 's' : undefined} tooltip="Mean cycle time across all completed features (from work start to delivery)." delta={ltDelta} />
-          <StatTile label="Avg WIP" value={avgWip !== null ? avgWip.toFixed(1) : '—'} tooltip="Average Work In Progress — lower usually means lower cycle time (Little's Law)." delta={wipDelta} />
-          <StatTile
-            key={runEpoch}
-            label="Revenue (time-matched)"
-            value={formatEuro(revenueComparison.value)}
-            tooltip="Revenue of both runs compared at the same point in time (the shorter run's total time), so a longer run does not look better just because it ran longer. Open Details for the full total."
-            delta={comparison?.delta}
-            hint={revenueHint}
-            higherIsBetter
-            details={
-              <>
-                <div>Total {formatEuro(revenueComparison.currentTotal.revenue)} in {formatTime(revenueComparison.currentTotal.time)}</div>
-                {comparison && (
-                  <>
-                    <div>Previous run @ {formatTime(comparison.compareTime)}: {formatEuro(comparison.previous.revenueAtCompare)}</div>
-                    <div>Previous total {formatEuro(comparison.previous.totalRevenue)} in {formatTime(comparison.previous.totalTime)}</div>
-                  </>
-                )}
-              </>
-            }
-          />
-          {showCoordination && (
-            <StatTile
-              label="Coordination overhead"
-              value={stats.count ? formatPercent(stats.coordinationPct) : '—'}
-              unit={stats.count ? '% of cycle time' : undefined}
-              tooltip="Extra work caused by coordination, relative to feature cycle time: handoff tax (extra work each additional unit pays when it joins a feature) plus rework (progress lost when units understood the feature differently). It is counted in work-seconds across all units, so highly parallel teams can show high values. Units using AI process this extra work faster, so the share can be higher than the time it actually took."
-              delta={coordinationDelta}
-            >
-              {stats.count > 0 && (
+    <ResultsAside
+      sampleCount={stats.count}
+      doneCount={doneCount(state)}
+      isEmpty={done.length === 0}
+      tiles={<>
+        <StatTile label="Total Time" value={totalTimeDisplay} variant="timer" finished={state.finished} wide tooltip="Elapsed simulation time." delta={timeDelta} />
+        <StatTile label="Avg Cycle Time" value={stats.count ? stats.avg.toFixed(1) : '—'} unit={stats.count ? 's' : undefined} tooltip="Mean cycle time across all completed features (from work start to delivery)." delta={ltDelta} />
+        <StatTile label="Avg WIP" value={avgWip !== null ? avgWip.toFixed(1) : '—'} tooltip="Average Work In Progress — lower usually means lower cycle time (Little's Law)." delta={wipDelta} />
+        <StatTile
+          key={runEpoch}
+          label="Revenue (time-matched)"
+          value={formatEuro(revenueComparison.value)}
+          tooltip="Revenue of both runs compared at the same point in time (the shorter run's total time), so a longer run does not look better just because it ran longer. Open Details for the full total."
+          delta={comparison?.delta}
+          hint={revenueHint}
+          higherIsBetter
+          details={
+            <>
+              <div>Total {formatEuro(revenueComparison.currentTotal.revenue)} in {formatTime(revenueComparison.currentTotal.time)}</div>
+              {comparison && (
                 <>
-                  {/* Rozpadový pruh handoff / rework — barvy shodné s čipy na kartách */}
-                  <div style={{ display: 'flex', height: 4, borderRadius: 2, overflow: 'hidden', background: 'var(--line)', margin: '4px 0 2px' }}>
-                    <div style={{ width: `${joinTaxShare}%`, background: 'var(--ink-3)' }} />
-                    <div style={{ flex: 1, background: stats.reworkPct > 0 ? 'var(--rework)' : 'transparent' }} />
-                  </div>
-                  <span style={{ fontSize: 10, color: 'var(--ink-3)', display: 'flex', alignItems: 'center', gap: 3 }}>
-                    <span style={{ width: 6, height: 6, borderRadius: 2, background: 'var(--ink-3)' }} />
-                    handoff {formatPercent(stats.joinTaxPct)} %
-                    <span style={{ margin: '0 2px' }}>·</span>
-                    <span style={{ width: 6, height: 6, borderRadius: 2, background: 'var(--rework)' }} />
-                    rework {formatPercent(stats.reworkPct)} %
-                  </span>
+                  <div>Previous run @ {formatTime(comparison.compareTime)}: {formatEuro(comparison.previous.revenueAtCompare)}</div>
+                  <div>Previous total {formatEuro(comparison.previous.totalRevenue)} in {formatTime(comparison.previous.totalTime)}</div>
                 </>
               )}
-            </StatTile>
-          )}
-        </div>
-      </div>
-
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
-        {/* Počet všech hotových features, ne jen zobrazených karet (feat-001, Příklad 6) */}
-        <PanelHeader title="Done" count={doneCount(state)} />
-        <div style={{ flex: 1, overflow: 'auto', padding: '6px 14px 14px', display: 'flex', flexDirection: 'column', gap: 6 }}>
-          {done.length === 0 && <EmptyNote>No completed features yet.</EmptyNote>}
-          {done.map(f => (
-            <DoneRow
-              key={f.id}
-              hue={f.hue}
-              name={f.name}
-              detail={<>
-                {/* Ustálený výnos (feat-017) — stejné číslo jako badge v Backlogu; pulse vpravo ukazuje skutečný přírůstek ticku */}
-                {formatEuro(plateauRevenuePerTick(f))}/tick
-                {/* Čipy coordination overhead (feat-016) — v Done listu bez pulse, událost už nevzniká */}
-                {showCoordination && <CoordinationChips joins={f.joinCount} reworks={f.reworkCount} />}
-              </>}
-              aside={<div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 1, minWidth: 44 }}>
-                <span style={{ fontSize: 12, fontWeight: 700 }}>{formatEuro(f.totalRevenue)}</span>
-                {f.lastTickRevenue !== null && (
-                  <span key={f.lastRevenueTickAt} style={{
-                    fontSize: 10, fontWeight: 600,
-                    animation: 'revenue-pulse 1.6s ease-out forwards',
-                  }}>
-                    +{formatEuro(f.lastTickRevenue)}
-                  </span>
-                )}
-              </div>}
-            >
-              {/* Progress bar odpočtu do dalšího revenue ticku — vlastní nezávislý cyklus této featury. */}
-              <div style={{ height: 3, background: 'var(--track)', borderRadius: 'var(--radius-xs)', marginTop: 'var(--space-4)', overflow: 'hidden' }}>
-                <div style={{
-                  height: '100%',
-                  width: `${Math.min(100, ((state.simTime - f.lastRevenueTickAt) / REVENUE_TICK_INTERVAL_SEC) * 100)}%`,
-                  background: 'var(--done)',
-                }} />
-              </div>
-            </DoneRow>
-          ))}
-        </div>
-      </div>
-    </aside>
+            </>
+          }
+        />
+        {showCoordination && (
+          <StatTile
+            label="Coordination overhead"
+            value={stats.count ? formatPercent(stats.coordinationPct) : '—'}
+            unit={stats.count ? '% of cycle time' : undefined}
+            tooltip="Extra work caused by coordination, relative to feature cycle time: handoff tax (extra work each additional unit pays when it joins a feature) plus rework (progress lost when units understood the feature differently). It is counted in work-seconds across all units, so highly parallel teams can show high values. Units using AI process this extra work faster, so the share can be higher than the time it actually took."
+            delta={coordinationDelta}
+          >
+            {stats.count > 0 && (
+              <>
+                {/* Rozpadový pruh handoff / rework — barvy shodné s čipy na kartách */}
+                <div className={styles.breakdownBar}>
+                  <div className={styles.handoffFill} style={{ width: `${joinTaxShare}%` }} />
+                  <div className={[styles.reworkSlot, stats.reworkPct > 0 && styles.reworkFill].filter(Boolean).join(' ')} />
+                </div>
+                <span className={styles.legend}>
+                  <span className={`${styles.dot} ${styles.dotHandoff}`} />
+                  handoff {formatPercent(stats.joinTaxPct)} %
+                  <span className={styles.legendSeparator}>·</span>
+                  <span className={`${styles.dot} ${styles.dotRework}`} />
+                  rework {formatPercent(stats.reworkPct)} %
+                </span>
+              </>
+            )}
+          </StatTile>
+        )}
+      </>}
+    >
+      {done.map(f => (
+        <DoneRow
+          key={f.id}
+          hue={f.hue}
+          name={f.name}
+          detail={<>
+            {/* Ustálený výnos (feat-017) — stejné číslo jako badge v Backlogu; pulse vpravo ukazuje skutečný přírůstek ticku */}
+            {formatEuro(plateauRevenuePerTick(f))}/tick
+            {/* Čipy coordination overhead (feat-016) — v Done listu bez pulse, událost už nevzniká */}
+            {showCoordination && <CoordinationChips joins={f.joinCount} reworks={f.reworkCount} />}
+          </>}
+          value={formatEuro(f.totalRevenue)}
+          delta={f.lastTickRevenue !== null ? `+${formatEuro(f.lastTickRevenue)}` : undefined}
+          deltaKey={f.lastRevenueTickAt}
+        >
+          {/* Progress bar odpočtu do dalšího revenue ticku — vlastní nezávislý cyklus této featury. */}
+          <div className={styles.countdown}>
+            <div
+              className={styles.countdownFill}
+              style={{ width: `${Math.min(100, ((state.simTime - f.lastRevenueTickAt) / REVENUE_TICK_INTERVAL_SEC) * 100)}%` }}
+            />
+          </div>
+        </DoneRow>
+      ))}
+    </ResultsAside>
   )
 }

@@ -89,8 +89,9 @@ export function BacklogSettingsPanel({
   onConfirmRevenueProfile, onCancelRevenueProfile,
 }: BacklogSettingsPanelProps) {
   /**
-   * Hlavička akordeonu v nastavení (♻ Backlog, ⚙ Specializations, 👥 Team): hranaté tlačítko přes
-   * celou šířku, otevřený stav má aria-expanded a výraznější text.
+   * Hlavička akordeonu v nastavení (Backlog, Specializations, Team): hranaté tlačítko přes celou
+   * šířku ve stylu „eyebrow“. Šipka ▸ / ▾ je samostatný aria-hidden prvek, aby přístupný název
+   * zůstal jen název sekce; stav říká aria-expanded.
    */
   const accordionButton = (label: string, open: boolean, toggle: () => void) => (
     <button
@@ -100,6 +101,7 @@ export function BacklogSettingsPanel({
       onClick={toggle}
     >
       {label}
+      <span aria-hidden="true" className={styles.accordionCaret}>{open ? '▾' : '▸'}</span>
     </button>
   )
 
@@ -161,7 +163,7 @@ export function BacklogSettingsPanel({
           ref={fileInputRef}
           type="file"
           accept=".xlsx,.xls"
-          style={{ display: 'none' }}
+          className={styles.hiddenInput}
           onChange={e => {
             const file = e.target.files?.[0]
             if (file) handleXlsImport(file)
@@ -170,7 +172,7 @@ export function BacklogSettingsPanel({
         />
 
         <div className={styles.accordion}>
-          {accordionButton('♻ Backlog', showBacklogControls, () => setShowBacklogControls(v => !v))}
+          {accordionButton('Backlog', showBacklogControls, () => setShowBacklogControls(v => !v))}
           {showBacklogControls && (
             <div className={styles.accordionBody}>
               <div className={styles.fileRow}>
@@ -178,18 +180,18 @@ export function BacklogSettingsPanel({
                   ↑ Import XLS
                 </Button>
                 <Button variant="ghost" className={styles.fileButton} onClick={downloadTemplate}>
-                  ↓ Šablona
+                  ↓ Template
                 </Button>
               </div>
 
               {importMsg && (
                 <div className={`${styles.importMsg} ${importMsg.ok ? styles.importOk : styles.importError}`}>
-                  {importMsg.ok ? '✓' : '✗'} {importMsg.text}
+                  {importMsg.ok ? '✓' : '×'} {importMsg.text}
                 </div>
               )}
 
               <Button variant="strong" className={styles.fullWidth} onClick={handleRegenerate}>
-                ♻ Generate new backlog
+                Generate new backlog
               </Button>
               {/* Tvar výnosu featur po dodání (feat-017) — jen Cash Flow, který předává callback */}
               {onRevenueProfileChange && (
@@ -228,7 +230,7 @@ export function BacklogSettingsPanel({
           )}
         </div>
         <div className={styles.accordion}>
-          {accordionButton('⚙ Specializations', showRoleSettings, () => setShowRoleSettings(v => !v))}
+          {accordionButton('Specializations', showRoleSettings, () => setShowRoleSettings(v => !v))}
           {showRoleSettings && (
             <div className={styles.accordionBody}>
               <RoleSettings roleConfig={roleConfig} onChange={handleRoleChange} onAdd={handleAddRole} onDelete={handleDeleteRole} />
@@ -236,7 +238,7 @@ export function BacklogSettingsPanel({
           )}
         </div>
         <div className={styles.accordion}>
-          {accordionButton('👥 Team', showTeamSettings, () => setShowTeamSettings(v => !v))}
+          {accordionButton('Team', showTeamSettings, () => setShowTeamSettings(v => !v))}
           {showTeamSettings && (
             <div className={styles.accordionBody}>
               <SegmentedControl
@@ -263,7 +265,7 @@ export function BacklogSettingsPanel({
                   />
                   {/* Změna uprostřed běhu by míchala dva modely v jednom výsledku → až po Resetu */}
                   {coordinationOverheadLocked && (
-                    <div className={styles.note}>🔒 Takes effect after Reset</div>
+                    <div className={styles.note}>Takes effect after Reset</div>
                   )}
                 </div>
               )}

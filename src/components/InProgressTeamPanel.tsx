@@ -1,8 +1,10 @@
 import { FeatureCard } from '@/components/FeatureCard'
 import { MemberCard } from '@/components/MemberCard'
 import { PanelHeader } from '@/components/PanelHeader'
+import { Button } from '@/components/Button'
 import { EmptyNote } from '@/components/EmptyNote'
 import { isFeatureActive, sortInProgressForDisplay } from '@/lib/inProgressOrder'
+import styles from './InProgressTeamPanel.module.css'
 import type { Feature, Task, SimState, Role, RoleMeta, ActivePresetId, AiMultiplier } from '@/types/simulation'
 
 /** Vstupní props komponenty InProgressTeamPanel — střední sloupec sdílený Advanced a Cash Flow módem. */
@@ -35,14 +37,10 @@ export function InProgressTeamPanel({
   tutorialTargetPrefix = 'experiment', showCoordination = false,
 }: InProgressTeamPanelProps) {
   return (
-    <section data-tutorial-target={`${tutorialTargetPrefix}-team`} style={{ display: 'flex', flexDirection: 'column', minHeight: 0, minWidth: 0, background: 'var(--surface-page)' }}>
-      <div data-tutorial-target={`${tutorialTargetPrefix}-in-progress`} style={{ borderBottom: '1px solid var(--line)', background: 'var(--surface-panel)', flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
+    <section data-tutorial-target={`${tutorialTargetPrefix}-team`} className={styles.panel}>
+      <div data-tutorial-target={`${tutorialTargetPrefix}-in-progress`} className={styles.inProgress}>
         <PanelHeader title="In Progress" count={state.inProgress.length} hint="auto-scaled" />
-        <div style={{
-          padding: '8px 16px 14px 16px',
-          display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))',
-          gap: 8, overflowY: 'auto', minHeight: 64, alignContent: 'start',
-        }}>
+        <div className={styles.cards}>
           {state.inProgress.length === 0 && (
             <EmptyNote gridColumn="1 / -1">Nothing in flight.</EmptyNote>
           )}
@@ -51,17 +49,11 @@ export function InProgressTeamPanel({
         </div>
       </div>
 
-      <div data-tutorial-target={`${tutorialTargetPrefix}-team-composition`} style={{ flex: '0 0 auto', padding: '10px 16px 12px', background: 'var(--surface-panel)', display: 'flex', flexDirection: 'column', gap: 6 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0, flexWrap: 'nowrap', overflow: 'hidden' }}>
-          <h3 style={{ margin: 0, fontSize: 12, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5, color: 'var(--ink-2)', flexShrink: 0 }}>
-            Units <span className="mono" style={{ color: 'var(--ink-3)', fontWeight: 500 }}>{state.team.length}</span>
-          </h3>
-          <span style={{ marginLeft: 'auto', fontSize: 11, color: 'var(--ink-3)', flexShrink: 0 }}>
-            Click <span className="mono" style={{ color: 'var(--ink-2)' }}>+</span> to add a specialty
-          </span>
-        </div>
+      <div data-tutorial-target={`${tutorialTargetPrefix}-team-composition`} className={styles.team}>
+        {/* Stejná hlavička jako ostatní panely: nadpisek, počet jednotek a poznámka vpravo */}
+        <PanelHeader title="Units" count={state.team.length} hint="Click + to add a specialty" />
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gridAutoRows: 'min-content', gap: 6, alignContent: 'start' }}>
+        <div className={styles.members}>
           {state.team.map(m => {
             let cf: Feature | null = null
             let ct: Task | null = null
@@ -86,14 +78,9 @@ export function InProgressTeamPanel({
             )
           })}
         </div>
-        <button onClick={handleAddMember} style={{
-          marginTop: 2, width: '100%', padding: '5px 0',
-          fontSize: 11, fontFamily: 'inherit', cursor: 'pointer',
-          border: '1px dashed var(--line-2)', borderRadius: 4,
-          background: 'transparent', color: 'var(--ink-3)', fontWeight: 500, letterSpacing: 0.3,
-        }}>
+        <Button variant="dashed" className={styles.addUnit} onClick={handleAddMember}>
           {activePresetId === 'teams' ? '+ Add team' : activePresetId === 'people' ? '+ Add member' : '+ Add unit'}
-        </button>
+        </Button>
       </div>
     </section>
   )

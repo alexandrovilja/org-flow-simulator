@@ -112,7 +112,7 @@ describe('feat-001 Příklad 6: hlavička Done v Advanced módu (Simulator)', { 
   it('po doběhnutí backlogu o 50 features ukazuje hlavička Done 50', async () => {
     render(<Simulator />)
     tab(/Advanced/)
-    click('♻ Backlog')
+    click('Backlog')
     fireEvent.change(screen.getByRole('slider', { name: 'Backlog size' }), { target: { value: String(ADVANCED_BACKLOG_SIZE) } })
     click(/Generate new backlog/)
     click('10×')

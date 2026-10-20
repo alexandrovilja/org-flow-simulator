@@ -247,14 +247,6 @@ button {
   50% { opacity: 0.25; }
 }
 
-/* Cash Flow mode — "+€X" pulse shown briefly after each revenue tick on a Done item. */
-@keyframes revenue-pulse {
-  0%   { opacity: 0; transform: translateY(3px) scale(0.9); }
-  15%  { opacity: 1; transform: translateY(0) scale(1); }
-  75%  { opacity: 1; transform: translateY(0) scale(1); }
-  100% { opacity: 0; transform: translateY(-3px) scale(0.95); }
-}
-
 /* Coordination overhead (feat-016) — krátké probliknutí segmentu tasku vráceného reworkem. */
 @keyframes rework-flash {
   0%   { opacity: 0.85; }

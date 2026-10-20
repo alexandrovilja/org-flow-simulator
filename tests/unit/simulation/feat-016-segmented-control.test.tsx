@@ -1,4 +1,6 @@
 import { describe, it, expect, vi } from 'vitest'
+import { readFileSync } from 'fs'
+import { join } from 'path'
 import { render, screen, fireEvent } from '@testing-library/react'
 import { SegmentedControl } from '@/components/SegmentedControl'
 import type { WipMode } from '@/types/simulation'
@@ -89,8 +91,14 @@ describe('feat-016 Příklad 17: SegmentedControl s WIP volbami', () => {
     )
     fireEvent.mouseEnter(container.firstElementChild as Element)
     const tooltip = screen.getByText(longHint)
-    expect(tooltip.style.whiteSpace).not.toBe('nowrap')
-    expect(parseInt(tooltip.style.maxWidth, 10)).toBeLessThanOrEqual(260)
+    // feat-022 (Příklad 14): šířka a zalomení jsou pravidla v CSS modulu, ne inline styl. jsdom styly
+    // z modulů nepočítá, proto čteme pravidlo `.hint` přímo ze zdroje; skutečnou šířku ověřuje E2E.
+    expect(tooltip.getAttribute('style')).toBeNull()
+    const css = readFileSync(join(__dirname, '../../../src/components/SegmentedControl.module.css'), 'utf8')
+    const hintRule = css.match(/\.hint\s*\{([^}]*)\}/)?.[1] ?? ''
+    expect(hintRule).toMatch(/white-space:\s*normal/)
+    expect(hintRule).not.toMatch(/white-space:\s*nowrap/)
+    expect(parseInt(hintRule.match(/max-width:\s*(\d+)px/)?.[1] ?? '', 10)).toBeLessThanOrEqual(260)
   })
 
   it('zpětná kompatibilita: dvě volby (Off / On) dál fungují', () => {

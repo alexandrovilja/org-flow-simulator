@@ -323,7 +323,7 @@ describe('feat-012: parseRows — invalid Velikost', () => {
     ]
     const result = parseRows(rows)
     expect(result.warnings.length).toBeGreaterThan(0)
-    expect(result.warnings[0]).toMatch(/přeskočen/i)
+    expect(result.warnings[0]).toMatch(/skipped/i)
   })
 
   it('skips rows where Velikost is 0', () => {

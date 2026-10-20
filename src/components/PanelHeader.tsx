@@ -4,8 +4,8 @@ import styles from './PanelHeader.module.css'
 interface PanelHeaderProps {
   /** Nadpis panelu (např. „Backlog“, „In Progress“, „Done“). */
   title: string
-  /** Počet položek vedle nadpisu. */
-  count: number
+  /** Počet položek vedle nadpisu; hlavička bez počtu (např. „Metrics“) ho vynechá. */
+  count?: number
   /** Volitelná poznámka vpravo, např. „auto-scaled“. */
   hint?: string
 }
@@ -15,7 +15,7 @@ interface PanelHeaderProps {
  * počet v `ink-3` a volitelná poznámka vpravo. Počet je sourozenec nadpisu (ne jeho součást),
  * aby přístupný název nadpisu zůstal jen „Backlog“, „Done“… a počet šel přečíst zvlášť.
  *
- * @param props - Nadpis, počet a volitelná poznámka
+ * @param props - Nadpis, volitelný počet a volitelná poznámka
  * @returns Vykreslená hlavička
  */
 export function PanelHeader({ title, count, hint }: PanelHeaderProps) {
@@ -23,7 +23,7 @@ export function PanelHeader({ title, count, hint }: PanelHeaderProps) {
     <div className={styles.header}>
       <div className={styles.titleRow}>
         <h3 className={styles.title}>{title}</h3>
-        <span className={styles.count}>{count}</span>
+        {count !== undefined && <span className={styles.count}>{count}</span>}
       </div>
       {hint && <span className={styles.hint}>{hint}</span>}
     </div>

@@ -21,7 +21,7 @@
   background: var(--ink);
   color: var(--surface-panel);
   font-family: var(--font-display);
-  font-size: 24px;
+  font-size: 20px;
   line-height: 1;
   font-weight: 800;
 }

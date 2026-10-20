@@ -190,7 +190,7 @@ export function MemberCard({ member, currentFeature, currentTask, roleConfig, on
             )
           })}
           {/* Tlačítko zavření — vždy viditelné, protože je ve flow */}
-          <button type="button" onClick={() => setAdding(false)} className={styles.pickerClose} aria-label="Close">✕</button>
+          <button type="button" onClick={() => setAdding(false)} className={styles.pickerClose} aria-label="Close">×</button>
         </div>
       )}
 

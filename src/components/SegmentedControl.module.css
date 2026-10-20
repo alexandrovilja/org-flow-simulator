@@ -77,8 +77,12 @@
   outline-offset: 2px;
 }
 
-/* Plovoucí nápověda pod přepínačem; šířku a zalomení nastavuje inline styl (feat-016, Příklad 17) */
+/* Plovoucí nápověda pod přepínačem: šířka podle textu do 260 px, dlouhý text se zalomí (feat-016,
+   Příklad 17; pravidla jsou v modulu od feat-022, Příklad 14) */
 .hint {
+  width: max-content;
+  max-width: 260px;
+  white-space: normal;
   position: absolute;
   top: calc(100% + 6px);
   left: 0;

@@ -1,0 +1,39 @@
+/* Pravý sloupec Advanced a Cash Flow (feat-022): metriky nahoře, seznam Done dole. Jedno místo pro
+   rozložení, které dřív existovalo dvakrát (v Simulator.tsx a v CashFlowPanel.tsx). */
+.aside {
+  border-left: var(--border-hair) solid var(--line);
+  background: var(--surface-panel);
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.metrics {
+  display: flex;
+  flex-direction: column;
+  border-bottom: var(--border-hair) solid var(--line);
+}
+
+/* Dlaždice metrik pod sebou */
+.tiles {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-6);
+  padding: 0 var(--space-16) var(--space-16);
+}
+
+.done {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.doneList {
+  flex: 1;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+  padding: 0 var(--space-16) var(--space-16);
+}

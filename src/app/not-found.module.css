@@ -1,0 +1,45 @@
+/* Stránka 404 (feat-022): písma a barvy z tokenů design systému, takže funguje ve světlém
+   i tmavém tématu. Rozložení: obsah vycentrovaný na celou výšku okna. */
+.page {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-8);
+  background: var(--surface-page);
+  color: var(--ink);
+}
+
+/* Styl „display-xl“: Archivo 800 verzálkami */
+.code {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 56px;
+  line-height: 54px;
+  font-weight: 800;
+  letter-spacing: -1.1px;
+  text-transform: uppercase;
+}
+
+/* Styl „body“ v tlumené barvě */
+.message {
+  margin: 0;
+  font-size: 13px;
+  line-height: 20px;
+  color: var(--ink-3);
+}
+
+/* Odkaz zpět v barvě výběru a odkazů (accent) */
+.back {
+  margin-top: var(--space-8);
+  font-size: 13px;
+  line-height: 20px;
+  font-weight: 600;
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.back:hover {
+  text-decoration: underline;
+}

@@ -42,7 +42,7 @@ export function parseRows(rawRows: Record<string, unknown>[]): ImportResult {
   )
 
   if (rows.length === 0) {
-    throw new Error('Soubor neobsahuje žádná data.')
+    throw new Error('The file contains no data.')
   }
 
   // Normalizujeme klíče prvního řádku na lowercase+trim, abychom zjistili přítomnost sloupců
@@ -53,7 +53,7 @@ export function parseRows(rawRows: Record<string, unknown>[]): ImportResult {
   for (const col of REQUIRED_COLUMNS) {
     if (!firstRowKeys.includes(col)) {
       const display = col.charAt(0).toUpperCase() + col.slice(1)
-      throw new Error(`Soubor neobsahuje sloupec '${display}'. Zkontrolujte záhlaví.`)
+      throw new Error(`The file has no '${display}' column. Check the header row.`)
     }
   }
 
@@ -113,7 +113,7 @@ export function parseRows(rawRows: Record<string, unknown>[]): ImportResult {
     // Feature inicializace + inline limit check
     if (!featureTasksMap.has(featureName)) {
       if (featureTasksMap.size >= 200) {
-        throw new Error(`Příliš velký backlog (max. 200 features). Soubor obsahuje více než 200 unikátních features.`)
+        throw new Error('Backlog too large (max 200 features). The file contains more than 200 unique features.')
       }
       const hue = FEATURE_HUES[featureCounter % FEATURE_HUES.length]
       featureTasksMap.set(featureName, { tasks: [], hue })
@@ -125,7 +125,7 @@ export function parseRows(rawRows: Record<string, unknown>[]): ImportResult {
     // Tym → role mapping + inline limit check
     if (!tymRolesMap.has(tymRaw)) {
       if (tymRolesMap.size >= 50) {
-        throw new Error(`Příliš mnoho členů týmu (max. 50). Soubor obsahuje více než 50 unikátních hodnot Tym.`)
+        throw new Error('Too many team members (max 50). The file contains more than 50 unique values in the Tym column.')
       }
       tymRolesMap.set(tymRaw, new Set())
     }
@@ -138,7 +138,7 @@ export function parseRows(rawRows: Record<string, unknown>[]): ImportResult {
   }
 
   if (featureTasksMap.size === 0) {
-    throw new Error('Soubor neobsahuje žádná platná data.')
+    throw new Error('The file contains no valid data.')
   }
 
   // ── Sestavení výsledků ────────────────────────────────────────────────────
@@ -220,10 +220,26 @@ export function parseRows(rawRows: Record<string, unknown>[]): ImportResult {
 
   const warnings: string[] = []
   if (skippedCount > 0) {
-    warnings.push(`${skippedCount} řádků bylo přeskočeno (neplatná Velikost).`)
+    warnings.push(`${skippedCount} ${skippedCount === 1 ? 'row' : 'rows'} skipped (invalid Velikost).`)
   }
 
   return { features, team, roleConfig, warnings }
+}
+
+/**
+ * Složí zprávu o výsledku importu, kterou kouč uvidí pod tlačítky importu: „Imported 8 features,
+ * 18 tasks, 2 team members.“ a případná varování (přeskočené řádky) za ní. Sdílí ji Advanced i
+ * Cash Flow, aby oba módy říkaly totéž stejnými slovy.
+ *
+ * @param result - Výsledek úspěšného importu (viz parseRows)
+ * @returns Anglická věta; počty v jednotném čísle u 1 („1 feature“)
+ */
+export function formatImportSummary(result: ImportResult): string {
+  const taskCount = result.features.reduce((n, f) => n + f.tasks.length, 0)
+  // Anglické množné číslo se liší jen koncovým „s“; u přesně jedné položky zůstává jednotné
+  const count = (n: number, noun: string) => `${n} ${noun}${n === 1 ? '' : 's'}`
+  const summary = `Imported ${count(result.features.length, 'feature')}, ${count(taskCount, 'task')}, ${count(result.team.length, 'team member')}.`
+  return result.warnings.length > 0 ? `${summary} ${result.warnings.join(' ')}` : summary
 }
 
 /**
@@ -238,7 +254,7 @@ export function parseXlsFile(buffer: ArrayBuffer): ImportResult {
   const workbook = XLSX.read(buffer, { type: 'array' })
   // Vždy použijeme první list
   const sheetName = workbook.SheetNames[0]
-  if (!sheetName) throw new Error('Soubor neobsahuje žádná data.')
+  if (!sheetName) throw new Error('The file contains no data.')
 
   const sheet = workbook.Sheets[sheetName]
   const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, {
@@ -277,5 +293,5 @@ export function downloadTemplate(): void {
 
   const wb = XLSX.utils.book_new()
   XLSX.utils.book_append_sheet(wb, ws, 'Backlog')
-  XLSX.writeFile(wb, 'org-flow-sablona.xlsx')
+  XLSX.writeFile(wb, 'org-flow-template.xlsx')
 }

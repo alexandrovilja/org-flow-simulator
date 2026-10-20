@@ -10,8 +10,9 @@ import styles from './Button.module.css'
  * - `strong` — potvrzení v dialogu (`ink`), záměrně ne v barvě Run
  * - `ghost` — ústupové volby jako Cancel
  * - `light` — hlavní akce na antracitové kartě tutoriálu (Next / Finish), bílá výplň
+ * - `dashed` — přidání položky (+ Add unit): čárkovaný obrys, průhledné pozadí, tlumený text
  */
-type ButtonVariant = 'primary' | 'running' | 'done' | 'secondary' | 'strong' | 'ghost' | 'light'
+type ButtonVariant = 'primary' | 'running' | 'done' | 'secondary' | 'strong' | 'ghost' | 'light' | 'dashed'
 
 /**
  * Props tlačítka: všechny atributy nativního <button> (včetně `ref`, který React 19 předává jako

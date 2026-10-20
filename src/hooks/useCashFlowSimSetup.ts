@@ -7,7 +7,7 @@ import {
   setMemberAiMultiplier,
 } from '@/simulation/engine'
 import { addRole, deleteRole } from '@/simulation/roleManagement'
-import { parseXlsFile, type ImportResult } from '@/lib/xlsImport'
+import { parseXlsFile, formatImportSummary, type ImportResult } from '@/lib/xlsImport'
 import type {
   SimSettings, SimState, Role, RoleMeta, FocusMode, WipMode, UnitPreset, ActivePresetId, RevenueProfile, AiMultiplier,
 } from '@/types/simulation'
@@ -191,7 +191,7 @@ export function useCashFlowSimSetup(
       try {
         result = parseXlsFile(buffer)
       } catch (err) {
-        setImportMsg({ ok: false, text: err instanceof Error ? err.message : 'Nepodařilo se načíst soubor.' })
+        setImportMsg({ ok: false, text: err instanceof Error ? err.message : 'Could not load the file.' })
         return
       }
 
@@ -224,13 +224,10 @@ export function useCashFlowSimSetup(
       onStateReplaced?.()
       forceUpdate()
 
-      const taskCount = result.features.reduce((n, f) => n + f.tasks.length, 0)
-      const msg = `Importováno: ${result.features.length} features, ${taskCount} tasků, ${result.team.length} členů týmu.`
-      const fullMsg = result.warnings.length > 0 ? `${msg} ${result.warnings.join(' ')}` : msg
-      setImportMsg({ ok: true, text: fullMsg })
+      setImportMsg({ ok: true, text: formatImportSummary(result) })
       setTimeout(() => setImportMsg(null), 4000)
     }).catch(() => {
-      setImportMsg({ ok: false, text: 'Soubor se nepodařilo přečíst.' })
+      setImportMsg({ ok: false, text: 'Could not read the file.' })
     })
   }, [forceUpdate, onStateReplaced])
 
