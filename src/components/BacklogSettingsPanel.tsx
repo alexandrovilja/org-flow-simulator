@@ -6,8 +6,11 @@ import { PanelHeader } from '@/components/PanelHeader'
 import { SegmentedControl } from '@/components/SegmentedControl'
 import { ConfirmOverlay } from '@/components/ConfirmOverlay'
 import { RevenueCurvePreview } from '@/components/RevenueCurvePreview'
+import { Button } from '@/components/Button'
+import { EmptyNote } from '@/components/EmptyNote'
 import { REVENUE_PROFILE_INFO } from '@/lib/revenueProfiles'
 import { downloadTemplate } from '@/lib/xlsImport'
+import styles from './BacklogSettingsPanel.module.css'
 import type { Feature, SimState, SimSettings, Role, RoleMeta, WipMode, UnitPreset, ActivePresetId, RevenueProfile } from '@/types/simulation'
 
 /** Hover hint pro každý WIP mód — popisuje, jak jednotky vybírají další práci (feat-016: Min units). */
@@ -69,6 +72,11 @@ interface BacklogSettingsPanelProps {
  * Levý sloupec simulace: seznam backlogu + Settings panel (presety, XLS import,
  * generování backlogu, editor specializací, WIP mód). Sdíleno mezi Advanced a Cash Flow
  * módem (feat-015) — každý mód mu předává svůj vlastní nezávislý stav a handlery.
+ * Vzhled podle design systému Org Flow (feat-021): preset, křivka výnosu i WIP mód jsou jeden
+ * SegmentedControl, akce jsou hranatá tlačítka Button a barvy jdou jen z tokenů.
+ *
+ * @param props - Stav a handlery módu (viz BacklogSettingsPanelProps)
+ * @returns Levý sloupec s backlogem a nastavením
  */
 export function BacklogSettingsPanel({
   state, settings, setSettings, roleConfig, activePresetId, confirmingPreset, setConfirmingPreset,
@@ -80,14 +88,27 @@ export function BacklogSettingsPanel({
   revenueProfile = 'flat', onRevenueProfileChange, confirmingRevenueProfile = null,
   onConfirmRevenueProfile, onCancelRevenueProfile,
 }: BacklogSettingsPanelProps) {
+  /**
+   * Hlavička akordeonu v nastavení (♻ Backlog, ⚙ Specializations, 👥 Team): hranaté tlačítko přes
+   * celou šířku, otevřený stav má aria-expanded a výraznější text.
+   */
+  const accordionButton = (label: string, open: boolean, toggle: () => void) => (
+    <button
+      type="button"
+      aria-expanded={open}
+      className={[styles.accordionButton, open && styles.accordionOpen].filter(Boolean).join(' ')}
+      onClick={toggle}
+    >
+      {label}
+    </button>
+  )
+
   return (
-    <section data-tutorial-target={`${tutorialTargetPrefix}-backlog`} style={{ borderRight: '1px solid var(--line)', background: 'var(--surface-panel)', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
-      <div data-tutorial-target={`${tutorialTargetPrefix}-backlog-list`} style={{ flex: '1 1 50%', minHeight: 0, display: 'flex', flexDirection: 'column', borderBottom: '1px solid var(--line)' }}>
+    <section data-tutorial-target={`${tutorialTargetPrefix}-backlog`} className={styles.panel}>
+      <div data-tutorial-target={`${tutorialTargetPrefix}-backlog-list`} className={styles.listArea}>
         <PanelHeader title="Backlog" count={state.backlog.length} hint={getRevenueBadge ? 'sorted by revenue' : undefined} />
-        <div style={{ flex: 1, overflow: 'auto', padding: '8px 12px 12px 12px', display: 'flex', flexDirection: 'column', gap: 6 }}>
-          {state.backlog.length === 0 && (
-            <div style={{ fontSize: 11, color: 'var(--ink-3)', fontStyle: 'italic', padding: '8px 4px' }}>No items waiting.</div>
-          )}
+        <div className={styles.list}>
+          {state.backlog.length === 0 && <EmptyNote>No items waiting.</EmptyNote>}
           {state.backlog.map(f => (
             <FeatureCard key={f.id} feature={f} compact neutral maxWork={maxWork} roleConfig={roleConfig}
               revenue={getRevenueBadge?.(f)} />
@@ -95,43 +116,23 @@ export function BacklogSettingsPanel({
         </div>
       </div>
 
-      <div data-tutorial-target={`${tutorialTargetPrefix}-settings`} style={{ flex: '0 0 auto', padding: '12px 14px 14px', display: 'flex', flexDirection: 'column', gap: 12, background: 'var(--surface-panel)', position: 'relative' }}>
-        <h3 style={{ margin: 0, fontSize: 12, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5, color: 'var(--ink-2)' }}>Settings</h3>
+      <div data-tutorial-target={`${tutorialTargetPrefix}-settings`} className={styles.settings}>
+        <h3 className={styles.title}>Settings</h3>
 
-        <div style={{ paddingBottom: 10, borderBottom: '1px solid var(--line)', marginBottom: -4 }}>
-          <div style={{ fontSize: 10, fontWeight: 500, color: 'var(--ink-3)', marginBottom: 6, letterSpacing: 0.2 }}>
-            Unit preset
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-            {PRESETS.map(preset => (
-              <button
-                key={preset.id}
-                onClick={() => handlePresetClick(preset)}
-                style={{
-                  fontFamily: 'inherit',
-                  fontSize: 11, fontWeight: 500,
-                  padding: '4px 12px', borderRadius: 5,
-                  cursor: 'pointer',
-                  background: activePresetId === preset.id ? 'var(--ink)' : 'transparent',
-                  color: activePresetId === preset.id ? 'white' : 'var(--ink-3)',
-                  border: activePresetId === preset.id ? '1px solid var(--ink)' : '1px solid var(--line-2)',
-                  transition: 'background 0.13s ease, color 0.13s ease, border-color 0.13s ease',
-                }}
-              >
-                {preset.label}
-              </button>
-            ))}
-            {activePresetId === 'custom' && (
-              <span style={{
-                marginLeft: 'auto',
-                fontSize: 9, fontWeight: 500, letterSpacing: 0.3,
-                color: 'var(--ink-3)', background: 'var(--surface-page)',
-                border: '1px solid var(--line-2)',
-                padding: '1px 6px', borderRadius: 3,
-              }}>
-                custom
-              </span>
-            )}
+        <div className={styles.presetSection}>
+          <div className={styles.fieldLabel}>Unit preset</div>
+          <div className={styles.presetRow}>
+            {/* Ručně upravený tým (Custom) neodpovídá žádnému presetu → žádný segment není stisknutý.
+                Klik i na aktivní preset ho znovu nabídne použít (s potvrzením), jako dřív. */}
+            <SegmentedControl<UnitPreset['id']>
+              options={PRESETS.map(preset => ({ value: preset.id, label: preset.label }))}
+              value={activePresetId === 'custom' ? null : activePresetId}
+              onChange={id => {
+                const preset = PRESETS.find(p => p.id === id)
+                if (preset) handlePresetClick(preset)
+              }}
+            />
+            {activePresetId === 'custom' && <span className={styles.customBadge}>custom</span>}
           </div>
         </div>
 
@@ -151,7 +152,6 @@ export function BacklogSettingsPanel({
             title="Change revenue curve?"
             body="Changing the revenue curve resets the current run. The backlog stays the same."
             confirmLabel="Change and reset"
-            width={220}
             onCancel={onCancelRevenueProfile}
             onConfirm={onConfirmRevenueProfile}
           />
@@ -169,73 +169,32 @@ export function BacklogSettingsPanel({
           }}
         />
 
-        <div style={{ paddingTop: 4, borderTop: '1px solid var(--line)', marginTop: 4 }}>
-          <button
-            onClick={() => setShowBacklogControls(v => !v)}
-            style={{
-              width: '100%', textAlign: 'left',
-              fontSize: 11, fontFamily: 'inherit', cursor: 'pointer',
-              border: '1px solid var(--line)', borderRadius: 4,
-              padding: '4px 8px',
-              background: showBacklogControls ? 'var(--line)' : 'var(--surface-page)',
-              color: showBacklogControls ? 'var(--ink)' : 'var(--ink-2)',
-              fontWeight: showBacklogControls ? 600 : 400,
-            }}
-          >
-            ♻ Backlog
-          </button>
+        <div className={styles.accordion}>
+          {accordionButton('♻ Backlog', showBacklogControls, () => setShowBacklogControls(v => !v))}
           {showBacklogControls && (
-            <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 12 }}>
-              <div style={{ display: 'flex', gap: 6 }}>
-                <button
-                  onClick={() => fileInputRef.current?.click()}
-                  style={{
-                    flex: 1, border: '1px solid var(--ink-2)', borderRadius: 4,
-                    padding: '6px 0', fontSize: 11, fontWeight: 600,
-                    background: 'var(--surface-page)', color: 'var(--ink)',
-                    cursor: 'pointer', letterSpacing: 0.2,
-                  }}
-                >
+            <div className={styles.accordionBody}>
+              <div className={styles.fileRow}>
+                <Button className={styles.fileButton} onClick={() => fileInputRef.current?.click()}>
                   ↑ Import XLS
-                </button>
-                <button
-                  onClick={downloadTemplate}
-                  style={{
-                    flex: 1, border: '1px solid var(--line)', borderRadius: 4,
-                    padding: '6px 0', fontSize: 11, fontWeight: 400,
-                    background: 'var(--surface-page)', color: 'var(--ink-2)',
-                    cursor: 'pointer', letterSpacing: 0.2,
-                  }}
-                >
+                </Button>
+                <Button variant="ghost" className={styles.fileButton} onClick={downloadTemplate}>
                   ↓ Šablona
-                </button>
+                </Button>
               </div>
 
               {importMsg && (
-                <div style={{
-                  fontSize: 11, padding: '5px 8px', borderRadius: 4,
-                  background: importMsg.ok ? 'oklch(95% 0.05 145)' : 'oklch(95% 0.05 25)',
-                  color: importMsg.ok ? 'oklch(35% 0.13 145)' : 'oklch(35% 0.13 25)',
-                  border: `1px solid ${importMsg.ok ? 'oklch(75% 0.1 145)' : 'oklch(75% 0.1 25)'}`,
-                  lineHeight: 1.4,
-                }}>
+                <div className={`${styles.importMsg} ${importMsg.ok ? styles.importOk : styles.importError}`}>
                   {importMsg.ok ? '✓' : '✗'} {importMsg.text}
                 </div>
               )}
 
-              <button onClick={handleRegenerate} style={{
-                background: 'var(--ink)', border: 'none', borderRadius: 4,
-                padding: '7px 0', fontSize: 11, fontWeight: 600, color: 'white',
-                cursor: 'pointer', width: '100%', letterSpacing: 0.2,
-              }}>
+              <Button variant="strong" className={styles.fullWidth} onClick={handleRegenerate}>
                 ♻ Generate new backlog
-              </button>
+              </Button>
               {/* Tvar výnosu featur po dodání (feat-017) — jen Cash Flow, který předává callback */}
               {onRevenueProfileChange && (
                 <div>
-                  <div style={{ fontSize: 10, fontWeight: 500, color: 'var(--ink-3)', marginBottom: 5, letterSpacing: 0.2 }}>
-                    Revenue curve
-                  </div>
+                  <div className={styles.fieldLabel}>Revenue curve</div>
                   <SegmentedControl<RevenueProfile>
                     options={[
                       { value: 'flat', label: REVENUE_PROFILE_INFO['flat'].label },
@@ -268,44 +227,18 @@ export function BacklogSettingsPanel({
             </div>
           )}
         </div>
-        <div style={{ paddingTop: 8, borderTop: '1px solid var(--line)', marginTop: 4 }}>
-          <button
-            onClick={() => setShowRoleSettings(v => !v)}
-            style={{
-              width: '100%', textAlign: 'left',
-              fontSize: 11, fontFamily: 'inherit', cursor: 'pointer',
-              border: '1px solid var(--line)', borderRadius: 4,
-              padding: '4px 8px',
-              background: showRoleSettings ? 'var(--line)' : 'var(--surface-page)',
-              color: showRoleSettings ? 'var(--ink)' : 'var(--ink-2)',
-              fontWeight: showRoleSettings ? 600 : 400,
-            }}
-          >
-            ⚙ Specializations
-          </button>
+        <div className={styles.accordion}>
+          {accordionButton('⚙ Specializations', showRoleSettings, () => setShowRoleSettings(v => !v))}
           {showRoleSettings && (
-            <div style={{ marginTop: 8 }}>
+            <div className={styles.accordionBody}>
               <RoleSettings roleConfig={roleConfig} onChange={handleRoleChange} onAdd={handleAddRole} onDelete={handleDeleteRole} />
             </div>
           )}
         </div>
-        <div style={{ paddingTop: 8, borderTop: '1px solid var(--line)', marginTop: 4 }}>
-          <button
-            onClick={() => setShowTeamSettings(v => !v)}
-            style={{
-              width: '100%', textAlign: 'left',
-              fontSize: 11, fontFamily: 'inherit', cursor: 'pointer',
-              border: '1px solid var(--line)', borderRadius: 4,
-              padding: '4px 8px',
-              background: showTeamSettings ? 'var(--line)' : 'var(--surface-page)',
-              color: showTeamSettings ? 'var(--ink)' : 'var(--ink-2)',
-              fontWeight: showTeamSettings ? 600 : 400,
-            }}
-          >
-            👥 Team
-          </button>
+        <div className={styles.accordion}>
+          {accordionButton('👥 Team', showTeamSettings, () => setShowTeamSettings(v => !v))}
           {showTeamSettings && (
-            <div style={{ marginTop: 8 }}>
+            <div className={styles.accordionBody}>
               <SegmentedControl
                 options={[
                   { value: 'reduce-wip' as WipMode, label: 'Reduce WIP' },
@@ -316,10 +249,8 @@ export function BacklogSettingsPanel({
               />
               {/* Coordination overhead (feat-016) — jen Cash Flow, který předává setter */}
               {setCoordinationOverhead && (
-                <div style={{ marginTop: 10 }}>
-                  <div style={{ fontSize: 10, fontWeight: 500, color: 'var(--ink-3)', marginBottom: 5, letterSpacing: 0.2 }}>
-                    Coordination overhead
-                  </div>
+                <div>
+                  <div className={styles.fieldLabel}>Coordination overhead</div>
                   <SegmentedControl
                     options={[
                       { value: 'off', label: 'Off' },
@@ -332,9 +263,7 @@ export function BacklogSettingsPanel({
                   />
                   {/* Změna uprostřed běhu by míchala dva modely v jednom výsledku → až po Resetu */}
                   {coordinationOverheadLocked && (
-                    <div style={{ fontSize: 10, color: 'var(--ink-3)', marginTop: 4 }}>
-                      🔒 Takes effect after Reset
-                    </div>
+                    <div className={styles.note}>🔒 Takes effect after Reset</div>
                   )}
                 </div>
               )}

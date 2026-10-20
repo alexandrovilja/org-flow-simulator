@@ -1,4 +1,4 @@
-import type { ButtonHTMLAttributes } from 'react'
+import type { ComponentProps } from 'react'
 import styles from './Button.module.css'
 
 /**
@@ -9,11 +9,15 @@ import styles from './Button.module.css'
  * - `secondary` — Reset, Reset backlog a další běžné akce (obrys `line-control`)
  * - `strong` — potvrzení v dialogu (`ink`), záměrně ne v barvě Run
  * - `ghost` — ústupové volby jako Cancel
+ * - `light` — hlavní akce na antracitové kartě tutoriálu (Next / Finish), bílá výplň
  */
-type ButtonVariant = 'primary' | 'running' | 'done' | 'secondary' | 'strong' | 'ghost'
+type ButtonVariant = 'primary' | 'running' | 'done' | 'secondary' | 'strong' | 'ghost' | 'light'
 
-/** Props tlačítka: všechny atributy nativního <button> plus vzhled podle design systému. */
-interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
+/**
+ * Props tlačítka: všechny atributy nativního <button> (včetně `ref`, který React 19 předává jako
+ * běžný prop — potřebuje ho dialog pro přesun fokusu) plus vzhled podle design systému.
+ */
+interface ButtonProps extends ComponentProps<'button'> {
   /** Role tlačítka; výchozí je `secondary`. */
   variant?: ButtonVariant
   /** Tlačítko stojí na antracitové horní liště — obrys a text se přizpůsobí tmavému podkladu. */

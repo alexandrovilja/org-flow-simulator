@@ -1,4 +1,5 @@
 import { useEffect, useId, useRef, type ReactNode } from 'react'
+import { Button } from '@/components/Button'
 import styles from './ConfirmOverlay.module.css'
 
 /** Vstupní props komponenty ConfirmOverlay. */
@@ -11,7 +12,7 @@ interface ConfirmOverlayProps {
   cancelLabel?: string
   /** Text tlačítka, které akci potvrdí. */
   confirmLabel: string
-  /** Šířka dialogové karty v px (delší texty potřebují o něco víc místa). */
+  /** Šířka dialogové karty v px (výchozí 280 podle design systému; dialog se musí vejít do postranního panelu). */
   width?: number
   /** Volá se po kliknutí na zrušení nebo stisku Escape. */
   onCancel: () => void
@@ -20,8 +21,9 @@ interface ConfirmOverlayProps {
 }
 
 /**
- * Potvrzovací dialog přes celou oblast nastavení: rozmazaný poloprůhledný překryv a uprostřed karta
- * s nadpisem, vysvětlením a dvěma tlačítky. Rodič musí mít `position: relative`, překryv se roztáhne
+ * Potvrzovací dialog přes celou oblast nastavení: rozmazaný závoj v barvě stránky a uprostřed karta
+ * s nadpisem, vysvětlením a dvěma tlačítky stejné šířky — Cancel (`ghost`) a potvrzení (`strong`,
+ * záměrně ne v barvě Run ani v červené reworku; design system Org Flow, feat-021). Rodič musí mít `position: relative`, překryv se roztáhne
  * přes jeho celou plochu. Sdílí ho potvrzení výběru presetu a potvrzení změny křivky výnosu (feat-017).
  *
  * Přístupnost: má `role="dialog"` a `aria-modal`, po otevření přesune fokus na tlačítko zrušení
@@ -34,11 +36,11 @@ interface ConfirmOverlayProps {
  * @param body - Vysvětlující text
  * @param cancelLabel - Text tlačítka zrušení (výchozí „Cancel“)
  * @param confirmLabel - Text tlačítka potvrzení
- * @param width - Šířka karty v px (výchozí 200)
+ * @param width - Šířka karty v px (výchozí 280)
  * @param onCancel - Callback zrušení (tlačítko i Escape)
  * @param onConfirm - Callback potvrzení
  */
-export function ConfirmOverlay({ title, body, cancelLabel = 'Cancel', confirmLabel, width = 200, onCancel, onConfirm }: ConfirmOverlayProps) {
+export function ConfirmOverlay({ title, body, cancelLabel = 'Cancel', confirmLabel, width = 280, onCancel, onConfirm }: ConfirmOverlayProps) {
   const titleId = useId()
   const cancelRef = useRef<HTMLButtonElement>(null)
   const confirmRef = useRef<HTMLButtonElement>(null)
@@ -96,12 +98,12 @@ export function ConfirmOverlay({ title, body, cancelLabel = 'Cancel', confirmLab
           {body}
         </div>
         <div className={styles.buttons}>
-          <button ref={cancelRef} className={`${styles.button} ${styles.cancel}`} onClick={onCancel}>
+          <Button ref={cancelRef} variant="ghost" className={styles.button} onClick={onCancel}>
             {cancelLabel}
-          </button>
-          <button ref={confirmRef} className={`${styles.button} ${styles.confirm}`} onClick={onConfirm}>
+          </Button>
+          <Button ref={confirmRef} variant="strong" className={styles.button} onClick={onConfirm}>
             {confirmLabel}
-          </button>
+          </Button>
         </div>
       </div>
     </div>

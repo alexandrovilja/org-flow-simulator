@@ -1,0 +1,98 @@
+/* Posuvník v nastavení backlogu (design system Org Flow, feat-021). */
+.slider {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  width: 100%;
+}
+
+.withTooltip {
+  cursor: help;
+}
+
+.head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-8);
+}
+
+.label {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-4);
+  font-family: var(--font-sans);
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 500;
+  color: var(--ink-2);
+}
+
+/* Značka, že popisek má nápovědu (title) — stejná jako na dlaždicích metrik */
+.helpBadge {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: var(--border-hair) solid var(--line-control);
+  border-radius: var(--radius-pill);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--ink-3);
+}
+
+/* Hodnota v mono s tabulkovými číslicemi, aby při posunu neposkakovala */
+.value {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  line-height: 16px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+}
+
+/* Vlastní dráha a jezdec místo nativního vzhledu, aby seděl v obou tématech */
+.range {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 16px;
+  margin: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.range::-webkit-slider-runnable-track {
+  height: 4px;
+  background: var(--line-control);
+  border-radius: var(--radius-pill);
+}
+
+.range::-moz-range-track {
+  height: 4px;
+  background: var(--line-control);
+  border-radius: var(--radius-pill);
+}
+
+/* Jezdec 14 px s prstencem v barvě panelu, aby se odlišil od dráhy */
+.range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 14px;
+  height: 14px;
+  margin-top: -5px;
+  border-radius: var(--radius-pill);
+  background: var(--ink);
+  box-shadow: 0 0 0 2px var(--surface-panel);
+}
+
+.range::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: var(--ink);
+  box-shadow: 0 0 0 2px var(--surface-panel);
+}
