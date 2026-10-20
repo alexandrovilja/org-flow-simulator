@@ -13,6 +13,7 @@ import { SpeedControl } from '@/components/SpeedControl'
 import { Button } from '@/components/Button'
 import { SegmentedControl } from '@/components/SegmentedControl'
 import { TopBar } from '@/components/TopBar'
+import { WinnerBanner } from '@/components/WinnerBanner'
 import { DoneRow } from '@/components/DoneRow'
 import { EmptyNote } from '@/components/EmptyNote'
 import { PanelHeader } from '@/components/PanelHeader'
@@ -818,6 +819,13 @@ export function Simulator() {
     return (
       <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', background: 'var(--surface-page)' }}>
         {header}
+
+        {/* Rám výsledku po doběhnutí obou běhů (feat-021, Příklad 9) — kdo byl rychlejší, o kolik a proč */}
+        {bothFinished && compareHasStarted && (
+          <div style={{ margin: 'var(--space-12) var(--space-16) 0', flexShrink: 0 }}>
+            <WinnerBanner stateA={sA} statsA={statsA} stateB={sB} statsB={statsB} />
+          </div>
+        )}
 
         {/* Two-column comparison — each team in its own bordered card */}
         <div

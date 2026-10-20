@@ -1,6 +1,7 @@
 import * as XLSX from 'xlsx'
 import { mulberry32, generateRevenueBatch } from '@/simulation/engine'
 import type { Feature, Member, Role, RoleMeta, Task, TaskStatus, FeatureStatus } from '@/types/simulation'
+import { roleColorForIndex } from '@/simulation/roleColors'
 
 /** Výsledek parsování XLS souboru — připravená data pro přímé vložení do SimState. */
 export interface ImportResult {
@@ -21,8 +22,6 @@ interface RawTask {
   work: number
 }
 
-/** Výchozí sada hue hodnot pro nové role — cykluje se při překročení délky pole. */
-const ROLE_HUES = [250, 285, 25, 145, 75, 320, 200, 350, 110, 180]
 
 /** Výchozí sada hue hodnot pro features — stejná logika jako v engine.ts. */
 const FEATURE_HUES = [12, 45, 90, 140, 180, 215, 260, 300, 335]
@@ -146,10 +145,10 @@ export function parseRows(rawRows: Record<string, unknown>[]): ImportResult {
 
   const roleConfig: Record<Role, RoleMeta> = {}
   for (const [role, index] of roleHueIndex.entries()) {
-    const hue = ROLE_HUES[index % ROLE_HUES.length]
     roleConfig[role] = {
       label: role,
-      color: `oklch(68% 0.13 ${hue})`,
+      // Import nahrazuje celou sadu rolí, proto sloty od prvního v pořadí výskytu (feat-021)
+      color: roleColorForIndex(index),
       level: 1,
       required: false,
     }

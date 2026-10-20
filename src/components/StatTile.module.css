@@ -1,0 +1,175 @@
+/* Dlaždice metriky (feat-021): mono popisek, velká mono hodnota, delta a rozbalitelný detail. */
+.tile {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  min-width: 0;
+  padding: var(--space-8) 10px;
+  background: var(--surface-panel);
+  border: var(--border-hair) solid var(--line);
+  border-radius: var(--radius-md);
+  cursor: default;
+  transition: background 0.3s ease, border-color 0.3s ease;
+}
+
+.withTooltip {
+  cursor: help;
+}
+
+.timer {
+  padding: 10px var(--space-12);
+}
+
+/* Doběhnutý časovač: done na done-soft */
+.finished {
+  background: var(--done-soft);
+  border-color: var(--done);
+}
+
+.head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-6);
+}
+
+/* Styl „label“: mono 10/12, verzálky */
+.label {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-4);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  line-height: 12px;
+  font-weight: 600;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+
+/* Značka, že dlaždice má nápovědu (title) — 14px kolečko */
+.helpBadge {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: var(--border-hair) solid var(--line-control);
+  border-radius: var(--radius-pill);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0;
+  color: var(--ink-3);
+}
+
+.complete {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  line-height: 12px;
+  font-weight: 600;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  color: var(--done);
+}
+
+/* Živá tečka běžícího časovače */
+.live {
+  width: 6px;
+  height: 6px;
+  display: inline-block;
+  border-radius: var(--radius-pill);
+  background: var(--accent);
+  animation: timer-pulse 1.2s ease-in-out infinite;
+}
+
+/* Styl „metric“: mono 20/24, tabulkové číslice */
+.value {
+  font-family: var(--font-mono);
+  font-size: 20px;
+  line-height: 24px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+  transition: color 0.3s ease;
+}
+
+/* Časovač ve stylu „metric-xl“ */
+.timer .value {
+  font-size: 28px;
+  line-height: 30px;
+  letter-spacing: -0.6px;
+}
+
+.finished .value {
+  color: var(--done);
+}
+
+.unit {
+  margin-left: var(--space-2);
+  font-size: 11px;
+  line-height: 16px;
+  font-weight: 500;
+  letter-spacing: 0;
+  color: var(--ink-3);
+}
+
+.hint {
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--ink-3);
+}
+
+/* Styl „micro“ */
+.delta {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  line-height: 12px;
+  font-weight: 600;
+}
+
+.deltaGood {
+  color: var(--done);
+}
+
+.deltaBad {
+  color: var(--rework);
+}
+
+.deltaFlat {
+  color: var(--ink-3);
+}
+
+.deltaNote {
+  font-weight: 400;
+  color: var(--ink-3);
+}
+
+.detailsButton {
+  align-self: flex-start;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--ink-3);
+  font-family: var(--font-sans);
+  font-size: 12px;
+  line-height: 16px;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+
+.details {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--ink-2);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .live {
+    animation: none;
+  }
+}

@@ -2,33 +2,17 @@
 
 import { useState, useEffect, useRef } from 'react'
 import type { RoleMeta } from '@/types/simulation'
+import { ROLE_COLOR_SLOTS, type RoleColorSlot } from '@/simulation/roleColors'
 
 /** Maximální povolená úroveň specializace (min je vždy 1). */
 const MAX_LEVEL = 5
 
 /**
- * Předvolby barev pro specializace — 16 hue hodnot rovnoměrně rozložených
- * přes barevný kruh v oklch prostoru.
+ * Předvolby barev pro specializace — osm slotů design systému Org Flow (feat-021).
+ * Dřívějších 16 pastelových odstínů nedrželo s bílým textem čipu kontrast; sloty ano (5:1 a víc).
  * Stejná sada se používá pro výběr barvy nové i existující specializace.
  */
-export const COLOR_PRESETS: { hue: number; color: string }[] = [
-  { hue:   0, color: 'oklch(65% 0.18   0)' },  // červená
-  { hue:  25, color: 'oklch(72% 0.13  25)' },  // oranžovo-červená
-  { hue:  45, color: 'oklch(74% 0.14  45)' },  // oranžová
-  { hue:  75, color: 'oklch(72% 0.14  75)' },  // žlutozelená
-  { hue: 100, color: 'oklch(68% 0.15 100)' },  // zelená
-  { hue: 145, color: 'oklch(68% 0.13 145)' },  // smaragdová
-  { hue: 170, color: 'oklch(67% 0.13 170)' },  // tyrkysová
-  { hue: 200, color: 'oklch(68% 0.13 200)' },  // azurová
-  { hue: 220, color: 'oklch(69% 0.14 220)' },  // nebeská modrá
-  { hue: 250, color: 'oklch(70% 0.14 250)' },  // modrá
-  { hue: 270, color: 'oklch(66% 0.15 270)' },  // fialovo-modrá
-  { hue: 285, color: 'oklch(66% 0.14 285)' },  // fialová
-  { hue: 305, color: 'oklch(65% 0.15 305)' },  // purpurová
-  { hue: 320, color: 'oklch(64% 0.14 320)' },  // růžovo-fialová
-  { hue: 340, color: 'oklch(66% 0.15 340)' },  // růžová
-  { hue: 355, color: 'oklch(65% 0.16 355)' },  // tmavě růžová
-]
+export const COLOR_PRESETS: RoleColorSlot[] = ROLE_COLOR_SLOTS
 
 /** Sentinelová hodnota openPickerId pro color picker formuláře nové specializace. */
 const NEW_ROLE_PICKER_ID = '__new__'
@@ -162,8 +146,8 @@ export function RoleSettings({ roleConfig, onChange, onAdd, onDelete }: RoleSett
                   }}>
                     {COLOR_PRESETS.map(p => (
                       <button
-                        key={p.hue}
-                        title={`Hue ${p.hue}`}
+                        key={p.color}
+                        title={p.name}
                         onClick={() => {
                           onChange(roleId, { color: p.color })
                           setOpenPickerId(null)
@@ -315,8 +299,8 @@ export function RoleSettings({ roleConfig, onChange, onAdd, onDelete }: RoleSett
               }}>
                 {COLOR_PRESETS.map(p => (
                   <button
-                    key={p.hue}
-                    title={`Hue ${p.hue}`}
+                    key={p.color}
+                    title={p.name}
                     onClick={() => { setNewColor(p.color); setOpenPickerId(null) }}
                     style={{
                       width: 22, height: 22,
