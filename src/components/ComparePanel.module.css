@@ -1,0 +1,99 @@
+/* Sloupec Compare (feat-021): hlavička týmu, Kanban se třemi sloupci podle stavu toku. */
+
+/* Hlavička týmu: nadpis typu týmu vlevo, přepínač typu vpravo */
+.teamHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-12);
+  padding: var(--space-12) var(--space-16);
+  border-bottom: var(--border-hair) solid var(--line-2);
+  flex-shrink: 0;
+}
+
+/* Styl „heading“ zmenšený pro sloupec: Archivo 800 verzálkami */
+.teamTitle {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 16px;
+  line-height: 20px;
+  font-weight: 800;
+  text-transform: uppercase;
+  color: var(--ink);
+  min-width: 0;
+}
+
+.board {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  min-height: 0;
+}
+
+.column {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  background: var(--surface-subtle);
+}
+
+.column + .column {
+  border-left: var(--border-hair) solid var(--line-2);
+}
+
+/* Hlavička sloupce: nadpisek ve stylu „eyebrow“, barva podle stavu toku */
+.columnHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-6) var(--space-12);
+  background: var(--surface-panel);
+  border-bottom: var(--border-hair) solid var(--line-2);
+  flex-shrink: 0;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  line-height: 16px;
+  font-weight: 500;
+  letter-spacing: 1.1px;
+  text-transform: uppercase;
+  color: var(--ink-2);
+}
+
+/* In Progress: fialová na accent-soft */
+.doing {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+/* Done: zelená na done-soft */
+.done {
+  background: var(--done-soft);
+  color: var(--done);
+}
+
+.count {
+  color: var(--ink-3);
+  font-variant-numeric: tabular-nums;
+}
+
+.columnBody {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--space-8);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
+/* Lead time pod hotovou kartou */
+.leadTime {
+  margin-top: var(--space-2);
+  padding-right: var(--space-2);
+  text-align: right;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  line-height: 12px;
+  font-weight: 600;
+  color: var(--done);
+  font-variant-numeric: tabular-nums;
+}

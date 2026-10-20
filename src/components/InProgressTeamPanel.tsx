@@ -1,6 +1,7 @@
 import { FeatureCard } from '@/components/FeatureCard'
 import { MemberCard } from '@/components/MemberCard'
 import { PanelHeader } from '@/components/PanelHeader'
+import { EmptyNote } from '@/components/EmptyNote'
 import { isFeatureActive, sortInProgressForDisplay } from '@/lib/inProgressOrder'
 import type { Feature, Task, SimState, Role, RoleMeta, ActivePresetId, AiMultiplier } from '@/types/simulation'
 
@@ -43,7 +44,7 @@ export function InProgressTeamPanel({
           gap: 8, overflowY: 'auto', minHeight: 64, alignContent: 'start',
         }}>
           {state.inProgress.length === 0 && (
-            <div style={{ fontSize: 11, color: 'var(--ink-3)', fontStyle: 'italic', gridColumn: '1 / -1' }}>Nothing in flight.</div>
+            <EmptyNote gridColumn="1 / -1">Nothing in flight.</EmptyNote>
           )}
           {/* Aktivní features nahoře a zvýrazněné; řazení je jen v zobrazení, state.inProgress se nemění */}
           {sortInProgressForDisplay(state.inProgress).map(f => <FeatureCard key={f.id} feature={f} team={state.team} maxWork={maxWork} roleConfig={roleConfig} showCoordination={showCoordination} active={isFeatureActive(f)} />)}

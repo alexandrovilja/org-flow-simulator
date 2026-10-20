@@ -1,0 +1,62 @@
+/* Řádek hotové feature v seznamu Done (feat-021): tón podle odstínu feature (--hue inline),
+   čtvereček odstínu místo barevného proužku vlevo, mono název a hodnota vpravo. */
+.row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-8);
+  padding: var(--space-6) var(--space-8);
+  border-radius: var(--radius-sm);
+  background: oklch(97.5% 0.02 var(--hue));
+  border: var(--border-hair) solid oklch(86% 0.05 var(--hue));
+}
+
+:global([data-theme='dark']) .row {
+  background: oklch(28% 0.03 var(--hue));
+  border-color: oklch(42% 0.05 var(--hue));
+}
+
+/* Čtvereček v odstínu feature — stejný jako u práce na kartě člena */
+.swatch {
+  width: 8px;
+  height: 8px;
+  flex-shrink: 0;
+  border-radius: var(--radius-xs);
+  background: oklch(68% 0.13 var(--hue));
+}
+
+.main {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Styl „code“ */
+.name {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  line-height: 16px;
+  font-weight: 500;
+  color: var(--ink-2);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.detail {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  font-size: 10px;
+  line-height: 12px;
+  color: var(--ink-3);
+}
+
+.aside {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 1px;
+  flex-shrink: 0;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  color: var(--done);
+}

@@ -1,23 +1,31 @@
+import styles from './PanelHeader.module.css'
+
+/** Props hlavičky panelu. */
 interface PanelHeaderProps {
+  /** Nadpis panelu (např. „Backlog“, „In Progress“, „Done“). */
   title: string
+  /** Počet položek vedle nadpisu. */
   count: number
+  /** Volitelná poznámka vpravo, např. „auto-scaled“. */
   hint?: string
 }
 
+/**
+ * Hlavička panelu podle design systému Org Flow (feat-021): nadpisek v mono verzálkách,
+ * počet v `ink-3` a volitelná poznámka vpravo. Počet je sourozenec nadpisu (ne jeho součást),
+ * aby přístupný název nadpisu zůstal jen „Backlog“, „Done“… a počet šel přečíst zvlášť.
+ *
+ * @param props - Nadpis, počet a volitelná poznámka
+ * @returns Vykreslená hlavička
+ */
 export function PanelHeader({ title, count, hint }: PanelHeaderProps) {
   return (
-    <div style={{
-      padding: '12px 16px 8px',
-      display: 'flex', alignItems: 'baseline', justifyContent: 'space-between',
-      borderBottom: '1px solid transparent',
-    }}>
-      <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
-        <h3 style={{ margin: 0, fontSize: 12, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5, color: 'var(--ink-2)' }}>
-          {title}
-        </h3>
-        <span className="mono" style={{ fontSize: 11, color: 'var(--ink-3)' }}>{count}</span>
+    <div className={styles.header}>
+      <div className={styles.titleRow}>
+        <h3 className={styles.title}>{title}</h3>
+        <span className={styles.count}>{count}</span>
       </div>
-      {hint && <span style={{ fontSize: 10, color: 'var(--ink-3)' }}>{hint}</span>}
+      {hint && <span className={styles.hint}>{hint}</span>}
     </div>
   )
 }

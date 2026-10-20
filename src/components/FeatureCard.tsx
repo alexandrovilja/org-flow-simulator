@@ -3,6 +3,8 @@ import { ROLE_META } from '@/simulation/engine'
 import { featureTotalWork } from '@/lib/featureSize'
 import { CoordinationChips } from '@/components/CoordinationChips'
 import type { Feature, Member, Role, RoleMeta } from '@/types/simulation'
+import type { CssVariables } from '@/types/css'
+import styles from './FeatureCard.module.css'
 
 interface FeatureCardProps {
   feature: Feature
@@ -37,6 +39,14 @@ interface FeatureCardProps {
   active?: boolean
 }
 
+/**
+ * Karta jedné feature (design system Org Flow, feat-021): mono název, počet tasků a bar, ve kterém
+ * má každý task segment v barvě své role. Tón karty se dopočítá v CSS z odstínu feature (`--hue`),
+ * barva segmentu z role (`--role`); inline zůstávají jen vypočtené hodnoty (šířky, progres).
+ *
+ * @param props - Feature, tým (pro iniciály), režim zobrazení a volitelné doplňky (výnos, koordinace, aktivní stav)
+ * @returns Vykreslená karta
+ */
 export function FeatureCard({ feature, team = [], compact = false, neutral = false, maxWork = 0, roleConfig, revenue, showCoordination = false, active = false }: FeatureCardProps) {
   const totalWork = featureTotalWork(feature.tasks)
   // Počet reworků při připojení karty (feat-016) — probliknutí vráceného tasku jen pro nové reworky
@@ -47,65 +57,37 @@ export function FeatureCard({ feature, team = [], compact = false, neutral = fal
   // Pokud maxWork není zadáno nebo je 0, bar vyplní celou šířku (zachování starého chování).
   const barWidthPct = maxWork > 0 ? Math.min(100, (totalWork / maxWork) * 100) : 100
 
-  const bg = neutral ? 'var(--surface-panel)' : `oklch(96% 0.03 ${feature.hue})`
-  const border = neutral ? 'var(--line)' : `oklch(80% 0.08 ${feature.hue})`
-  const barH = compact ? 6 : 22
-
   const initialFor = (id: number | null) => {
     if (id == null) return null
     const m = team.find(m => m.id === id)
     return m ? m.name[0] : null
   }
 
+  const cardClass = [styles.card, neutral && styles.neutral, compact ? styles.compact : styles.tall].filter(Boolean).join(' ')
+  const cardStyle: CssVariables = {
+    '--hue': feature.hue,
+    // Zvýraznění aktivní karty: 2px prstenec v barvě --ink vně borderu. Border zůstává stejný,
+    // takže se rozměry karty ani mřížka okolo nehýbou (box-shadow nezabírá místo v layoutu).
+    boxShadow: active ? '0 0 0 2px var(--ink)' : undefined,
+  }
+
   return (
-    <div data-active={active} style={{
-      background: bg,
-      border: `1px solid ${border}`,
-      // Zvýraznění aktivní karty: 2px prstenec v barvě --ink vně borderu. Border zůstává stejný,
-      // takže se rozměry karty ani mřížka okolo nehýbou (box-shadow nezabírá místo v layoutu).
-      boxShadow: active ? '0 0 0 2px var(--ink)' : undefined,
-      borderRadius: 6,
-      padding: compact ? '6px 8px' : '8px 10px',
-      display: 'flex', flexDirection: 'column', gap: 6,
-      minHeight: compact ? undefined : 64,
-      justifyContent: compact ? undefined : 'space-between',
-    }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 6 }}>
-        <span className="mono" style={{
-          fontSize: 11, color: 'var(--ink-2)', fontWeight: 500,
-          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0, flex: 1,
-        }}>
-          {feature.name}
-        </span>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+    <div data-active={active} className={cardClass} style={cardStyle}>
+      <div className={styles.top}>
+        <span className={styles.name}>{feature.name}</span>
+        <div className={styles.meta}>
           {showCoordination && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-              <CoordinationChips joins={feature.joinCount} reworks={feature.reworkCount} pulse />
-            </div>
+            <CoordinationChips joins={feature.joinCount} reworks={feature.reworkCount} pulse />
           )}
-          {revenue && (
-            <span className="mono" style={{ fontSize: 10, color: 'var(--done)', fontWeight: 700 }}>
-              {revenue}
-            </span>
-          )}
-          {!compact && (
-            <span className="mono" style={{ fontSize: 10, color: 'var(--ink-3)' }}>
-              {feature.tasks.length}t
-            </span>
-          )}
+          {revenue && <span className={styles.revenue}>{revenue}</span>}
+          {!compact && <span className={styles.tasks}>{feature.tasks.length}t</span>}
         </div>
       </div>
 
       {/* Track — plná šířka karty, tvoří vizuální "stopu" ukazující maximum */}
-      <div style={{
-        width: '100%',
-        height: barH,
-        background: 'rgba(0,0,0,0.05)',
-        borderRadius: 3,
-        overflow: 'hidden',
-      }}>
+      <div className={[styles.track, compact && styles.compactTrack].filter(Boolean).join(' ')}>
         {/* Bar — proporcionální šířka vůči největší feature */}
-        <div style={{ width: `${barWidthPct}%`, height: '100%', display: 'flex', gap: 2, borderRadius: 3, overflow: 'hidden' }}>
+        <div className={styles.bar} style={{ width: `${barWidthPct}%` }}>
           {feature.tasks.map((t) => {
             // roleConfig má přednost před statickým ROLE_META — funguje i pro custom specializace
             const meta = (roleConfig ?? ROLE_META)[t.role] ?? { color: 'var(--ink-3)' }
@@ -116,48 +98,21 @@ export function FeatureCard({ feature, team = [], compact = false, neutral = fal
 
             // Šířka segmentu uvnitř baru — úměrná pracnosti tasku vůči celku feature
             const segWidthPct = totalWork > 0 ? (t.work / totalWork) * 100 : (100 / feature.tasks.length)
+            const segStyle: CssVariables = { width: `${segWidthPct}%`, '--role': meta.color }
 
             return (
-              <div key={t.id} style={{
-                width: `${segWidthPct}%`,
-                flexShrink: 0,
-                background: 'rgba(0,0,0,0.06)',
-                position: 'relative',
-                overflow: 'hidden',
-              }}>
-                <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: `${filled * 100}%`, background: meta.color }} />
-                {t.status === 'todo' && (
-                  <div style={{ position: 'absolute', inset: 0, background: meta.color, opacity: 0.25 }} />
-                )}
+              <div key={t.id} className={styles.segment} style={segStyle}>
+                <div className={styles.fill} style={{ width: `${filled * 100}%` }} />
+                {t.status === 'todo' && <div className={styles.todoWash} />}
                 {/* Rework (feat-016): task vrácený do todo si nese zbylý progres (> 0), běžný
                     todo task má progress 0. key={reworkCount} spustí probliknutí znovu při
                     každém dalším reworku featury; jen pro reworky po připojení karty, aby se
                     po remountu (přepnutí módu) staré probliknutí nepřehrálo. */}
                 {showCoordination && t.status === 'todo' && t.progress > 0 && feature.reworkCount > mountReworks && (
-                  <div key={feature.reworkCount} style={{
-                    position: 'absolute', inset: 0, background: 'var(--rework)',
-                    opacity: 0, animation: 'rework-flash 1.2s ease-out',
-                    pointerEvents: 'none',
-                  }} />
+                  <div key={feature.reworkCount} className={styles.reworkFlash} />
                 )}
-                {initial && (
-                  <div style={{
-                    position: 'absolute', inset: 0,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontSize: 11, fontWeight: 700, color: 'white',
-                    textShadow: '0 0 2px rgba(0,0,0,0.35)',
-                    pointerEvents: 'none', letterSpacing: 0.2,
-                  }}>
-                    {initial}
-                  </div>
-                )}
-                {!compact && t.status === 'done' && (
-                  <div style={{
-                    position: 'absolute', inset: 0,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontSize: 10, color: 'rgba(255,255,255,0.85)', pointerEvents: 'none',
-                  }}>✓</div>
-                )}
+                {initial && <div className={styles.label}>{initial}</div>}
+                {!compact && t.status === 'done' && <div className={styles.label}>✓</div>}
               </div>
             )
           })}

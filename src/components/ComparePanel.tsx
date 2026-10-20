@@ -6,6 +6,8 @@ import type { TeamType } from '@/simulation/compareMode'
 import { formatTime } from '@/lib/formatTime'
 import { FeatureCard } from '@/components/FeatureCard'
 import { SegmentedControl } from '@/components/SegmentedControl'
+import { EmptyNote } from '@/components/EmptyNote'
+import styles from './ComparePanel.module.css'
 import { featureMaxWork } from '@/lib/featureSize'
 import type { SimState, SimStats } from '@/types/simulation'
 
@@ -85,37 +87,28 @@ export function ComparePanel({
       {/* data-tutorial-target lets the spotlight overlay focus on this team's type picker */}
       <div
         data-tutorial-target={tutorialTargetPrefix ? `${tutorialTargetPrefix}-settings` : undefined}
-        style={{
-          padding: '10px 16px 10px',
-          borderBottom: '1px solid var(--line)',
-          flexShrink: 0,
-          textAlign: 'center',
-          display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8,
-        }}
+        className={styles.teamHeader}
       >
+        <h3 className={styles.teamTitle}>{TEAM_TYPE_LABELS[teamType]}</h3>
         {/* Team-type picker — stejný SegmentedControl jako ostatní volby v aplikaci (feat-021, Příklad 8) */}
         <SegmentedControl<TeamType>
           options={TEAM_TYPE_OPTIONS}
           value={teamType}
           onChange={onChangeType}
         />
-        <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', letterSpacing: -0.2 }}>
-          {TEAM_TYPE_LABELS[teamType]}
-        </div>
       </div>
 
       {/* ── Kanban board — fills all available vertical space ── */}
       {/* data-tutorial-target lets the spotlight overlay focus on this team's kanban board */}
       <div
         data-tutorial-target={tutorialTargetPrefix ? `${tutorialTargetPrefix}-kanban` : undefined}
-        style={{ flex: 1, display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', minHeight: 0 }}
+        className={styles.board}
       >
-        {/* To Do — grey */}
+        {/* To Do — neutrální */}
         <KanbanColumn
           title="To Do"
           count={state.backlog.length}
-          borderRight
-          headerBg="var(--surface-page)"
+          flow="todo"
         >
           {state.backlog.map(f => (
             <FeatureCard key={f.id} feature={f} compact neutral maxWork={maxWork} />
@@ -123,12 +116,11 @@ export function ComparePanel({
           {state.backlog.length === 0 && <EmptyNote>Backlog empty</EmptyNote>}
         </KanbanColumn>
 
-        {/* In Progress — blue tint */}
+        {/* In Progress — fialová (accent) */}
         <KanbanColumn
           title="In Progress"
           count={state.inProgress.length}
-          borderRight
-          headerBg="oklch(95% 0.03 230)"
+          flow="doing"
         >
           {state.inProgress.map(f => (
             <FeatureCard key={f.id} feature={f} compact team={state.team} maxWork={maxWork} />
@@ -136,21 +128,19 @@ export function ComparePanel({
           {state.inProgress.length === 0 && <EmptyNote>Nothing in flight</EmptyNote>}
         </KanbanColumn>
 
-        {/* Done — green tint */}
+        {/* Done — zelená (done) */}
         {/* Počet všech hotových features, ne jen zobrazených karet (feat-001, Příklad 6) */}
         <KanbanColumn
           title="Done"
           count={doneCount(state)}
-          headerBg="oklch(95% 0.03 150)"
+          flow="done"
         >
           {state.done.map(f => {
             const lt = (f.finishedAt ?? 0) - f.createdAt
             return (
               <div key={f.id}>
                 <FeatureCard feature={f} compact maxWork={maxWork} />
-                <div style={{ textAlign: 'right', fontSize: 9, fontWeight: 700, color: 'var(--done)', marginTop: 1, paddingRight: 2 }}>
-                  {lt.toFixed(1)}s
-                </div>
+                <div className={styles.leadTime}>{lt.toFixed(1)}s</div>
               </div>
             )
           })}
@@ -338,43 +328,29 @@ function MetricTile({ label, value, delta, vsLabel, tooltip, deltaLabel, bothFin
   )
 }
 
+/** Props jednoho sloupce Kanbanu. */
 interface KanbanColumnProps {
+  /** Nadpis sloupce. */
   title: string
+  /** Počet položek ve sloupci. */
   count: number
-  borderRight?: boolean
-  /** Background colour of the sticky column header. */
-  headerBg?: string
+  /** Stav toku sloupce — určuje barvu hlavičky (To Do neutrální, In Progress accent, Done done). */
+  flow: 'todo' | 'doing' | 'done'
   children: React.ReactNode
 }
 
-/** One column of the Kanban board with a colour-coded sticky header and scrollable item list. */
-function KanbanColumn({ title, count, borderRight, headerBg, children }: KanbanColumnProps) {
+/** One column of the Kanban board with a flow-state header and scrollable item list. */
+function KanbanColumn({ title, count, flow, children }: KanbanColumnProps) {
+  const headClass = [styles.columnHead, flow === 'doing' && styles.doing, flow === 'done' && styles.done].filter(Boolean).join(' ')
   return (
-    <div style={{
-      display: 'flex', flexDirection: 'column', minHeight: 0,
-      borderRight: borderRight ? '1px solid var(--line)' : undefined,
-    }}>
-      <div style={{
-        padding: '6px 10px', borderTop: '1px solid var(--line)',
-        background: headerBg ?? 'var(--surface-page)', flexShrink: 0,
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-      }}>
-        <span style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5, color: 'var(--ink-3)' }}>
-          {title}
-        </span>
-        <span style={{ fontSize: 10, color: 'var(--ink-3)', fontVariantNumeric: 'tabular-nums' }}>{count}</span>
+    <div className={styles.column}>
+      <div className={headClass}>
+        <span>{title}</span>
+        <span className={styles.count}>{count}</span>
       </div>
-      <div style={{ flex: 1, overflowY: 'auto', padding: '5px 8px', display: 'flex', flexDirection: 'column', gap: 3 }}>
-        {children}
-      </div>
+      <div className={styles.columnBody}>{children}</div>
     </div>
   )
 }
 
-function EmptyNote({ children }: { children: React.ReactNode }) {
-  return (
-    <div style={{ fontSize: 10, color: 'var(--ink-3)', fontStyle: 'italic', padding: '4px 0' }}>
-      {children}
-    </div>
-  )
-}
+
