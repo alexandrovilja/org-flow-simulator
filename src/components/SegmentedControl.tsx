@@ -15,8 +15,8 @@ interface SegmentedOption<T extends string> {
 interface SegmentedControlProps<T extends string> {
   /** The two to four options to display, left to right */
   options: SegmentedOption<T>[]
-  /** Currently active value */
-  value: T
+  /** Currently active value; `null` = no segment is pressed (e.g. a hand-edited team that no preset matches) */
+  value: T | null
   /** Called when the user picks a different option */
   onChange: (value: T) => void
   /** Tooltip text shown on hover as a floating panel */
@@ -34,15 +34,16 @@ interface SegmentedControlProps<T extends string> {
  * solid `ink` fill. Each segment is a button with `aria-pressed`, the whole control a labelled group.
  *
  * @param options - two to four choices, each with a value, display label and optional title
- * @param value   - the currently selected value
+ * @param value   - the currently selected value, or null for none
  * @param onChange - callback fired with the newly selected value
  * @param hint    - optional description shown as a floating tooltip on hover
  * @param disabled - optional; dims the control and ignores clicks
  * @param tone    - optional; `bar` for the dark top bar
  */
 export function SegmentedControl<T extends string>({ options, value, onChange, hint, disabled = false, tone = 'default' }: SegmentedControlProps<T>) {
-  // Unknown value falls back to the first segment, so exactly one segment is always pressed
-  const activeIndex = Math.max(0, options.findIndex(o => o.value === value))
+  // null = nothing pressed on purpose (-1 matches no segment); an unknown value falls back to the
+  // first segment, so a stale value never leaves the control looking empty
+  const activeIndex = value === null ? -1 : Math.max(0, options.findIndex(o => o.value === value))
   const [visible, setVisible] = useState(false)
 
   return (

@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import { Archivo, JetBrains_Mono, Kalam } from 'next/font/google'
+import { THEME_INIT_SCRIPT } from '@/lib/themeInitScript'
 import './globals.css'
 
 export const metadata: Metadata = {
@@ -37,7 +38,14 @@ const kalam = Kalam({
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${archivo.variable} ${jetbrainsMono.variable} ${kalam.variable}`}>
+    // suppressHydrationWarning: THEME_INIT_SCRIPT nastaví data-theme na <html> dřív, než React
+    // stránku převezme, takže se atribut liší od HTML ze serveru — to je záměr, ne chyba
+    <html lang="en" className={`${archivo.variable} ${jetbrainsMono.variable} ${kalam.variable}`} suppressHydrationWarning>
+      <head>
+        {/* Téma před prvním vykreslením (feat-021): bez probliknutí světlé stránky v tmavém režimu.
+            Jediná výjimka z pravidla „localStorage jen přes storage.ts“ — viz themeInitScript.ts */}
+        <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
+      </head>
       <body>{children}</body>
     </html>
   )

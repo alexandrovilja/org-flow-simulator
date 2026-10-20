@@ -88,6 +88,21 @@
   color: var(--ink-2);
 }
 
+/* Hlavní akce na antracitové kartě tutoriálu: bílá výplň, text v barvě lišty */
+.light {
+  background: var(--ink-inverse);
+  border-color: var(--ink-inverse);
+  color: var(--surface-bar);
+}
+.light:hover:not(:disabled) {
+  background: var(--ink-on-bar);
+  border-color: var(--ink-on-bar);
+}
+.light:focus-visible {
+  outline: var(--border-active) solid var(--focus-on-bar);
+  outline-offset: 2px;
+}
+
 /* Sekundární tlačítko na antracitové liště */
 .secondary.onBar {
   background: transparent;

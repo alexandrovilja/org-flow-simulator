@@ -3,6 +3,8 @@
 import { useState, useEffect, useRef } from 'react'
 import type { RoleMeta } from '@/types/simulation'
 import { ROLE_COLOR_SLOTS, type RoleColorSlot } from '@/simulation/roleColors'
+import { Button } from '@/components/Button'
+import styles from './RoleSettings.module.css'
 
 /** Maximální povolená úroveň specializace (min je vždy 1). */
 const MAX_LEVEL = 5
@@ -17,10 +19,15 @@ export const COLOR_PRESETS: RoleColorSlot[] = ROLE_COLOR_SLOTS
 /** Sentinelová hodnota openPickerId pro color picker formuláře nové specializace. */
 const NEW_ROLE_PICKER_ID = '__new__'
 
+/** Props editoru specializací. */
 interface RoleSettingsProps {
+  /** Aktuální specializace podle ID role. */
   roleConfig: Record<string, RoleMeta>
+  /** Změna jedné specializace (název, barva, fáze, povinnost). */
   onChange: (roleId: string, updates: Partial<RoleMeta>) => void
+  /** Přidání nové specializace s názvem a barvou. */
   onAdd: (label: string, color: string) => void
+  /** Smazání specializace po potvrzení. */
   onDelete: (roleId: string) => void
 }
 
@@ -28,6 +35,11 @@ interface RoleSettingsProps {
  * Panel pro konfiguraci specializací týmu.
  * Každá specializace má editovatelný název, floating color picker, úroveň fáze
  * a příznak povinnosti. Lze přidávat nové a mazat existující specializace.
+ * Vzhled podle design systému Org Flow (feat-021): popisky v mono stylu „label“, nic pod 10 px,
+ * barvy jen z tokenů; inline zůstává jen barva role (je to data).
+ *
+ * @param props - Specializace a callbacky změny, přidání a smazání
+ * @returns Vykreslený editor
  */
 export function RoleSettings({ roleConfig, onChange, onAdd, onDelete }: RoleSettingsProps) {
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null)
@@ -85,20 +97,38 @@ export function RoleSettings({ roleConfig, onChange, onAdd, onDelete }: RoleSett
     if (next) setNewColor(next.color)
   }
 
+  /**
+   * Plovoucí výběr barvy: osm slotů rolí v mřížce, vybraný slot má rámeček a ✓.
+   *
+   * @param selected - Barva, která je teď zvolená
+   * @param onPick - Volá se se zvolenou barvou
+   * @param forNewRole - Výběr patří formuláři nové role (větší čtverec → panel níž)
+   */
+  const colorPicker = (selected: string, onPick: (color: string) => void, forNewRole = false) => (
+    <div className={`${styles.picker} ${forNewRole ? styles.pickerBelowNew : ''}`}>
+      {COLOR_PRESETS.map(p => (
+        <button
+          key={p.color}
+          type="button"
+          title={p.name}
+          onClick={() => onPick(p.color)}
+          className={[styles.pickerSwatch, selected === p.color && styles.swatchSelected].filter(Boolean).join(' ')}
+          style={{ background: p.color }}
+        >
+          {selected === p.color && <span className={styles.check}>✓</span>}
+        </button>
+      ))}
+    </div>
+  )
+
   return (
-    <div ref={containerRef} style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+    <div ref={containerRef} className={styles.root}>
       {/* Záhlaví sloupců */}
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: '24px 1fr 72px 40px 20px',
-        gap: 6, alignItems: 'center',
-        paddingBottom: 4,
-        borderBottom: '1px solid var(--line)',
-      }}>
-        <span style={{ fontSize: 9, color: 'var(--ink-3)', textTransform: 'uppercase', letterSpacing: 0.5 }}>Col.</span>
-        <span style={{ fontSize: 9, color: 'var(--ink-3)', textTransform: 'uppercase', letterSpacing: 0.5 }}>Name</span>
-        <span style={{ fontSize: 9, color: 'var(--ink-3)', textTransform: 'uppercase', letterSpacing: 0.5, textAlign: 'center' }}>Phase</span>
-        <span style={{ fontSize: 9, color: 'var(--ink-3)', textTransform: 'uppercase', letterSpacing: 0.5, textAlign: 'center' }}>Req.</span>
+      <div className={`${styles.grid} ${styles.head}`}>
+        <span className={styles.colLabel}>Col.</span>
+        <span className={styles.colLabel}>Name</span>
+        <span className={`${styles.colLabel} ${styles.center}`}>Phase</span>
+        <span className={`${styles.colLabel} ${styles.center}`}>Req.</span>
         <span />
       </div>
 
@@ -109,67 +139,25 @@ export function RoleSettings({ roleConfig, onChange, onAdd, onDelete }: RoleSett
         const pickerOpen = openPickerId === roleId
 
         return (
-          <div key={roleId} style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: '24px 1fr 72px 40px 20px',
-              gap: 6, alignItems: 'center',
-            }}>
-              {/* Barevný čtverec — klik otevře / zavře floating picker */}
-              <div style={{ position: 'relative' }}>
+          <div key={roleId} className={styles.row}>
+            <div className={styles.grid}>
+              {/* Barevný čtverec — klik otevře / zavře floating picker; barva role je inline (data) */}
+              <div className={styles.swatchWrap}>
                 <button
+                  type="button"
                   onClick={() => setOpenPickerId(pickerOpen ? null : roleId)}
                   title="Change color"
-                  style={{
-                    width: 20, height: 20,
-                    borderRadius: 4,
-                    background: meta.color,
-                    border: pickerOpen ? '2px solid var(--ink)' : '2px solid transparent',
-                    cursor: 'pointer', padding: 0, flexShrink: 0,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  }}
+                  className={[styles.swatch, pickerOpen && styles.swatchSelected].filter(Boolean).join(' ')}
+                  style={{ background: meta.color }}
                 >
                   {/* Malá šipka signalizující, že je klikatelné */}
-                  <span style={{ fontSize: 7, color: 'rgba(255,255,255,0.7)', lineHeight: 1 }}>▾</span>
+                  <span className={styles.caret}>▾</span>
                 </button>
 
-                {/* Floating color picker panel */}
-                {pickerOpen && (
-                  <div style={{
-                    position: 'absolute', top: 26, left: 0, zIndex: 100,
-                    background: 'var(--surface-panel)',
-                    border: '1px solid var(--line)',
-                    borderRadius: 6,
-                    padding: 8,
-                    display: 'grid', gridTemplateColumns: 'repeat(8, 1fr)', gap: 5,
-                    boxShadow: '0 4px 12px rgba(0,0,0,0.12)',
-                  }}>
-                    {COLOR_PRESETS.map(p => (
-                      <button
-                        key={p.color}
-                        title={p.name}
-                        onClick={() => {
-                          onChange(roleId, { color: p.color })
-                          setOpenPickerId(null)
-                        }}
-                        style={{
-                          width: 22, height: 22,
-                          borderRadius: 5,
-                          background: p.color,
-                          border: meta.color === p.color
-                            ? '2px solid var(--ink)'
-                            : '2px solid transparent',
-                          cursor: 'pointer', padding: 0,
-                          display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        }}
-                      >
-                        {meta.color === p.color && (
-                          <span style={{ fontSize: 10, color: 'white', fontWeight: 700 }}>✓</span>
-                        )}
-                      </button>
-                    ))}
-                  </div>
-                )}
+                {pickerOpen && colorPicker(meta.color, color => {
+                  onChange(roleId, { color })
+                  setOpenPickerId(null)
+                })}
               </div>
 
               {/* Název */}
@@ -177,78 +165,66 @@ export function RoleSettings({ roleConfig, onChange, onAdd, onDelete }: RoleSett
                 type="text"
                 value={meta.label}
                 onChange={e => onChange(roleId, { label: e.target.value })}
-                style={{
-                  fontSize: 11, fontFamily: 'inherit',
-                  border: '1px solid var(--line)',
-                  borderRadius: 3, padding: '2px 5px',
-                  background: 'var(--surface-page)', color: 'var(--ink)',
-                  width: '100%', minWidth: 0,
-                }}
+                className={styles.input}
               />
 
               {/* Úroveň fáze — stepper */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+              <div className={styles.stepper}>
                 <button
+                  type="button"
                   onClick={() => onChange(roleId, { level: Math.max(1, meta.level - 1) })}
                   disabled={meta.level <= 1}
-                  style={stepperBtn}
+                  className={styles.stepButton}
                 >−</button>
-                <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--ink)', minWidth: 16, textAlign: 'center' }}>
-                  {meta.level}
-                </span>
+                <span className={styles.level}>{meta.level}</span>
                 <button
+                  type="button"
                   onClick={() => onChange(roleId, { level: Math.min(MAX_LEVEL, meta.level + 1) })}
                   disabled={meta.level >= MAX_LEVEL}
-                  style={stepperBtn}
+                  className={styles.stepButton}
                 >+</button>
               </div>
 
-              {/* Povinná role */}
-              <div style={{ display: 'flex', justifyContent: 'center' }}>
+              {/* Povinná role; checkbox je zbarvený barvou role (inline, je to data) */}
+              <div className={styles.cell}>
                 <input
                   type="checkbox"
                   checked={meta.required}
                   onChange={e => onChange(roleId, { required: e.target.checked })}
                   title={meta.required ? 'Required in every backlog item' : 'Optional'}
-                  style={{ cursor: 'pointer', width: 13, height: 13, accentColor: meta.color }}
+                  className={styles.checkbox}
+                  style={{ accentColor: meta.color }}
                 />
               </div>
 
               {/* Smazání */}
-              <div style={{ display: 'flex', justifyContent: 'center' }}>
+              <div className={styles.cell}>
                 {canDelete && (
                   <button
+                    type="button"
                     onClick={() => setConfirmDelete(roleId)}
                     title={`Delete ${meta.label}`}
-                    style={{
-                      background: 'transparent', border: 'none',
-                      color: 'var(--ink-3)', fontSize: 12,
-                      cursor: 'pointer', padding: 0, lineHeight: 1,
-                    }}
+                    className={styles.deleteButton}
                   >🗑</button>
                 )}
               </div>
             </div>
 
-            {/* Inline potvrzení smazání */}
+            {/* Inline potvrzení smazání — v barvách reworku, protože se zahodí práce */}
             {isConfirming && (
-              <div style={{
-                display: 'flex', alignItems: 'center', gap: 6,
-                padding: '5px 8px',
-                background: 'oklch(97% 0.02 25)',
-                border: '1px solid oklch(85% 0.08 25)',
-                borderRadius: 4, fontSize: 10, color: 'var(--ink-2)',
-              }}>
-                <span style={{ flex: 1 }}>
+              <div className={styles.confirm}>
+                <span className={styles.confirmText}>
                   Delete <strong>{meta.label}</strong>? Tasks requiring it will be removed.
                 </span>
                 <button
+                  type="button"
                   onClick={() => { onDelete(roleId); setConfirmDelete(null) }}
-                  style={{ ...actionBtn, background: 'oklch(50% 0.15 25)', color: 'white' }}
+                  className={`${styles.smallButton} ${styles.danger}`}
                 >Delete</button>
                 <button
+                  type="button"
                   onClick={() => setConfirmDelete(null)}
-                  style={{ ...actionBtn, background: 'var(--line)', color: 'var(--ink-2)' }}
+                  className={`${styles.smallButton} ${styles.neutral}`}
                 >Cancel</button>
               </div>
             )}
@@ -257,69 +233,28 @@ export function RoleSettings({ roleConfig, onChange, onAdd, onDelete }: RoleSett
       })}
 
       {/* Formulář pro přidání nové specializace */}
-      <div style={{
-        display: 'flex', flexDirection: 'column', gap: 6,
-        marginTop: 4, paddingTop: 8,
-        borderTop: '1px solid var(--line)',
-      }}>
-        <span style={{ fontSize: 9, color: 'var(--ink-3)', textTransform: 'uppercase', letterSpacing: 0.5 }}>
-          Add specialization
-        </span>
+      <div className={styles.addSection}>
+        <span className={styles.colLabel}>Add specialization</span>
 
-        <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+        <div className={styles.addRow}>
           {/* Barevný čtverec nové role s floating pickerem */}
-          <div style={{ position: 'relative', flexShrink: 0 }}>
+          <div className={styles.swatchWrap}>
             <button
+              type="button"
               onClick={() => setOpenPickerId(
                 openPickerId === NEW_ROLE_PICKER_ID ? null : NEW_ROLE_PICKER_ID
               )}
               title="Pick color"
-              style={{
-                width: 28, height: 28,
-                borderRadius: 5,
-                background: newColor,
-                border: openPickerId === NEW_ROLE_PICKER_ID
-                  ? '2px solid var(--ink)'
-                  : '2px solid transparent',
-                cursor: 'pointer', padding: 0,
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-              }}
+              className={[styles.swatch, styles.swatchLarge, openPickerId === NEW_ROLE_PICKER_ID && styles.swatchSelected].filter(Boolean).join(' ')}
+              style={{ background: newColor }}
             >
-              <span style={{ fontSize: 8, color: 'rgba(255,255,255,0.7)' }}>▾</span>
+              <span className={styles.caret}>▾</span>
             </button>
 
-            {openPickerId === NEW_ROLE_PICKER_ID && (
-              <div style={{
-                position: 'absolute', top: 34, left: 0, zIndex: 100,
-                background: 'var(--surface-panel)',
-                border: '1px solid var(--line)',
-                borderRadius: 6, padding: 8,
-                display: 'grid', gridTemplateColumns: 'repeat(8, 1fr)', gap: 5,
-                boxShadow: '0 4px 12px rgba(0,0,0,0.12)',
-              }}>
-                {COLOR_PRESETS.map(p => (
-                  <button
-                    key={p.color}
-                    title={p.name}
-                    onClick={() => { setNewColor(p.color); setOpenPickerId(null) }}
-                    style={{
-                      width: 22, height: 22,
-                      borderRadius: 5,
-                      background: p.color,
-                      border: newColor === p.color
-                        ? '2px solid var(--ink)'
-                        : '2px solid transparent',
-                      cursor: 'pointer', padding: 0,
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    }}
-                  >
-                    {newColor === p.color && (
-                      <span style={{ fontSize: 10, color: 'white', fontWeight: 700 }}>✓</span>
-                    )}
-                  </button>
-                ))}
-              </div>
-            )}
+            {openPickerId === NEW_ROLE_PICKER_ID && colorPicker(newColor, color => {
+              setNewColor(color)
+              setOpenPickerId(null)
+            }, true)}
           </div>
 
           <input
@@ -328,49 +263,20 @@ export function RoleSettings({ roleConfig, onChange, onAdd, onDelete }: RoleSett
             onChange={e => { setNewLabel(e.target.value); setAddError('') }}
             onKeyDown={e => { if (e.key === 'Enter') handleAdd() }}
             placeholder="Name…"
-            style={{
-              flex: 1, minWidth: 0,
-              fontSize: 11, fontFamily: 'inherit',
-              border: `1px solid ${addError ? 'oklch(60% 0.18 25)' : 'var(--line)'}`,
-              borderRadius: 3, padding: '3px 6px',
-              background: 'var(--surface-page)', color: 'var(--ink)',
-            }}
+            aria-invalid={addError ? true : undefined}
+            className={[styles.input, styles.addInput, addError && styles.inputError].filter(Boolean).join(' ')}
           />
-          <button
-            onClick={handleAdd}
-            style={{
-              ...actionBtn,
-              background: 'var(--ink)', color: 'white',
-              padding: '4px 10px', fontSize: 11,
-            }}
-          >Add</button>
+          <Button variant="strong" onClick={handleAdd}>Add</Button>
         </div>
 
-        {addError && (
-          <span style={{ fontSize: 10, color: 'oklch(50% 0.18 25)' }}>{addError}</span>
-        )}
+        {addError && <span className={styles.error}>{addError}</span>}
       </div>
 
       {/* Nápověda */}
-      <p style={{ margin: 0, fontSize: 9, color: 'var(--ink-3)', lineHeight: 1.5 }}>
+      <p className={styles.help}>
         <strong>Phase:</strong> 1 = first, 2 = second, … Same phase = parallel.{' '}
         <strong>Req.:</strong> always in every item (takes effect on regenerate).
       </p>
     </div>
   )
-}
-
-const stepperBtn: React.CSSProperties = {
-  width: 18, height: 18,
-  display: 'flex', alignItems: 'center', justifyContent: 'center',
-  border: '1px solid var(--line)', borderRadius: 3,
-  background: 'var(--surface-page)', color: 'var(--ink-2)',
-  fontSize: 13, lineHeight: 1, cursor: 'pointer',
-  padding: 0,
-}
-
-const actionBtn: React.CSSProperties = {
-  border: 'none', borderRadius: 3,
-  padding: '2px 7px', fontSize: 10,
-  cursor: 'pointer', fontFamily: 'inherit', fontWeight: 600,
 }

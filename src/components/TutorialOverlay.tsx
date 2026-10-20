@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { TUTORIAL_STEPS } from '@/lib/tutorialSteps'
 import type { TutorialMode } from '@/types/tutorial'
+import { Button } from '@/components/Button'
 import styles from './TutorialOverlay.module.css'
 
 /** Props for the TutorialOverlay component. */
@@ -43,14 +44,6 @@ const CARD_H = 240
 const GAP = 20
 /** Minimum distance from any viewport edge. */
 const EDGE = 16
-/** Fully opaque dark colour for the outer backdrop — covers everything outside the focus. */
-const DARK = 'rgba(10, 10, 16, 0.76)'
-/**
- * Lighter dim colour for the inner backdrop — covers the rest of the parent panel
- * (when a parentTargetId is set), so the user retains context while focusing on the
- * specific sub-element. Noticeably lighter than DARK so the panel structure is visible.
- */
-const INNER_DIM = 'rgba(10, 10, 16, 0.50)'
 
 /**
  * Calculates where to place the tutorial card so it sits adjacent to the spotlight.
@@ -208,9 +201,9 @@ export function TutorialOverlay({ mode, onComplete }: TutorialOverlayProps) {
       <p className={styles.description}>{currentStep.description}</p>
       <div className={styles.actions}>
         {isLastStep ? (
-          <button className={styles.nextButton} onClick={onComplete}>Finish</button>
+          <Button variant="light" onClick={onComplete}>Finish</Button>
         ) : (
-          <button className={styles.nextButton} onClick={handleNext}>Next →</button>
+          <Button variant="light" onClick={handleNext}>Next →</Button>
         )}
       </div>
     </div>
@@ -226,48 +219,41 @@ export function TutorialOverlay({ mode, onComplete }: TutorialOverlayProps) {
   }
 
   // Outer cutout is based on the parent panel (if present) or the child element.
-  // Everything outside this rect gets the fully opaque DARK backdrop.
+  // Everything outside this rect gets the darker `dim` backdrop.
   const outer = parentSpotlight ?? spotlight
 
   const { top: ot, left: ol, width: ow, height: oh, vw, vh } = outer
   const { top: ct, left: cl, width: cw, height: ch } = spotlight
 
   return (
-    <div
-      data-testid="tutorial-overlay"
-      style={{ position: 'fixed', inset: 0, zIndex: 900, pointerEvents: 'auto' }}
-    >
-      {/* ── Outer backdrop (DARK) — covers everything outside the outer spotlight ── */}
+    <div data-testid="tutorial-overlay" className={styles.layer}>
+      {/* ── Outer backdrop (dim) — covers everything outside the outer spotlight ── */}
 
       {ot > 0 && (
-        <div style={{
+        <div className={styles.dim} style={{
           position: 'fixed', top: 0, left: 0, right: 0, height: ot,
-          background: DARK, pointerEvents: 'none',
         }} />
       )}
 
       {ot + oh < vh && (
-        <div style={{
+        <div className={styles.dim} style={{
           position: 'fixed', top: ot + oh, left: 0, right: 0, bottom: 0,
-          background: DARK, pointerEvents: 'none',
         }} />
       )}
 
       {ol > 0 && (
-        <div style={{
+        <div className={styles.dim} style={{
           position: 'fixed', top: ot, left: 0, width: ol, height: oh,
-          background: DARK, pointerEvents: 'none',
         }} />
       )}
 
       {ol + ow < vw && (
-        <div style={{
+        <div className={styles.dim} style={{
           position: 'fixed', top: ot, left: ol + ow, right: 0, height: oh,
-          background: DARK, pointerEvents: 'none',
         }} />
       )}
 
-      {/* ── Inner backdrop (INNER_DIM) — covers the rest of the parent panel ──
+      {/* ── Inner backdrop (dimInner) — covers the rest of the parent panel ──
           Only rendered when parentSpotlight is set (two-level steps).
           Fills the "donut" between parent panel and child spotlight so the user
           can see the panel structure exists but stays focused on the sub-element. */}
@@ -281,30 +267,26 @@ export function TutorialOverlay({ mode, onComplete }: TutorialOverlayProps) {
           <>
             {/* Above child within parent */}
             {topH > 0 && (
-              <div style={{
+              <div className={styles.dimInner} style={{
                 position: 'fixed', top: ot, left: ol, width: ow, height: topH,
-                background: INNER_DIM, pointerEvents: 'none',
               }} />
             )}
             {/* Below child within parent */}
             {bottomH > 0 && (
-              <div style={{
+              <div className={styles.dimInner} style={{
                 position: 'fixed', top: ct + ch, left: ol, width: ow, height: bottomH,
-                background: INNER_DIM, pointerEvents: 'none',
               }} />
             )}
             {/* Left of child within parent (same vertical band as child) */}
             {leftW > 0 && (
-              <div style={{
+              <div className={styles.dimInner} style={{
                 position: 'fixed', top: ct, left: ol, width: leftW, height: ch,
-                background: INNER_DIM, pointerEvents: 'none',
               }} />
             )}
             {/* Right of child within parent (same vertical band as child) */}
             {rightW > 0 && (
-              <div style={{
+              <div className={styles.dimInner} style={{
                 position: 'fixed', top: ct, left: cl + cw, width: rightW, height: ch,
-                background: INNER_DIM, pointerEvents: 'none',
               }} />
             )}
           </>

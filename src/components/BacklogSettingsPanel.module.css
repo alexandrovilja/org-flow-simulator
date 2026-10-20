@@ -1,0 +1,175 @@
+/* Levý sloupec Advanced a Cash Flow: backlog nahoře, nastavení dole (design system Org Flow, feat-021). */
+.panel {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  background: var(--surface-panel);
+  border-right: var(--border-hair) solid var(--line);
+}
+
+/* Horní polovina: seznam backlogu, roluje se sám */
+.listArea {
+  flex: 1 1 50%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  border-bottom: var(--border-hair) solid var(--line);
+}
+
+.list {
+  flex: 1;
+  overflow: auto;
+  padding: var(--space-8) var(--space-12) var(--space-12);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
+/* Spodní část: nastavení; relative kvůli potvrzovacímu dialogu přes celou plochu */
+.settings {
+  position: relative;
+  flex: 0 0 auto;
+  padding: var(--space-12) 14px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-12);
+  background: var(--surface-panel);
+}
+
+/* Nadpis „Settings“ ve stylu „eyebrow“ jako hlavičky panelů */
+.title {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  line-height: 16px;
+  font-weight: 500;
+  letter-spacing: 1.1px;
+  text-transform: uppercase;
+  color: var(--ink-2);
+}
+
+.presetSection {
+  padding-bottom: 10px;
+  border-bottom: var(--border-hair) solid var(--line);
+}
+
+/* Popisek pole (Unit preset, Revenue curve, Coordination overhead): styl „label“ */
+.fieldLabel {
+  margin-bottom: var(--space-6);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  line-height: 12px;
+  font-weight: 600;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+
+.presetRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-8);
+}
+
+/* Štítek „custom“, když tým ručně upravený neodpovídá žádnému presetu */
+.customBadge {
+  margin-left: auto;
+  padding: 1px var(--space-6);
+  border: var(--border-hair) solid var(--line-control);
+  border-radius: var(--radius-xs);
+  background: var(--surface-page);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  line-height: 12px;
+  font-weight: 600;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+
+/* Jedna sekce akordeonu (♻ Backlog, ⚙ Specializations, 👥 Team) */
+.accordion {
+  padding-top: var(--space-8);
+  border-top: var(--border-hair) solid var(--line);
+}
+
+/* Hlavička akordeonu: hranatý pruh přes celou šířku */
+.accordionButton {
+  width: 100%;
+  height: var(--size-control);
+  padding: 0 var(--space-8);
+  display: flex;
+  align-items: center;
+  border: var(--border-hair) solid var(--line);
+  border-radius: var(--radius-none);
+  background: var(--surface-subtle);
+  color: var(--ink-2);
+  font-family: var(--font-sans);
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.accordionButton:hover {
+  border-color: var(--line-control);
+  color: var(--ink);
+}
+
+.accordionOpen {
+  border-color: var(--line-control);
+  background: var(--surface-page);
+  color: var(--ink);
+  font-weight: 700;
+}
+
+.accordionBody {
+  margin-top: var(--space-8);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-12);
+}
+
+.fileRow {
+  display: flex;
+  gap: var(--space-6);
+}
+
+.fileButton {
+  flex: 1;
+}
+
+.fullWidth {
+  width: 100%;
+}
+
+/* Výsledek importu XLS: úspěch v barvách done, chyba v barvách reworku */
+.importMsg {
+  padding: 5px var(--space-8);
+  border: var(--border-hair) solid;
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  line-height: 16px;
+}
+
+.importOk {
+  background: var(--done-soft);
+  border-color: var(--done);
+  color: var(--done);
+}
+
+.importError {
+  background: var(--rework-soft);
+  border-color: var(--rework);
+  color: var(--rework);
+}
+
+/* Poznámka pod zamčeným přepínačem */
+.note {
+  margin-top: var(--space-4);
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--ink-3);
+}

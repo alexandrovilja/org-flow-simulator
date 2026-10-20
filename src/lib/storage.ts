@@ -9,10 +9,14 @@
  *
  * Preset:
  *   'unit-preset'          — active preset id: 'teams' | 'people' | 'custom'
+ *
+ * Theme (feat-021):
+ *   'theme'                — the user's chosen colour theme: 'light' | 'dark'
  */
 
 import type { TutorialMode } from '@/types/tutorial'
 import type { ActivePresetId } from '@/types/simulation'
+import type { ThemeName } from '@/types/theme'
 
 // ── Key constants ─────────────────────────────────────────────────────────────
 
@@ -27,6 +31,13 @@ const TUTORIAL_SEEN_MODES_KEY = 'tutorial-seen-modes'
 
 /** localStorage key that records the active unit preset ('teams' | 'people' | 'custom'). */
 const ACTIVE_PRESET_KEY = 'unit-preset'
+
+/**
+ * localStorage key with the user's chosen colour theme ('light' | 'dark').
+ * Exported because the inline THEME_INIT_SCRIPT (src/lib/themeInitScript.ts) must read the same key
+ * before React loads — the one deliberate exception to "localStorage only through this module".
+ */
+export const THEME_KEY = 'theme'
 
 // ── Tutorial: completed flag ───────────────────────────────────────────────────
 
@@ -130,4 +141,27 @@ export function setActivePresetId(id: ActivePresetId): void {
  */
 export function resetActivePresetId(): void {
   localStorage.removeItem(ACTIVE_PRESET_KEY)
+}
+
+// ── Theme (feat-021) ──────────────────────────────────────────────────────────
+
+/**
+ * Returns the colour theme the user picked with the theme toggle, if any.
+ * Without a stored choice the app follows the system setting (prefers-color-scheme).
+ *
+ * @returns 'light' or 'dark', or null when nothing valid is stored
+ */
+export function loadThemePreference(): ThemeName | null {
+  const stored = localStorage.getItem(THEME_KEY)
+  // Anything else (old or hand-edited value) is ignored so the system setting applies again
+  return stored === 'light' || stored === 'dark' ? stored : null
+}
+
+/**
+ * Remembers the colour theme the user picked, so it survives a page reload.
+ *
+ * @param theme - The chosen theme
+ */
+export function saveThemePreference(theme: ThemeName): void {
+  localStorage.setItem(THEME_KEY, theme)
 }

@@ -1,60 +1,63 @@
-/* Wrapper keeps the tooltip positioned relative to the ? button. */
+/* Nápověda „?“ s tooltipem na antracitu (design system Org Flow, feat-021). */
+
+/* Obal drží tooltip v pozici vůči tlačítku */
 .root {
   position: relative;
   display: inline-flex;
   align-items: center;
 }
 
-/* The small circular ? button — unobtrusive but reachable. */
+/* Malé kulaté „?“ — nenápadné, ale dosažitelné */
 .button {
   width: 16px;
   height: 16px;
-  border-radius: 50%;
-  border: 1px solid var(--line-2);
-  background: var(--surface-page);
-  color: var(--ink-3);
-  font-size: 10px;
-  font-weight: 700;
-  line-height: 1;
-  cursor: pointer;
+  flex-shrink: 0;
   padding: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  flex-shrink: 0;
-  transition: border-color 0.15s, color 0.15s, background 0.15s;
-}
-
-.button:hover,
-.button:focus-visible {
-  border-color: var(--ink-3);
-  color: var(--ink-2);
+  border: var(--border-hair) solid var(--line-control);
+  border-radius: var(--radius-pill);
   background: var(--surface-panel);
-  outline: none;
+  color: var(--ink-3);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  line-height: 1;
+  font-weight: 700;
+  cursor: help;
+  transition: border-color 0.15s ease, color 0.15s ease;
 }
 
-/* Tooltip card — appears above the button, centered horizontally. */
+.button:hover {
+  color: var(--ink);
+  border-color: var(--ink-3);
+}
+
+/* Tooltip nad tlačítkem, vodorovně na středu: antracit jako lišta, styl „body-sm“ */
 .tooltip {
   position: absolute;
   bottom: calc(100% + 8px);
   left: 50%;
   transform: translateX(-50%);
-  background: var(--ink);
-  color: white;
-  font-size: 11px;
-  line-height: 1.5;
-  padding: 7px 10px;
-  border-radius: 6px;
+  z-index: var(--z-tooltip);
   width: 220px;
+  padding: var(--space-8) 10px;
+  border-radius: var(--radius-sm);
+  background: var(--surface-bar);
+  color: var(--ink-on-bar);
+  box-shadow: var(--shadow-pop);
+  font-family: var(--font-sans);
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 400;
+  letter-spacing: normal;
+  text-transform: none;
+  text-align: left;
   white-space: normal;
   pointer-events: none;
-  z-index: 1000;
-
-  /* Subtle entrance shadow */
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
 }
 
-/* Small arrow pointing down from the tooltip to the button. */
+/* Šipka z tooltipu dolů k tlačítku */
 .tooltip::after {
   content: '';
   position: absolute;
@@ -62,5 +65,5 @@
   left: 50%;
   transform: translateX(-50%);
   border: 5px solid transparent;
-  border-top-color: var(--ink);
+  border-top-color: var(--surface-bar);
 }

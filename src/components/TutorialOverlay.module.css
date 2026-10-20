@@ -1,41 +1,62 @@
 /**
- * Tutorial spotlight overlay styles.
+ * Tutorial spotlight overlay styles (design system Org Flow, feat-021).
  *
- * Positioning of the card is handled entirely by inline styles in TutorialOverlay.tsx —
- * the card is placed adjacent to the spotlighted element via JavaScript measurement.
- * This file only controls the card's visual appearance (colours, spacing, typography).
- *
- * Visual design: dark card (high contrast against the spotlit panels) + animated pulse
- * ring that frames the spotlighted element — making the "card ↔ panel" connection clear.
+ * Positioning of the card, backdrop pieces and ring is handled by inline styles in
+ * TutorialOverlay.tsx — they are measured from the spotlighted element. This file controls
+ * the look: an anthracite card like the top bar, a dimmed backdrop and a pulsing ring.
+ * Layers: backdrop `z-tutorial-backdrop` < ring `z-tutorial-ring` < card `z-tutorial-card`.
  */
 
 /* Full-screen fallback backdrop — shown while the target element is being located. */
 .backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(10, 10, 16, 0.76);
-  z-index: 900;
+  z-index: var(--z-tutorial-backdrop);
+  background: color-mix(in srgb, var(--surface-bar) 76%, transparent);
   pointer-events: auto;
 }
 
+/* Wrapper of the measured overlay; catches clicks so the app below can't be used mid-tutorial. */
+.layer {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-tutorial-backdrop);
+  pointer-events: auto;
+}
+
+/* Outer backdrop pieces — everything outside the parent panel (or the spotlight itself). */
+.dim {
+  background: color-mix(in srgb, var(--surface-bar) 76%, transparent);
+  pointer-events: none;
+}
+
+/* Inner backdrop pieces — rest of the parent panel. Lighter, so the panel's structure stays
+   visible while the specific sub-element is in focus. */
+.dimInner {
+  background: color-mix(in srgb, var(--surface-bar) 50%, transparent);
+  pointer-events: none;
+}
+
 /* ── Tutorial card ────────────────────────────────────────────────────────────
-   Dark background so the card reads as a system element (not part of the app UI),
-   creating an immediate visual contrast against the light spotlighted panels. */
+   Anthracite like the top bar, so it reads as a guide over the app, not as part of it. */
 .card {
-  /* z-index must be above the backdrop panels (z-index 900) and pulse ring (905). */
-  z-index: 910;
-  background: oklch(17% 0.02 240);
-  border: 1px solid oklch(30% 0.03 240);
-  border-radius: var(--radius-lg);
-  box-shadow:
-    0 16px 56px rgba(0, 0, 0, 0.55),
-    0 4px 16px rgba(0, 0, 0, 0.30);
+  z-index: var(--z-tutorial-card);
   width: 400px;
   max-width: calc(100vw - 32px);
-  padding: 18px 20px 16px;
+  padding: 18px var(--space-20) var(--space-16);
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: var(--space-12);
+  background: var(--surface-bar);
+  color: var(--ink-on-bar);
+  border: var(--border-hair) solid var(--line-on-bar);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-pop);
+}
+
+/* Focus ring drawn in yellow so it is visible on anthracite */
+.card :focus-visible {
+  outline-color: var(--focus-on-bar);
 }
 
 /* Top row: progress indicator + skip button */
@@ -45,86 +66,73 @@
   justify-content: space-between;
 }
 
-/* "1 / 12" step counter — muted against dark card */
+/* "1 / 13" step counter — mono label in the bar's highlight yellow */
 .progress {
-  font-size: 11px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  line-height: 12px;
   font-weight: 600;
-  color: oklch(58% 0.04 240);
-  letter-spacing: 0.3px;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  color: var(--highlight);
 }
 
-/* "Skip tutorial" — visually secondary on dark background */
+/* "Skip tutorial" — an underlined link, secondary to Next */
 .skipButton {
-  background: transparent;
-  border: none;
-  color: oklch(55% 0.04 240);
-  font-size: 11px;
-  cursor: pointer;
-  padding: 2px 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--ink-on-bar);
+  font-family: var(--font-sans);
+  font-size: 12px;
+  line-height: 16px;
   text-decoration: underline;
   text-underline-offset: 2px;
+  cursor: pointer;
 }
 
 .skipButton:hover {
-  color: oklch(78% 0.02 240);
+  color: var(--ink-inverse);
 }
 
-/* Step description — near-white on dark card */
+/* Step description — style "body" on anthracite */
 .description {
-  font-size: 13px;
-  line-height: 1.6;
-  color: oklch(91% 0.01 240);
   margin: 0;
+  font-size: 13px;
+  line-height: 20px;
+  color: var(--ink-on-bar);
 }
 
-/* Bottom row: primary CTA aligned right */
+/* Bottom row: the one CTA (Next / Finish) aligned right */
 .actions {
   display: flex;
   justify-content: flex-end;
 }
 
-/* "Next →" / "Finish" — inverted button: bright on dark */
-.nextButton {
-  padding: 8px 20px;
-  border-radius: 8px;
-  border: none;
-  background: oklch(91% 0.01 240);
-  color: oklch(17% 0.02 240);
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: opacity 0.15s;
-}
-
-.nextButton:hover {
-  opacity: 0.85;
-}
-
 /* ── Pulse ring ───────────────────────────────────────────────────────────────
-   Animated border that frames the spotlighted element. Visually links the dark
-   card to the bright panel it is describing, without needing a connecting arrow. */
+   Frames the spotlighted element and links the card to the panel it describes,
+   without a connecting arrow. White at 75 % with a soft glow in `accent`. */
 .pulseRing {
   position: fixed;
+  z-index: var(--z-tutorial-ring);
   pointer-events: none;
-  /* Slightly more corner radius than the panel (12px) so the ring wraps smoothly. */
+  /* 3px more than the panel radius (12px) so the ring wraps the corners smoothly */
   border-radius: 15px;
-  border: 2px solid rgba(255, 255, 255, 0.75);
-  animation: tutorialRingPulse 2.2s ease-in-out infinite;
-  /* Between backdrop (900) and card (910) — ring is visible but stays behind the card. */
-  z-index: 905;
+  border: var(--border-active) solid color-mix(in srgb, var(--ink-inverse) 75%, transparent);
+  animation: tutorial-ring 2.2s ease-in-out infinite;
 }
 
-@keyframes tutorialRingPulse {
+@keyframes tutorial-ring {
   0%, 100% {
-    border-color: rgba(255, 255, 255, 0.82);
-    box-shadow:
-      0 0 0 0   oklch(58% 0.13 240 / 0.55),
-      0 0 18px  oklch(58% 0.13 240 / 0.25);
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 55%, transparent);
   }
   50% {
-    border-color: rgba(255, 255, 255, 0.42);
-    box-shadow:
-      0 0 0 6px oklch(58% 0.13 240 / 0),
-      0 0 26px  oklch(58% 0.13 240 / 0.10);
+    box-shadow: 0 0 0 6px color-mix(in srgb, var(--accent) 0%, transparent);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pulseRing {
+    animation: none;
   }
 }

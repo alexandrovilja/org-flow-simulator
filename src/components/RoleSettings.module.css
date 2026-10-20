@@ -1,0 +1,267 @@
+/* Editor specializací v nastavení (design system Org Flow, feat-021). Barva role je inline (data). */
+.root {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
+}
+
+/* Sloupce: barva, název, fáze, povinnost, smazání */
+.grid {
+  display: grid;
+  grid-template-columns: 24px 1fr 72px 40px 20px;
+  gap: var(--space-6);
+  align-items: center;
+}
+
+.head {
+  padding-bottom: var(--space-4);
+  border-bottom: var(--border-hair) solid var(--line);
+}
+
+/* Popisky sloupců a sekce: styl „label“ */
+.colLabel {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  line-height: 12px;
+  font-weight: 600;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+
+.center {
+  text-align: center;
+}
+
+.row {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.cell {
+  display: flex;
+  justify-content: center;
+}
+
+/* ── Barva role a výběr barvy ─────────────────────────────────────────────── */
+.swatchWrap {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.swatch {
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: var(--border-active) solid transparent;
+  border-radius: var(--radius-xs);
+  cursor: pointer;
+}
+
+/* Čtverec formuláře nové role je stejně vysoký jako pole a tlačítko Add */
+.swatchLarge {
+  width: var(--size-control);
+  height: var(--size-control);
+}
+
+.swatchSelected {
+  border-color: var(--ink);
+}
+
+/* Šipka na barvě role: bílá jako text čipu, mírně průhledná */
+.caret {
+  font-size: 10px;
+  line-height: 1;
+  color: color-mix(in srgb, var(--ink-inverse) 75%, transparent);
+}
+
+.picker {
+  position: absolute;
+  top: 26px;
+  left: 0;
+  z-index: var(--z-popover);
+  padding: var(--space-8);
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  gap: 5px;
+  background: var(--surface-raised);
+  border: var(--border-hair) solid var(--line);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-pop);
+}
+
+.pickerBelowNew {
+  top: 34px;
+}
+
+.pickerSwatch {
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: var(--border-active) solid transparent;
+  border-radius: var(--radius-xs);
+  cursor: pointer;
+}
+
+.check {
+  font-size: 10px;
+  line-height: 1;
+  font-weight: 700;
+  color: var(--ink-inverse);
+}
+
+/* ── Pole, stepper, checkbox ──────────────────────────────────────────────── */
+.input {
+  width: 100%;
+  min-width: 0;
+  padding: 2px var(--space-6);
+  border: var(--border-hair) solid var(--line-control);
+  border-radius: var(--radius-none);
+  background: var(--surface-panel);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  font-size: 12px;
+  line-height: 16px;
+}
+
+.addInput {
+  flex: 1;
+  height: var(--size-control);
+}
+
+.inputError {
+  border-color: var(--rework);
+}
+
+.stepper {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.stepButton {
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: var(--border-hair) solid var(--line-control);
+  border-radius: var(--radius-none);
+  background: var(--surface-panel);
+  color: var(--ink-2);
+  font-size: 13px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.stepButton:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+/* Úroveň fáze v mono s tabulkovými číslicemi */
+.level {
+  min-width: 16px;
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  line-height: 16px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.checkbox {
+  width: 13px;
+  height: 13px;
+  cursor: pointer;
+}
+
+.deleteButton {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--ink-3);
+  font-size: 12px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+/* ── Potvrzení smazání ────────────────────────────────────────────────────── */
+.confirm {
+  display: flex;
+  align-items: center;
+  gap: var(--space-6);
+  padding: 5px var(--space-8);
+  background: var(--rework-soft);
+  border: var(--border-hair) solid var(--rework);
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--ink-2);
+}
+
+.confirmText {
+  flex: 1;
+}
+
+/* Malá hranatá tlačítka v řádku potvrzení */
+.smallButton {
+  padding: 2px var(--space-8);
+  border: var(--border-hair) solid transparent;
+  border-radius: var(--radius-none);
+  font-family: var(--font-sans);
+  font-size: 11px;
+  line-height: 16px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+/* Smazání zahodí práci → barva reworku; text v barvě panelu drží kontrast v obou tématech */
+.danger {
+  background: var(--rework);
+  border-color: var(--rework);
+  color: var(--surface-panel);
+}
+
+.neutral {
+  background: transparent;
+  border-color: var(--line-control);
+  color: var(--ink-2);
+}
+
+/* ── Přidání specializace ─────────────────────────────────────────────────── */
+.addSection {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+  margin-top: var(--space-4);
+  padding-top: var(--space-8);
+  border-top: var(--border-hair) solid var(--line);
+}
+
+.addRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-6);
+}
+
+.error {
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--rework);
+}
+
+.help {
+  margin: 0;
+  font-size: 11px;
+  line-height: 16px;
+  color: var(--ink-3);
+}

@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
 import type { AppMode } from '@/types/simulation'
+import { ThemeToggle } from '@/components/ThemeToggle'
 import styles from './TopBar.module.css'
 
 /** Jedna záložka módu: text v UI a cíl tutoriálu, který ji zvýrazňuje. */
@@ -28,7 +29,8 @@ interface TopBarProps {
 
 /**
  * Antracitová horní lišta aplikace (design system Org Flow, feat-021): značka a název vlevo,
- * záložky módů uprostřed (role="tablist", aktivní má aria-selected) a ovládání běhu vpravo.
+ * záložky módů uprostřed (role="tablist", aktivní má aria-selected) a vpravo přepínač tématu
+ * a ovládání běhu.
  * Existuje, aby všechny tři módy měly stejnou lištu a lišily se jen ovládáním.
  *
  * @param props - Aktuální mód, callback přepnutí módu a ovládání vpravo
@@ -69,7 +71,11 @@ export function TopBar({ mode, onSelectMode, children }: TopBarProps) {
         ))}
       </nav>
 
-      <div className={styles.controls}>{children}</div>
+      <div className={styles.controls}>
+        {/* Přepínač tématu je ve všech módech stejný, proto ho lišta vykresluje sama, vedle „?“ */}
+        <ThemeToggle />
+        {children}
+      </div>
     </header>
   )
 }
