@@ -193,7 +193,7 @@ export const TUTORIAL_STEPS: Record<TutorialMode, TutorialStep[]> = {
       id: 'experiment-controls',
       // Step 8: Speed and reset controls — orient before the call-to-action.
       description:
-        'Simulation controls: choose speed (0.5×, 1×, 2×, 10×) or reset the run ' +
+        'Simulation controls: choose speed (0.5×, 1×, or 10×) or reset the run ' +
         'to restore the original backlog and start fresh.',
       targetId: 'experiment-controls',
     },
@@ -201,7 +201,7 @@ export const TUTORIAL_STEPS: Record<TutorialMode, TutorialStep[]> = {
       id: 'experiment-run',
       // Step 9: Call-to-action — start the simulation.
       description:
-        'Click ▶ Start to run the simulation. ' +
+        'Click ▶ Run to start the simulation. ' +
         'Adjust the team, reset, and re-run as many times as you like.',
       targetId: 'experiment-run-button',
     },

@@ -116,7 +116,7 @@ describe('feat-001 Příklad 6: hlavička Done v Advanced módu (Simulator)', { 
     fireEvent.change(screen.getByRole('slider', { name: 'Backlog size' }), { target: { value: String(ADVANCED_BACKLOG_SIZE) } })
     click(/Generate new backlog/)
     click('10×')
-    click(/Start/)
+    click(/Run$/)
 
     // Posouvá falešný čas po 500 ms, dokud tlačítko neukáže „✓ Done“ (nejvýš 60 s falešného času)
     for (let waited = 0; waited < 60_000 && !screen.queryByRole('button', { name: /Done/ }); waited += 500) {

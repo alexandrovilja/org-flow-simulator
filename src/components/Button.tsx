@@ -3,10 +3,10 @@ import styles from './Button.module.css'
 
 /**
  * Role tlačítka v toku workshopu (design system Org Flow, feat-021):
- * - `primary` — Run / Start / Resume, jediná primární výzva na obrazovce (`action`)
+ * - `primary` — Run, jediná primární výzva na obrazovce (`action`)
  * - `running` — Pause, když simulace běží (`accent`)
  * - `done` — ✓ Done po doběhnutí běhu (`done`)
- * - `secondary` — Reset, Reset backlog a další běžné akce (obrys `line-control`)
+ * - `secondary` — Reset a další běžné akce (obrys `line-control`)
  * - `strong` — potvrzení v dialogu (`ink`), záměrně ne v barvě Run
  * - `ghost` — ústupové volby jako Cancel
  * - `light` — hlavní akce na antracitové kartě tutoriálu (Next / Finish), bílá výplň

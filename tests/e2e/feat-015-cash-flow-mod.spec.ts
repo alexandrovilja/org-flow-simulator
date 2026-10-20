@@ -36,8 +36,8 @@ test.describe('Cash Flow mód (feat-015)', () => {
     await expect(page.getByText(/Revenue \(time-matched\)/)).toBeVisible()
   })
 
-  test('po kliknutí na Start se Total Time změní z 00:00.0', async ({ page }) => {
-    const startBtn = page.getByRole('button', { name: /▶ Start/i })
+  test('po kliknutí na Run se Total Time změní z 00:00.0', async ({ page }) => {
+    const startBtn = page.getByRole('button', { name: /▶ Run/i })
     await expect(startBtn).toBeVisible()
     await startBtn.click()
 

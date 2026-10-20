@@ -64,9 +64,9 @@ async function openApp(page: Page): Promise<void> {
 }
 
 /** Rozběhne simulaci na 10× a po chvíli ji pozastaví, aby byly vidět karty, jednotky a Done. */
-async function runBriefly(page: Page, startLabel: 'Run' | 'Start', speedGroup: string): Promise<void> {
-  await groupWith(page, speedGroup).getByRole('button', { name: '10×', exact: true }).click()
-  await runButton(page, startLabel).click()
+async function runBriefly(page: Page): Promise<void> {
+  await groupWith(page, '10×').getByRole('button', { name: '10×', exact: true }).click()
+  await runButton(page, 'Run').click()
   await page.waitForTimeout(3000)
   await runButton(page, 'Pause').click()
 }
@@ -153,7 +153,7 @@ test.describe('feat-023: jednotné písmo — celá aplikace v JetBrains Mono', 
     check(await textStyles(page, names), 'Compare')
 
     await page.getByRole('tab', { name: 'Advanced' }).click()
-    await runBriefly(page, 'Start', '2×')
+    await runBriefly(page)
     check(await textStyles(page, names), 'Advanced')
 
     await page.getByRole('tab', { name: 'Cash Flow' }).click()
@@ -230,8 +230,8 @@ test.describe('feat-023: jednotné písmo — celá aplikace v JetBrains Mono', 
   test('Příklad 5: poznámky u dlaždic metrik v Cash Flow a zprávy po importu jsou mono 11 px', async ({ page }) => {
     await openApp(page)
     await page.getByRole('tab', { name: 'Cash Flow' }).click()
-    await groupWith(page, '2×').getByRole('button', { name: '10×', exact: true }).click()
-    await runButton(page, 'Start').click()
+    await groupWith(page, '10×').getByRole('button', { name: '10×', exact: true }).click()
+    await runButton(page, 'Run').click()
     await expect(page.getByText('live total')).toBeVisible({ timeout: 30_000 })
     expectMono(await textStyles(page, /^live total$/), '11px', '400', 'hint dlaždice')
     expectMono(await textStyles(page, /^Details/), '11px', '400', 'Details')
@@ -338,7 +338,7 @@ test.describe('feat-023: jednotné písmo — celá aplikace v JetBrains Mono', 
 
       await page.getByRole('tab', { name: 'Advanced' }).click()
       await openAccordions(page)
-      await runButton(page, 'Start').click()
+      await runButton(page, 'Run').click()
       await page.waitForTimeout(1500)
       expect(await typographyViolations(page), 'Advanced').toEqual([])
       await openPresetDialog(page)
@@ -347,7 +347,7 @@ test.describe('feat-023: jednotné písmo — celá aplikace v JetBrains Mono', 
 
       await page.getByRole('tab', { name: 'Cash Flow' }).click()
       await openAccordions(page)
-      await runButton(page, 'Start').click()
+      await runButton(page, 'Run').click()
       await page.waitForTimeout(1500)
       expect(await typographyViolations(page), 'Cash Flow').toEqual([])
     })
@@ -366,7 +366,7 @@ test.describe('feat-023: jednotné písmo — celá aplikace v JetBrains Mono', 
       const longName = 'Very long team name for the projector'
       await page.locator('input[type="text"]').first().fill(longName)
       await page.locator('input[type="text"]').first().press('Enter')
-      await runBriefly(page, 'Start', '2×')
+      await runBriefly(page)
 
       expect(await columns(), 'dva sloupce karet jednotek pod 1260 px').toBe(2)
       const report = await cards.evaluateAll(els => {
@@ -426,7 +426,7 @@ test.describe('feat-023: jednotné písmo — celá aplikace v JetBrains Mono', 
   test('Příklad 9: v Compare nepřetékají jména členů, chipy a názvy práce ani při 1024 px', async ({ page }) => {
     await page.setViewportSize({ width: 1024, height: 768 })
     await openApp(page)
-    await runBriefly(page, 'Run', '10×')
+    await runBriefly(page)
     const problems = await page.evaluate(() => {
       const out: string[] = []
       const members = Array.from(document.querySelectorAll<HTMLElement>('[class*="ComparePanel-module__"]')).filter(e => e.className.split(' ').some(c => /__member$/.test(c)))

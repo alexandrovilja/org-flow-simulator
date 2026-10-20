@@ -23,7 +23,7 @@ Jako agilní kouč chci vidět živý čítač celkové doby zpracování backlo
   - Reference se nastaví automaticky při dokončení simulace (`state.finished = true`); žádné ruční tlačítko
 - Po zpracování poslední položky backlogu:
   - Simulace se automaticky zastaví
-  - Tlačítko Play se deaktivuje
+  - Tlačítko běhu ukáže „✓ Done“ a deaktivuje se (dřív „Play“, od feat-021 „Run“)
   - Čítač zamrzne na výsledném čase
   - Dlaždice Total Time přepne do stavu "Complete" (zelený rámeček, text `✓ Complete`)
 
@@ -37,7 +37,7 @@ Jako agilní kouč chci vidět živý čítač celkové doby zpracování backlo
 **Příklad 2: Automatické zastavení a zmrazení čítače**
 - Given: V backlogu i in-progress zbývá poslední feature
 - When: Poslední feature přejde do Done
-- Then: Simulace se automaticky zastaví; čítač zamrzne (např. `04:17.8`); dlaždice přepne do zeleného stavu `✓ Complete`; Play se deaktivuje
+- Then: Simulace se automaticky zastaví; čítač zamrzne (např. `04:17.8`); dlaždice přepne do zeleného stavu `✓ Complete`; tlačítko běhu ukáže „✓ Done“ a deaktivuje se
 
 **Příklad 3: Delta srovnání po druhém běhu**
 - Given: První běh dokončen, výsledný Avg Lead Time byl 8.4 s, Avg WIP byl 4.2, Total Wait 120 s

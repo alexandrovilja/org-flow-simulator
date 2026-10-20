@@ -72,7 +72,7 @@ async function advanceUntilDone(): Promise<void> {
 
 /** Spustí běh a nechá ho doběhnout do konce. */
 async function runToEnd(): Promise<void> {
-  click(/Start|Resume/)
+  click(/Run$/)
   await advanceUntilDone()
 }
 
@@ -83,7 +83,7 @@ const detailsButton = () => within(revenueTile()).getByRole('button', { name: /d
 describe('feat-018: dlaždice „Revenue (time-matched)“ v Simulatoru', { timeout: SIM_RUN_TIMEOUT_MS }, () => {
   it('první běh bez předchozího: za běhu „live total“, po doběhnutí bez hintu a bez delty', async () => {
     openCashFlowSettings()
-    click(/Start/)
+    click(/Run$/)
     await advance(500)
     expect(revenueTile()).toHaveTextContent('live total')
 
@@ -98,7 +98,7 @@ describe('feat-018: dlaždice „Revenue (time-matched)“ v Simulatoru', { time
     await runToEnd()
     click('S-curve') // doběhnutý běh → uloží se jako předchozí a simulace se vrátí na začátek
 
-    click(/Start/)
+    click(/Run$/)
     await advance(500)
     // předchozí běh už existuje, ale za běhu se ještě nesrovnává
     expect(revenueTile()).toHaveTextContent('live total')
@@ -115,22 +115,22 @@ describe('feat-018: dlaždice „Revenue (time-matched)“ v Simulatoru', { time
     expect(revenueTile()).toHaveTextContent(/Previous total €[\d.]+k? in \d\d:\d\d\.\d/)
   })
 
-  it('Reset backlogu sbalí rozbalený detail', async () => {
+  it('Reset sbalí rozbalený detail', async () => {
     openCashFlowSettings()
     await runToEnd()
     fireEvent.click(detailsButton())
     expect(detailsButton()).toHaveAttribute('aria-expanded', 'true')
 
-    click(/Reset backlog/)
+    click(/Reset$/)
     expect(detailsButton()).toHaveAttribute('aria-expanded', 'false')
   })
 
-  it('start běhu rozbalený detail nesbalí', async () => {
+  it('spuštění běhu rozbalený detail nesbalí', async () => {
     openCashFlowSettings()
     fireEvent.click(detailsButton())
     expect(detailsButton()).toHaveAttribute('aria-expanded', 'true')
 
-    click(/Start/)
+    click(/Run$/)
     await advance(500)
     expect(detailsButton()).toHaveAttribute('aria-expanded', 'true')
   })

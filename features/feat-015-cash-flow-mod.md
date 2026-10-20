@@ -50,7 +50,7 @@ Jako agilní kouč chci v Cash Flow módu ukázat manažerům, že když více t
 **Příklad 4b: Simulace se automaticky zastaví po zpracování celého backlogu**
 - Given: Cash Flow simulace běží, backlog i In Progress se právě vyprázdnily (poslední feature přešla do Done)
 - When: engine detekuje `state.finished`
-- Then: simulace se okamžitě automaticky zapauzuje, tlačítko Start/Pause zobrazí "✓ Done" a je neaktivní; revenue, které Done features do té doby nasbíraly, zůstává zachováno a dál neroste, dokud uživatel neklikne Reset backlog
+- Then: simulace se okamžitě automaticky zapauzuje, tlačítko Run/Pause zobrazí "✓ Done" a je neaktivní; revenue, které Done features do té doby nasbíraly, zůstává zachováno a dál neroste, dokud uživatel neklikne „↺ Reset“ (popisky tlačítek změněny 2026-10-20, viz feat-021 Příklad 14)
 - Note: toto platí bezpodmínečně, bez ohledu na to, jestli existuje předchozí běh k porovnání (`cashFlowPrevStats`) — obě simulace vždy doběhnou přirozeně do konce, žádné čekání ani prodlužování. Fér porovnání Total Revenue běhů různé délky se řeší jinak — retroaktivním dopočtem při zobrazení delta badge, viz Příklad 7
 
 **Příklad 5: Výnosy jsou nezávislé na rychlosti simulace**

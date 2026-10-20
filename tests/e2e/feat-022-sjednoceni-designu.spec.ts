@@ -95,8 +95,8 @@ test.describe('feat-022: sjednocení designu v celém nástroji', () => {
   test('Příklad 6: Advanced — počet tasků a lead time v seznamu Done jsou v mono', async ({ page }) => {
     await page.goto(BASE)
     await page.getByRole('tab', { name: 'Advanced' }).click()
-    await groupWith(page, '2×').getByRole('button', { name: '10×', exact: true }).click()
-    await runButton(page, 'Start').click()
+    await groupWith(page, '10×').getByRole('button', { name: '10×', exact: true }).click()
+    await runButton(page, 'Run').click()
     await expect.poll(() => doneCount(page), { timeout: 30_000 }).toBeGreaterThanOrEqual(2)
     await runButton(page, 'Pause').click()
 
@@ -112,8 +112,8 @@ test.describe('feat-022: sjednocení designu v celém nástroji', () => {
     // Coordination overhead jde zapnout jen před startem — po startu je zamčený do Resetu
     await page.getByRole('button', { name: 'Team', exact: true }).click()
     await groupWith(page, 'Off').getByRole('button', { name: 'On', exact: true }).click()
-    await groupWith(page, '2×').getByRole('button', { name: '10×', exact: true }).click()
-    await runButton(page, 'Start').click()
+    await groupWith(page, '10×').getByRole('button', { name: '10×', exact: true }).click()
+    await runButton(page, 'Run').click()
     await expect.poll(() => doneCount(page), { timeout: 30_000 }).toBeGreaterThanOrEqual(2)
     await runButton(page, 'Pause').click()
 
@@ -192,7 +192,7 @@ test.describe('feat-022: sjednocení designu v celém nástroji', () => {
     for (const mode of ['Advanced', 'Cash Flow']) {
       await page.getByRole('tab', { name: mode }).click()
       await openAccordions(page)
-      await runButton(page, 'Start').click()
+      await runButton(page, 'Run').click()
       await page.waitForTimeout(1500)
       expect(await typographyViolations(page), mode).toEqual([])
     }
@@ -203,8 +203,8 @@ test.describe('feat-022: sjednocení designu v celém nástroji', () => {
       await page.emulateMedia({ reducedMotion: motion })
       await page.goto(BASE)
       await page.getByRole('tab', { name: 'Cash Flow' }).click()
-      await groupWith(page, '2×').getByRole('button', { name: '10×', exact: true }).click()
-      await runButton(page, 'Start').click()
+      await groupWith(page, '10×').getByRole('button', { name: '10×', exact: true }).click()
+      await runButton(page, 'Run').click()
       await expect(page.getByText(/^\+€[\d.,]+k?$/).first()).toBeVisible({ timeout: 30_000 })
 
       // Čteme keyframes animace přírůstku: poslední krok musí být průhledný; při omezeném pohybu

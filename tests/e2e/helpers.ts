@@ -23,14 +23,14 @@ export async function skipTutorial(page: Page): Promise<void> {
 }
 
 /**
- * Tlačítko Run / Start / Pause / Done v horní liště — podle konce přístupného názvu,
+ * Tlačítko Run / Pause / Done v horní liště (ve všech třech módech stejné, feat-021 Příklad 14) — podle konce přístupného názvu,
  * protože popisku může předcházet glyf (▶, ❙❙, ✓).
  *
  * @param page - Stránka Playwrightu
  * @param label - Konec názvu tlačítka
  * @returns Locator tlačítka
  */
-export function runButton(page: Page, label: 'Run' | 'Start' | 'Pause' | 'Done'): Locator {
+export function runButton(page: Page, label: 'Run' | 'Pause' | 'Done'): Locator {
   return page.getByRole('button', { name: new RegExp(`${label}$`) })
 }
 
