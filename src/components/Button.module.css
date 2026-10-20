@@ -1,4 +1,4 @@
-/* Tlačítko design systému Org Flow (feat-021): hranaté, popisek v Archivo 800 verzálkami.
+/* Tlačítko design systému Org Flow (feat-021): hranaté, popisek v JetBrains Mono 800 verzálkami.
    Varianta určuje roli v toku workshopu — viz Button.tsx. */
 .button {
   display: inline-flex;
@@ -11,7 +11,7 @@
   border-radius: var(--radius-none);
   background: var(--surface-panel);
   color: var(--ink);
-  font-family: var(--font-sans);
+  font-family: var(--font-mono);
   font-size: 13px;
   line-height: 16px;
   font-weight: 800;

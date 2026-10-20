@@ -83,7 +83,7 @@
   border: 0;
   background: none;
   color: var(--ink-on-bar);
-  font-family: var(--font-sans);
+  font-family: var(--font-mono);
   font-size: 12px;
   line-height: 16px;
   text-decoration: underline;

@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react'
 import type { RoleMeta } from '@/types/simulation'
 import { ROLE_COLOR_SLOTS, type RoleColorSlot } from '@/simulation/roleColors'
 import { Button } from '@/components/Button'
+import { useIsTruncated } from '@/hooks/useIsTruncated'
 import styles from './RoleSettings.module.css'
 
 /** Maximální povolená úroveň specializace (min je vždy 1). */
@@ -18,6 +19,38 @@ export const COLOR_PRESETS: RoleColorSlot[] = ROLE_COLOR_SLOTS
 
 /** Sentinelová hodnota openPickerId pro color picker formuláře nové specializace. */
 const NEW_ROLE_PICKER_ID = '__new__'
+
+/** Props vstupu s názvem jedné specializace. */
+interface RoleNameInputProps {
+  /** Aktuální název specializace. */
+  value: string
+  /** Změna názvu — volá se při každém stisku klávesy. */
+  onChange: (label: string) => void
+}
+
+/**
+ * Editovatelný název jedné specializace v seznamu. Plný název je v `title` jen tehdy, když ho v úzkém poli
+ * zkrátí výpustka (feat-023); vstup má přístupný název „Specialization name“, aby čtečka obrazovky
+ * řekla, k čemu pole je, a ne jen jeho hodnotu. Je to samostatná komponenta, protože měření zkrácení
+ * je hook a ten nejde volat uvnitř cyklu přes specializace.
+ *
+ * @param props - Název a callback změny
+ * @returns Textový vstup
+ */
+function RoleNameInput({ value, onChange }: RoleNameInputProps) {
+  const [ref, truncated] = useIsTruncated<HTMLInputElement>(value)
+  return (
+    <input
+      ref={ref}
+      type="text"
+      value={value}
+      title={truncated ? value : undefined}
+      aria-label="Specialization name"
+      onChange={e => onChange(e.target.value)}
+      className={styles.input}
+    />
+  )
+}
 
 /** Props editoru specializací. */
 interface RoleSettingsProps {
@@ -161,12 +194,7 @@ export function RoleSettings({ roleConfig, onChange, onAdd, onDelete }: RoleSett
               </div>
 
               {/* Název */}
-              <input
-                type="text"
-                value={meta.label}
-                onChange={e => onChange(roleId, { label: e.target.value })}
-                className={styles.input}
-              />
+              <RoleNameInput value={meta.label} onChange={label => onChange(roleId, { label })} />
 
               {/* Úroveň fáze — stepper */}
               <div className={styles.stepper}>

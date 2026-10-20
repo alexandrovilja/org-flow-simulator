@@ -20,7 +20,7 @@
   justify-content: center;
   background: var(--ink);
   color: var(--surface-panel);
-  font-family: var(--font-display);
+  font-family: var(--font-mono);
   font-size: 20px;
   line-height: 1;
   font-weight: 800;
@@ -37,14 +37,13 @@
   color: var(--highlight-ink);
 }
 
-/* Styl „display-lg“: Archivo 800 verzálkami */
+/* Styl „display-lg“: JetBrains Mono 800 verzálkami */
 .title {
   margin: var(--space-2) 0 var(--space-4);
-  font-family: var(--font-display);
+  font-family: var(--font-mono);
   font-size: 36px;
   line-height: 36px;
   font-weight: 800;
-  letter-spacing: -0.4px;
   text-transform: uppercase;
   color: var(--ink);
 }
@@ -62,15 +61,15 @@
   color: var(--ink-2);
 }
 
-/* Hlas kouče: Kalam na teplém papíře, lehce pootočený */
+/* Hlas kouče: poznámka na teplém papíře, lehce pootočená (od feat-023 v mono; Kalam se nepoužívá) */
 .note {
   max-width: 220px;
   padding: var(--space-8) var(--space-12);
   background: var(--surface-paper);
   color: var(--ink-2);
-  font-family: var(--font-hand);
-  font-size: 20px;
-  line-height: 22px;
+  font-family: var(--font-mono);
+  font-size: 15px;
+  line-height: 20px;
   font-weight: 700;
   transform: rotate(-1.5deg);
 }

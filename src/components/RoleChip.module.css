@@ -1,25 +1,42 @@
 /* Čip specializace (feat-021): plná výplň v barvě role (--role inline), bílý text, hranatý. */
 .chip {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-4);
+  /* Odebírací ×: velikost, odsazení od pravého okraje a mezera od textu; z nich se počítá místo vpravo
+     i poloha tlačítka, takže se změna na jednom místě nerozjede s druhým */
+  --remove-size: 12px;
+  --remove-offset: var(--space-6);
+  --remove-gap: var(--space-4);
+  position: relative;
+  display: inline-block;
+  max-width: 100%;
   height: var(--size-control-sm);
   padding: 0 var(--space-6);
   border-radius: var(--radius-xs);
   background: var(--role);
   color: var(--ink-inverse);
-  font-family: var(--font-sans);
+  font-family: var(--font-mono);
   font-size: 11px;
-  line-height: 1;
+  /* Řádkování = výška čipu: text je svisle uprostřed, i když se zkrátí výpustkou */
+  line-height: var(--size-control-sm);
   font-weight: 600;
   letter-spacing: 0.2px;
   white-space: nowrap;
+  overflow: hidden;
+  /* Dlouhý název se v úzké kartě zkrátí výpustkou, místo aby přetekl (feat-023; plný název je v title) */
+  text-overflow: ellipsis;
 }
 
-/* Odebírací × — 12px čtverec s průsvitnou bílou na výplni role */
+/* Čip s odebíracím × má vpravo místo pro tlačítko: mezera + tlačítko + odsazení od okraje */
+.removable {
+  padding-right: calc(var(--remove-gap) + var(--remove-size) + var(--remove-offset));
+}
+
+/* Odebírací × — 12px čtverec s průsvitnou bílou na výplni role; leží nad pravým okrajem čipu, aby ho výpustka neořízla */
 .remove {
-  width: 12px;
-  height: 12px;
+  position: absolute;
+  top: calc((var(--size-control-sm) - var(--remove-size)) / 2);
+  right: var(--remove-offset);
+  width: var(--remove-size);
+  height: var(--remove-size);
   padding: 0;
   border: 0;
   border-radius: var(--radius-xs);
@@ -28,7 +45,7 @@
   justify-content: center;
   background: color-mix(in srgb, var(--ink-inverse) 25%, transparent);
   color: var(--ink-inverse);
-  font-family: var(--font-sans);
+  font-family: var(--font-mono);
   font-size: 10px;
   line-height: 1;
   cursor: pointer;

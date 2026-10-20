@@ -21,8 +21,8 @@
   display: inline-flex;
   align-items: center;
   gap: var(--space-4);
-  font-family: var(--font-sans);
-  font-size: 12px;
+  font-family: var(--font-mono);
+  font-size: 11px;
   line-height: 16px;
   font-weight: 500;
   color: var(--ink-2);

@@ -128,6 +128,7 @@ Rozložení obrazovek, texty (kromě „Šablona“) a chování zůstávají st
 —
 
 ## Related Features
+- **feat-023-jednotne-pismo-textu:** od feat-023 se nepoužívá Archivo ani Kalam, celá aplikace je v JetBrains Mono. Zmínky o Archivo v tomto specu (např. nadpisy a poznámky v příkladech 1, 7, 8, 9 a 10) popisují stav po feat-022; příslušné E2E testy už čekají mono. (Poznámka je v Related Features, aby se nedotkla bloku Status, který mění docs PR se statusem done.)
 - **feat-021-prevod-design-system-org-flow:** tato feature dotahuje převod do míst, která feat-021 nepokryla.
 - **feat-001, feat-015, feat-018:** hlavičky a seznam Done v pravém panelu.
 - **feat-007-sprava-specializaci:** tlačítko smazání specializace („×“ místo 🗑).

@@ -28,7 +28,7 @@
 
 /* Styl „title“ */
 .title {
-  font-family: var(--font-sans);
+  font-family: var(--font-mono);
   font-size: 15px;
   line-height: 20px;
   font-weight: 700;

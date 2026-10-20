@@ -31,6 +31,9 @@
 
 /* Spodní část: hlavička Units, karty jednotek a tlačítko přidání */
 .team {
+  /* Kontejner pro dotazy na šířku (feat-023): počet sloupců karet jednotek se řídí šířkou tohoto
+     sloupce, ne šířkou okna */
+  container-type: inline-size;
   flex: 0 0 auto;
   display: flex;
   flex-direction: column;
@@ -45,6 +48,21 @@
   gap: var(--space-6);
   align-content: start;
   padding: 0 var(--space-16);
+}
+
+/* Tři karty vedle sebe potřebují prostřední sloupec široký aspoň ~525 px (karta ~160 px, aby se do ní vešlo
+   jméno, chip role a název práce v širším mono). Na projektoru 1024 × 768 má sloupec jen ~424 px, tam jsou
+   dvě karty (~190 px); v úzkém okně pod ~340 px je jedna (feat-023, Příklad 9). */
+@container (max-width: 524px) {
+  .members {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@container (max-width: 337px) {
+  .members {
+    grid-template-columns: 1fr;
+  }
 }
 
 /* Tlačítko „+ Add …“: v sloupci flexu se roztáhne přes celou šířku mezi okraji */

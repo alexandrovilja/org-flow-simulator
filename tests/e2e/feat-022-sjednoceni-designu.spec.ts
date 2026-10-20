@@ -7,31 +7,8 @@
  * Spuštění lokálně: npx playwright test tests/e2e/feat-022-sjednoceni-designu.spec.ts
  */
 
-import { test, expect, type Page, type Locator } from '@playwright/test'
-import { BASE, groupWith, runButton, skipTutorial } from './helpers'
-
-/** Rodiny písem design systému; next/font je pojmenuje „Archivo“ nebo „JetBrains_Mono“ apod. */
-const DS_FAMILY = /^"?_*(Archivo|JetBrains[ _]Mono|Kalam)/
-const MONO = /JetBrains[ _]Mono/
-
-/** Velikosti písma z typové škály design systému (project/tokens.json, skupina type). */
-const TYPE_SCALE_PX = [10, 11, 12, 13, 15, 20, 28, 36, 56]
-
-/**
- * Znaky podobné emoji (stejná definice jako hlídač ve feat-022-source-guards.test.ts) a glyfy,
- * které design system povoluje. Předávají se do prohlížeče jako text.
- */
-const EMOJI_LIKE_SOURCE = '[\\p{Extended_Pictographic}\\p{Emoji_Presentation}\\u{FE0F}\\u{2600}-\\u{27BF}]'
-const ALLOWED_GLYPHS = ['▶', '❙', '↺', '⇄', '✓', '×', '↑', '↓', '→', '▸', '▾', '▴', '⚡']
-
-/** Vypočtené typografické a tvarové vlastnosti prvku. */
-const styleOf = (el: Locator) => el.evaluate(e => {
-  const s = getComputedStyle(e)
-  return {
-    family: s.fontFamily, size: s.fontSize, weight: s.fontWeight, transform: s.textTransform,
-    color: s.color, radius: s.borderTopLeftRadius, borderStyle: s.borderTopStyle,
-  }
-})
+import { test, expect, type Page } from '@playwright/test'
+import { BASE, MONO, groupWith, runButton, skipTutorial, styleOf, openAccordions, typographyViolations } from './helpers'
 
 /**
  * Hodnota tokenu tak, jak ji vrátí getComputedStyle (rgb): na chvíli vloží prvek s barvou z tokenu.
@@ -53,14 +30,6 @@ function tokenColor(page: Page, token: string, prop: 'color' | 'backgroundColor'
 
 /** Tlačítko pro přidání jednotky — popisek podle presetu. */
 const addUnitButton = (page: Page) => page.getByRole('button', { name: /^\+ Add (unit|member|team)$/ })
-
-/** Otevře všechny tři akordeony nastavení (Advanced / Cash Flow), pokud ještě otevřené nejsou. */
-async function openAccordions(page: Page): Promise<void> {
-  for (const name of ['Backlog', 'Specializations', 'Team']) {
-    const button = page.getByRole('button', { name, exact: true })
-    if (await button.getAttribute('aria-expanded') !== 'true') await button.click()
-  }
-}
 
 /** Počet hotových features z hlavičky „Done“ (počet je sourozenec nadpisu). */
 const doneCount = (page: Page) =>
@@ -86,41 +55,12 @@ async function doneListFonts(page: Page): Promise<{ text: string; family: string
   })
 }
 
-/**
- * Projde viditelné prvky s vlastním textem a vrátí ty, které porušují typografii design systému:
- * písmo mimo Archivo / JetBrains Mono / Kalam, velikost mimo typovou škálu nebo emoji v textu.
- *
- * @returns Seznam porušení „tag „text“: důvod“
- */
-async function typographyViolations(page: Page): Promise<string[]> {
-  return page.evaluate(({ familySource, scale, emojiSource, allowed }) => {
-    const family = new RegExp(familySource)
-    const emoji = new RegExp(emojiSource, 'gu')
-    const out: string[] = []
-    for (const el of Array.from(document.body.querySelectorAll<HTMLElement>('*'))) {
-      const ownText = Array.from(el.childNodes).filter(n => n.nodeType === Node.TEXT_NODE).map(n => n.textContent ?? '').join('').trim()
-      if (!ownText) continue
-      const rect = el.getBoundingClientRect()
-      const s = getComputedStyle(el)
-      if (rect.width === 0 || rect.height === 0 || s.visibility === 'hidden' || s.display === 'none') continue
-      const where = `${el.tagName.toLowerCase()} „${ownText.slice(0, 30)}“`
-      const first = s.fontFamily.split(',')[0].trim()
-      if (!family.test(first)) out.push(`${where}: písmo ${first}`)
-      const size = parseFloat(s.fontSize)
-      if (!scale.includes(size)) out.push(`${where}: velikost ${size}px`)
-      const glyphs = (ownText.match(emoji) ?? []).filter(ch => !allowed.includes(ch))
-      if (glyphs.length) out.push(`${where}: emoji ${glyphs.join(' ')}`)
-    }
-    return out
-  }, { familySource: DS_FAMILY.source, scale: TYPE_SCALE_PX, emojiSource: EMOJI_LIKE_SOURCE, allowed: ALLOWED_GLYPHS })
-}
-
 test.describe('feat-022: sjednocení designu v celém nástroji', () => {
   test.beforeEach(async ({ page }) => {
     await skipTutorial(page)
   })
 
-  test('Příklad 1: Units a Metrics mají styl eyebrow (JetBrains Mono 11 px, verzálky), poznámky Archivo 12 px', async ({ page }) => {
+  test('Příklad 1: Units a Metrics mají styl eyebrow (JetBrains Mono 11 px, verzálky), poznámky také mono 11 px', async ({ page }) => {
     await page.goto(BASE)
     for (const mode of ['Advanced', 'Cash Flow']) {
       await page.getByRole('tab', { name: mode }).click()
@@ -132,8 +72,9 @@ test.describe('feat-022: sjednocení designu v celém nástroji', () => {
       }
       for (const hint of [/^Click \+ to add a specialty$/, /^\d+ features? sampled$/]) {
         const s = await styleOf(page.getByText(hint))
-        expect(s.family, `${mode}: ${hint}`).toMatch(/Archivo/)
-        expect(s.size, `${mode}: ${hint}`).toBe('12px')
+        // feat-023: poznámky jsou JetBrains Mono 11 px (dřív Archivo 12 px)
+        expect(s.family, `${mode}: ${hint}`).toMatch(MONO)
+        expect(s.size, `${mode}: ${hint}`).toBe('11px')
       }
     }
   })
@@ -196,7 +137,8 @@ test.describe('feat-022: sjednocení designu v celém nástroji', () => {
       const button = addUnitButton(page)
       const s = await styleOf(button)
       expect(s.radius, mode).toBe('0px')
-      expect(s.family, mode).toMatch(/Archivo/)
+      // feat-023: tlačítka jsou JetBrains Mono 800 (dřív Archivo 800)
+      expect(s.family, mode).toMatch(MONO)
       expect(s.weight, mode).toBe('800')
       expect(s.transform, mode).toBe('uppercase')
       expect(s.borderStyle, mode).toBe('dashed')
@@ -212,13 +154,13 @@ test.describe('feat-022: sjednocení designu v celém nástroji', () => {
     }
   })
 
-  test('Příklad 8: názvy týmů v Compare mají styl heading (Archivo 800, 20 px, verzálky)', async ({ page }) => {
+  test('Příklad 8: názvy týmů v Compare mají styl heading (JetBrains Mono 800, 20 px, verzálky)', async ({ page }) => {
     await page.goto(BASE)
     const titles = page.getByRole('heading', { name: /team$/i })
     await expect(titles).toHaveCount(2)
     for (const title of await titles.all()) {
       const s = await styleOf(title)
-      expect(s.family).toMatch(/Archivo/)
+      expect(s.family).toMatch(MONO)
       expect(s.size).toBe('20px')
       expect(s.weight).toBe('800')
       expect(s.transform).toBe('uppercase')
@@ -236,12 +178,12 @@ test.describe('feat-022: sjednocení designu v celém nástroji', () => {
     const badge = frame.locator('> span').first()
     await expect(badge).toHaveText(/^[AB]$/)
     const s = await styleOf(badge)
-    expect(s.family).toMatch(/Archivo/)
+    expect(s.family).toMatch(MONO)
     expect(s.size).toBe('20px')
     expect(s.weight).toBe('800')
   })
 
-  test('Příklad 9: všechny viditelné texty mají písmo a velikost z design systému a žádné emoji', async ({ page }) => {
+  test('Příklad 9: všechny viditelné texty mají JetBrains Mono, velikost ze škály design systému a žádné emoji', async ({ page }) => {
     await page.goto(BASE)
     await runButton(page, 'Run').click()
     await page.waitForTimeout(1500)
@@ -310,12 +252,12 @@ test.describe('feat-022: sjednocení designu v celém nástroji', () => {
 
       const title = page.getByRole('heading', { name: '404' })
       const s = await styleOf(title)
-      expect(s.family).toMatch(/Archivo/)
+      expect(s.family).toMatch(MONO)
       expect(s.size).toBe('56px')
       expect(s.weight).toBe('800')
       expect(s.color).toBe(await tokenColor(page, 'ink'))
 
-      expect(await page.locator('body').evaluate(b => getComputedStyle(b).fontFamily)).toMatch(/Archivo/)
+      expect(await page.locator('body').evaluate(b => getComputedStyle(b).fontFamily)).toMatch(MONO)
       expect(await page.locator('body').evaluate(b => getComputedStyle(b).backgroundColor))
         .toBe(await tokenColor(page, 'surface-page', 'backgroundColor'))
 
