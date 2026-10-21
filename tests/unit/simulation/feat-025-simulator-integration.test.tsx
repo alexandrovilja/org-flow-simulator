@@ -299,6 +299,12 @@ describe('feat-025 Příklad 16: popisek rámečku výsledku', () => {
 })
 
 describe('feat-025 review: „?“ za běhu simulaci pozastaví', () => {
+  /**
+   * Časový limit (reálný čas) testu: běh simulace s falešným časem je na pomalejším stroji (CI) delší
+   * než výchozích 5 s — stejný limit mají testy běhu ve feat-021.
+   */
+  const SIM_RUN_TIMEOUT_MS = 20_000
+
   /** Simulační čas z prvního čítače „MM:SS.d“ na obrazovce (v Compare Total Time týmu A). */
   function simSeconds(): number {
     const [minutes, rest] = screen.getAllByText(/^\d\d:\d\d\.\d$/)[0].textContent!.split(':')
@@ -310,14 +316,16 @@ describe('feat-025 review: „?“ za běhu simulaci pozastaví', () => {
     render(<Simulator />)
     openMode(tab)
     clickButton('▶ Run')
-    await act(async () => { vi.advanceTimersByTime(1000) })
+    // Krátký běh stačí — jde jen o to, aby simulace opravdu běžela, když přijde „?“
+    await act(async () => { vi.advanceTimersByTime(300) })
     expect(screen.getByRole('button', { name: '❙❙ Pause' })).toBeInTheDocument()
+    expect(simSeconds()).toBeGreaterThan(0)
     clickButton('Restart tutorial')
     expect(overlay()).not.toBeNull()
     expect(screen.getByRole('button', { name: '▶ Run' })).toBeInTheDocument()
     // Čas simulace dál neběží, takže se cíle pod zvýrazněním nehýbou
     const before = simSeconds()
-    await act(async () => { vi.advanceTimersByTime(2000) })
+    await act(async () => { vi.advanceTimersByTime(500) })
     expect(simSeconds()).toBe(before)
-  })
+  }, SIM_RUN_TIMEOUT_MS)
 })
