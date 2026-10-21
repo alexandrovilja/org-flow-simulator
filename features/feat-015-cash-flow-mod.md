@@ -166,3 +166,4 @@ Jako agilní kouč chci v Cash Flow módu ukázat manažerům, že když více t
 
 ## Related Features
 - **feat-021-prevod-design-system-org-flow:** tab „💰 Cash Flow“ ztrácí emoji („Cash Flow“); barva výnosu (`--done`) zůstává.
+- **feat-024-zpetna-vazba-uzivatelu (rozpracováno):** ikona zpětné vazby je v horní liště i v Cash Flow; otevření dialogu pozastaví Cash Flow simulaci stejně jako „❙❙ Pause“. Cash Flow tutoriál nemá, takže krok o zpětné vazbě se ho netýká.

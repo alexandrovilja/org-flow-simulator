@@ -75,3 +75,6 @@ Jako agilní kouč chci spustit animovanou simulaci průtoku backlogu týmem, ab
 
 ## Open Questions
 —
+
+## Related Features
+- **feat-024-zpetna-vazba-uzivatelu (rozpracováno):** otevření dialogu zpětné vazby pozastaví běžící simulaci stejně jako „❙❙ Pause“ (tlačítko ukáže „▶ Run“, simulace pak pokračuje od stejného bodu); chování tlačítka běhu se nemění.

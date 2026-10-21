@@ -1,6 +1,6 @@
 # Architecture Decisions — Org Flow Simulator
 
-_Last updated: 2026-04-28_
+_Last updated: 2026-10-21_
 
 ---
 
@@ -98,6 +98,20 @@ Next.js handles both frontend (React simulation UI) and future backend (API rout
 
 ---
 
+### 9. User feedback delivery (feat-024)
+**Decision:** The free tier stays without its own backend. Feedback is sent from the browser to **Web3Forms** (`fetch` POST to `https://api.web3forms.com/submit`, no new dependency), which emails it to the author. The Web3Forms access key lives in `NEXT_PUBLIC_WEB3FORMS_ACCESS_KEY` and is therefore visible in the browser bundle.
+
+**Scope of data leaving the browser:** only what the user consciously submits in the "Send feedback" dialog (role, usefulness rating, two free-text answers, interest in a call, optional email), plus the active mode and the date. This is the first and only data the free tier sends to a third party; simulation state, team setup and backlog never leave the browser.
+
+**Reasons:**
+- No server code and no secret to manage; free for up to 250 submissions per month.
+- Web3Forms' free plan accepts submissions only from the browser (server-side use requires a paid plan plus server IP allowlisting), so the key must be public. Per Web3Forms, the key is not a secret — it only aliases the author's email address; misuse can at most send the author email, and the key can be rotated.
+- Vercel warns about public variables with "KEY" in the name; the warning was reviewed and accepted (2026-10-21).
+
+**Alternative considered:** a Next.js Route Handler on Vercel that holds a secret key and sends email through Resend. Rejected for now as extra work for a small risk; it remains the upgrade path if volume, abuse or data-handling needs grow (consistent with decision 6 — API routes are ready when needed).
+
+---
+
 ## Technology Stack Summary
 
 | Layer | Technology | Notes |
@@ -105,6 +119,7 @@ Next.js handles both frontend (React simulation UI) and future backend (API rout
 | Frontend framework | Next.js (App Router) | React 18 + TypeScript |
 | Styling | TBD (Tailwind CSS recommended) | Current prototype uses plain CSS |
 | Simulation engine | Client-side TypeScript | Runs entirely in browser |
+| User feedback | Web3Forms (browser `fetch`) | Emails feedback to the author; public access key (decision 9) |
 | Hosting | Vercel | MVP and Pro frontend |
 | Database (Pro) | Vercel Postgres or Neon | PostgreSQL |
 | Auth (Pro) | Auth.js (NextAuth) or Clerk | To be decided |

@@ -100,8 +100,8 @@ describe('feat-013: tutorial storage — hasSeenMode / markModeSeen', () => {
 // ---------------------------------------------------------------------------
 
 describe('feat-013: TUTORIAL_STEPS — compare mode', () => {
-  it('contains exactly 13 steps for compare mode (intro + drill-down A + drill-down B)', () => {
-    expect(TUTORIAL_STEPS.compare).toHaveLength(13)
+  it('contains exactly 14 steps for compare mode (intro + drill-down A + drill-down B + feedback, feat-024)', () => {
+    expect(TUTORIAL_STEPS.compare).toHaveLength(14)
   })
 
   it('every compare step has a non-empty id', () => {
@@ -195,14 +195,15 @@ describe('feat-013: TUTORIAL_STEPS — compare mode', () => {
     expect(maxA).toBeLessThan(minB)
   })
 
-  it('controls step comes immediately before the Run button step', () => {
+  it('controls step comes right before the feedback step, which comes right before the Run button step (feat-024)', () => {
     const targets = TUTORIAL_STEPS.compare.map(s => s.targetId)
     const controlsIdx = targets.indexOf('compare-controls')
     const runIdx = targets.indexOf('compare-run-button')
     expect(controlsIdx).not.toBe(-1)
     expect(runIdx).not.toBe(-1)
-    // Controls orientation comes right before the call-to-action
-    expect(runIdx).toBe(controlsIdx + 1)
+    // Controls orientation, then the feedback icon (feat-024), then the call-to-action
+    expect(targets[controlsIdx + 1]).toBe('feedback-button')
+    expect(runIdx).toBe(controlsIdx + 2)
   })
 
   it('ends with the Run button as the final call-to-action', () => {
@@ -212,8 +213,8 @@ describe('feat-013: TUTORIAL_STEPS — compare mode', () => {
 })
 
 describe('feat-013: TUTORIAL_STEPS — experiment mode', () => {
-  it('contains exactly 9 steps for experiment mode', () => {
-    expect(TUTORIAL_STEPS.experiment).toHaveLength(9)
+  it('contains exactly 10 steps for experiment mode (incl. the feedback step, feat-024)', () => {
+    expect(TUTORIAL_STEPS.experiment).toHaveLength(10)
   })
 
   it('every experiment step has a non-empty id', () => {
@@ -297,9 +298,9 @@ describe('feat-013: TutorialOverlay — initial render', () => {
     expect(screen.getByText(TUTORIAL_STEPS.compare[0].description)).toBeInTheDocument()
   })
 
-  it('shows progress indicator "1 / 13" on the first step', () => {
+  it('shows progress indicator "1 / 14" on the first step', () => {
     renderOverlay('compare')
-    expect(screen.getByText('1 / 13')).toBeInTheDocument()
+    expect(screen.getByText('1 / 14')).toBeInTheDocument()
   })
 
   it('shows "Next →" button (not "Finish") on the first step', () => {
@@ -328,10 +329,10 @@ describe('feat-013: TutorialOverlay — step navigation', () => {
     expect(screen.getByText(TUTORIAL_STEPS.compare[1].description)).toBeInTheDocument()
   })
 
-  it('shows progress "2 / 13" on step 2', () => {
+  it('shows progress "2 / 14" on step 2', () => {
     renderOverlay('compare')
     clickNext(1)
-    expect(screen.getByText('2 / 13')).toBeInTheDocument()
+    expect(screen.getByText('2 / 14')).toBeInTheDocument()
   })
 
   it('advances to step 3 on second "Next →" click', () => {
@@ -340,21 +341,21 @@ describe('feat-013: TutorialOverlay — step navigation', () => {
     expect(screen.getByText(TUTORIAL_STEPS.compare[2].description)).toBeInTheDocument()
   })
 
-  it('shows progress "3 / 13" on step 3', () => {
+  it('shows progress "3 / 14" on step 3', () => {
     renderOverlay('compare')
     clickNext(2)
-    expect(screen.getByText('3 / 13')).toBeInTheDocument()
+    expect(screen.getByText('3 / 14')).toBeInTheDocument()
   })
 
-  it('shows progress "13 / 13" after twelve "Next →" clicks (last step)', () => {
+  it('shows progress "14 / 14" after thirteen "Next →" clicks (last step)', () => {
     renderOverlay('compare')
-    clickNext(12)
-    expect(screen.getByText('13 / 13')).toBeInTheDocument()
+    clickNext(13)
+    expect(screen.getByText('14 / 14')).toBeInTheDocument()
   })
 
-  it('shows "Finish" button instead of "Next →" on the last step (step 13)', () => {
+  it('shows "Finish" button instead of "Next →" on the last step (step 14)', () => {
     renderOverlay('compare')
-    clickNext(12)
+    clickNext(13)
     expect(screen.getByRole('button', { name: /finish/i })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /next/i })).not.toBeInTheDocument()
   })
@@ -366,19 +367,19 @@ describe('feat-013: TutorialOverlay — step navigation', () => {
     expect(screen.getByText(TUTORIAL_STEPS.experiment[1].description)).toBeInTheDocument()
   })
 
-  it('shows "Finish" instead of "Next →" on experiment mode last step (step 9)', () => {
+  it('shows "Finish" instead of "Next →" on experiment mode last step (step 10)', () => {
     renderOverlay('experiment')
-    clickNext(8) // advance through all 9 steps (0-indexed: clicks 8 times to reach step 9)
+    clickNext(9) // advance through all 10 steps (0-indexed: clicks 9 times to reach step 10)
     expect(screen.getByRole('button', { name: /finish/i })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /next/i })).not.toBeInTheDocument()
   })
 })
 
 describe('feat-013: TutorialOverlay — completing and skipping', () => {
-  it('calls onComplete when "Finish" is clicked on the last step (step 13)', () => {
+  it('calls onComplete when "Finish" is clicked on the last step (step 14)', () => {
     let completed = false
     renderOverlay('compare', () => { completed = true })
-    clickNext(12)
+    clickNext(13)
     fireEvent.click(screen.getByRole('button', { name: /finish/i }))
     expect(completed).toBe(true)
   })

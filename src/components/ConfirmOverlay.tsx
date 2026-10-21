@@ -1,5 +1,6 @@
-import { useEffect, useId, useRef, type ReactNode } from 'react'
+import { useId, useRef, type ReactNode } from 'react'
 import { Button } from '@/components/Button'
+import { useModalFocus } from '@/hooks/useModalFocus'
 import styles from './ConfirmOverlay.module.css'
 
 /** Vstupní props komponenty ConfirmOverlay. */
@@ -42,55 +43,16 @@ interface ConfirmOverlayProps {
  */
 export function ConfirmOverlay({ title, body, cancelLabel = 'Cancel', confirmLabel, width = 280, onCancel, onConfirm }: ConfirmOverlayProps) {
   const titleId = useId()
-  const cancelRef = useRef<HTMLButtonElement>(null)
-  const confirmRef = useRef<HTMLButtonElement>(null)
+  const cardRef = useRef<HTMLDivElement>(null)
 
-  // Nejnovější onCancel v refu: rodič ho předává jako novou funkci při každém překreslení (~60× za sekundu
-  // za běhu simulace) a listener níže se kvůli tomu nemá pokaždé odpojovat a znovu připojovat.
-  const onCancelRef = useRef(onCancel)
-  useEffect(() => { onCancelRef.current = onCancel })
-
-  // Po otevření fokus na Cancel a klávesy Escape / Tab na úrovni dokumentu; při zavření vrátíme
-  // fokus na prvek, který ho měl před otevřením
-  useEffect(() => {
-    const previouslyFocused = document.activeElement
-    cancelRef.current?.focus()
-
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        e.preventDefault()
-        onCancelRef.current()
-        return
-      }
-      if (e.key !== 'Tab') return
-      // Focus trap: v dialogu jsou jen dvě tlačítka. Mimo ně (např. po kliknutí na pozadí) fokus vrátíme
-      // dovnitř, na krajích ho zacyklíme na druhý konec.
-      const first = cancelRef.current
-      const last = confirmRef.current
-      if (!first || !last) return
-      const active = document.activeElement
-      if (active !== first && active !== last) {
-        e.preventDefault()
-        ;(e.shiftKey ? last : first).focus()
-      } else if (e.shiftKey && active === first) {
-        e.preventDefault()
-        last.focus()
-      } else if (!e.shiftKey && active === last) {
-        e.preventDefault()
-        first.focus()
-      }
-    }
-    document.addEventListener('keydown', handleKeyDown)
-
-    return () => {
-      document.removeEventListener('keydown', handleKeyDown)
-      if (previouslyFocused instanceof HTMLElement) previouslyFocused.focus()
-    }
-  }, [])
+  // Fokus na Cancel (první tlačítko v kartě — bezpečná volba u destruktivní akce), Tab cyklí mezi
+  // oběma tlačítky, Escape zruší a po zavření se fokus vrátí; když je přes dialog otevřený jiný
+  // dialog (zpětná vazba, feat-024), klávesy patří tomu hornímu
+  useModalFocus(cardRef, onCancel)
 
   return (
     <div className={styles.overlay}>
-      <div className={styles.card} style={{ width }} role="dialog" aria-modal="true" aria-labelledby={titleId}>
+      <div ref={cardRef} className={styles.card} style={{ width }} role="dialog" aria-modal="true" aria-labelledby={titleId}>
         <div id={titleId} className={styles.title}>
           {title}
         </div>
@@ -98,10 +60,10 @@ export function ConfirmOverlay({ title, body, cancelLabel = 'Cancel', confirmLab
           {body}
         </div>
         <div className={styles.buttons}>
-          <Button ref={cancelRef} variant="ghost" className={styles.button} onClick={onCancel}>
+          <Button variant="ghost" className={styles.button} onClick={onCancel}>
             {cancelLabel}
           </Button>
-          <Button ref={confirmRef} variant="strong" className={styles.button} onClick={onConfirm}>
+          <Button variant="strong" className={styles.button} onClick={onConfirm}>
             {confirmLabel}
           </Button>
         </div>

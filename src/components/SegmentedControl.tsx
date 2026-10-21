@@ -25,6 +25,10 @@ interface SegmentedControlProps<T extends string> {
   disabled?: boolean
   /** `bar` = the control sits on the anthracite top bar and uses the bar's colors */
   tone?: 'default' | 'bar'
+  /** Stretch to the full width of the parent (e.g. a form field in a dialog) instead of fitting the labels */
+  fullWidth?: boolean
+  /** Id of a visible label (e.g. „Your role“) that names the group; without it the group is named by its options */
+  labelledBy?: string
 }
 
 /**
@@ -39,8 +43,10 @@ interface SegmentedControlProps<T extends string> {
  * @param hint    - optional description shown as a floating tooltip on hover
  * @param disabled - optional; dims the control and ignores clicks
  * @param tone    - optional; `bar` for the dark top bar
+ * @param fullWidth - optional; stretch to the parent's width (segments stay equally wide)
+ * @param labelledBy - optional; id of a visible label that names the group
  */
-export function SegmentedControl<T extends string>({ options, value, onChange, hint, disabled = false, tone = 'default' }: SegmentedControlProps<T>) {
+export function SegmentedControl<T extends string>({ options, value, onChange, hint, disabled = false, tone = 'default', fullWidth = false, labelledBy }: SegmentedControlProps<T>) {
   // null = nothing pressed on purpose (-1 matches no segment); an unknown value falls back to the
   // first segment, so a stale value never leaves the control looking empty
   const activeIndex = value === null ? -1 : Math.max(0, options.findIndex(o => o.value === value))
@@ -48,13 +54,15 @@ export function SegmentedControl<T extends string>({ options, value, onChange, h
 
   return (
     <div
-      className={[styles.root, tone === 'bar' && styles.bar].filter(Boolean).join(' ')}
+      className={[styles.root, tone === 'bar' && styles.bar, fullWidth && styles.fullWidth].filter(Boolean).join(' ')}
       onMouseEnter={() => hint && setVisible(true)}
       onMouseLeave={() => setVisible(false)}
     >
       <div
         role="group"
-        aria-label={options.map(o => o.label).join(' / ')}
+        // Viditelný popisek má přednost; bez něj skupinu pojmenují její volby („Single / Double / Multi“)
+        aria-labelledby={labelledBy}
+        aria-label={labelledBy ? undefined : options.map(o => o.label).join(' / ')}
         className={[styles.track, disabled && styles.disabled].filter(Boolean).join(' ')}
       >
         {options.map((opt, i) => (
