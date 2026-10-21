@@ -1,7 +1,8 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { Fragment, useLayoutEffect, useRef, useState } from 'react'
 import { TUTORIAL_STEPS } from '@/lib/tutorialSteps'
+import { splitTutorialText } from '@/lib/tutorialText'
 import type { TutorialMode } from '@/types/tutorial'
 import { Button } from '@/components/Button'
 import styles from './TutorialOverlay.module.css'
@@ -35,56 +36,120 @@ interface SpotlightState {
   vh: number
 }
 
-/** Fixed card dimensions used for position calculations before the card is painted.
- *  CARD_H is intentionally generous (longest observed description ~3 lines ≈ 220px)
- *  so the card never clips the viewport edge on typical descriptions. */
-const CARD_W = 400
-const CARD_H = 240
+/**
+ * Card size used for placement until the real card has been measured: the width of a step card
+ * (`.card` in TutorialOverlay.module.css) and a generous height (title + four lines of text + buttons),
+ * so an unmeasured card never clips the viewport edge.
+ */
+const CARD_SIZE_FALLBACK: CardSize = { width: 400, height: 240 }
 /** Gap between the spotlighted element and the tutorial card. */
 const GAP = 20
 /** Minimum distance from any viewport edge. */
 const EDGE = 16
+
+/** Measured size of the tutorial card in px (it changes with the step's text and the window width). */
+interface CardSize {
+  width: number
+  height: number
+}
 
 /**
  * Calculates where to place the tutorial card so it sits adjacent to the spotlight.
  * Tries positions in priority order: right → left → below → above → inside fallback.
  *
  * @param s - Bounding rect of the spotlighted element plus current viewport size.
+ * @param card - Size of the card (measured, or the fallback before the first measurement).
  * @returns top/left pixel values for `position: fixed` placement.
  */
-function calcCardPos(s: SpotlightState): { top: number; left: number } {
+function calcCardPos(s: SpotlightState, card: CardSize): { top: number; left: number } {
   const { top, left, width, height, vw, vh } = s
+  const { width: cardW, height: cardH } = card
 
   // Clamp helpers — keep the card fully within the viewport.
-  const clampTop  = (t: number) => Math.max(EDGE, Math.min(vh - CARD_H - EDGE, t))
-  const clampLeft = (l: number) => Math.max(EDGE, Math.min(vw - CARD_W - EDGE, l))
+  const clampTop  = (t: number) => Math.max(EDGE, Math.min(vh - cardH - EDGE, t))
+  const clampLeft = (l: number) => Math.max(EDGE, Math.min(vw - cardW - EDGE, l))
 
   // Vertically centred alongside the target.
-  const vcenter = top + height / 2 - CARD_H / 2
+  const vcenter = top + height / 2 - cardH / 2
 
   // Right of the spotlight.
-  if (left + width + GAP + CARD_W <= vw - EDGE) {
+  if (left + width + GAP + cardW <= vw - EDGE) {
     return { left: left + width + GAP, top: clampTop(vcenter) }
   }
 
   // Left of the spotlight.
-  if (left - GAP - CARD_W >= EDGE) {
-    return { left: left - GAP - CARD_W, top: clampTop(vcenter) }
+  if (left - GAP - cardW >= EDGE) {
+    return { left: left - GAP - cardW, top: clampTop(vcenter) }
   }
 
   // Below the spotlight (horizontally centred).
-  const hcenter = left + width / 2 - CARD_W / 2
-  if (top + height + GAP + CARD_H <= vh - EDGE) {
+  const hcenter = left + width / 2 - cardW / 2
+  if (top + height + GAP + cardH <= vh - EDGE) {
     return { top: top + height + GAP, left: clampLeft(hcenter) }
   }
 
   // Above the spotlight.
-  if (top - GAP - CARD_H >= EDGE) {
-    return { top: top - GAP - CARD_H, left: clampLeft(hcenter) }
+  if (top - GAP - cardH >= EDGE) {
+    return { top: top - GAP - cardH, left: clampLeft(hcenter) }
   }
 
   // Fallback: overlay the spotlight (top-left corner, with margin).
   return { top: clampTop(top + GAP), left: clampLeft(left + GAP) }
+}
+
+/**
+ * Finds the element with the given `data-tutorial-target`.
+ *
+ * @param targetId - Value of the `data-tutorial-target` attribute
+ * @returns The element, or null when it is not in the DOM
+ */
+function findTarget(targetId: string): HTMLElement | null {
+  return document.querySelector<HTMLElement>(`[data-tutorial-target="${targetId}"]`)
+}
+
+/**
+ * Measures the element with the given `data-tutorial-target`, or returns null when it is not in the DOM.
+ *
+ * @param targetId - Value of the `data-tutorial-target` attribute
+ * @returns The element's rect plus the viewport size, or null
+ */
+function measureTarget(targetId: string): SpotlightState | null {
+  const el = findTarget(targetId)
+  if (!el) return null
+  const r = el.getBoundingClientRect()
+  return { top: r.top, left: r.left, width: r.width, height: r.height, vw: window.innerWidth, vh: window.innerHeight }
+}
+
+/**
+ * Small "opens in a new tab" arrow after a link (feat-025). An SVG rather than the ↗ character,
+ * which Unicode lists as a pictograph — the design system allows no emoji-like glyphs (feat-022).
+ * Decorative only: hidden from screen readers, so the link's name stays just its label.
+ */
+function ExternalIcon() {
+  return (
+    <svg width={8} height={8} viewBox="0 0 8 8" aria-hidden="true" focusable="false" className={styles.externalIcon}>
+      <path d="M2 1h5v5M7 1 1 7" fill="none" stroke="currentColor" strokeWidth={1.2} />
+    </svg>
+  )
+}
+
+/**
+ * Renders a tutorial text: plain text as is, `[label](https://…)` as a link that opens in a new tab.
+ *
+ * @param text - Step description or bullet
+ * @returns Text and link nodes in reading order
+ */
+function renderTutorialText(text: string) {
+  return splitTutorialText(text).map((part, i) =>
+    part.kind === 'text' ? (
+      <Fragment key={i}>{part.text}</Fragment>
+    ) : (
+      <a key={i} href={part.href} target="_blank" rel="noopener noreferrer" className={styles.link}>
+        {part.label}
+        <ExternalIcon />
+      </a>
+    ),
+  )
 }
 
 /**
@@ -99,7 +164,8 @@ function calcCardPos(s: SpotlightState): { top: number; left: number } {
  *      specific sub-element is fully visible. The user retains panel context
  *      ("I'm still inside Team A") while focusing on the highlighted detail.
  *
- * A floating tutorial card is positioned adjacent to the spotlighted sub-element.
+ * The card shows the part of the tour and the step ("TOP BAR · 2 / 14"), a title, the text and
+ * "← Back" / "Next →" (feat-025). A step without a target (the welcome card) is centred on the screen.
  *
  * @param mode       - Which mode's steps to display.
  * @param onComplete - Callback fired when the tutorial is finished or skipped.
@@ -111,62 +177,77 @@ export function TutorialOverlay({ mode, onComplete }: TutorialOverlayProps) {
   const [spotlight, setSpotlight] = useState<SpotlightState | null>(null)
   // Measured rect of the parent panel (parentTargetId). Null when step has no parent.
   const [parentSpotlight, setParentSpotlight] = useState<SpotlightState | null>(null)
+  // Real size of the card — texts differ in length and the card narrows in a small window.
+  const [cardSize, setCardSize] = useState<CardSize>(CARD_SIZE_FALLBACK)
+  const cardRef = useRef<HTMLDivElement>(null)
+  // Main action (Next → / Finish) — gets the focus back when „← Back“ disappears on step 1.
+  const primaryRef = useRef<HTMLButtonElement>(null)
+  // Set by „← Back“ when the card had keyboard focus; checked after the new step is rendered.
+  const restoreFocusRef = useRef(false)
 
   const steps       = TUTORIAL_STEPS[mode]
   const currentStep = steps[stepIndex]
   const isLastStep  = stepIndex === steps.length - 1
+  // The welcome card has no target on purpose — it is centred, not placed next to an element.
+  const isIntro     = currentStep.targetId === ''
 
   // Measure the target element (and optional parent) whenever the active step changes.
-  // We also re-measure on window resize to keep the overlay aligned.
-  useEffect(() => {
+  // The first measurement happens right after the DOM update (layout effect), so the spotlight does
+  // not depend on the next animation frame — a background tab may delay frames. A second measurement
+  // in requestAnimationFrame catches late layout changes; resizing the window measures again.
+  useLayoutEffect(() => {
     // Always reset first so the previous step's spotlight doesn't flash on the new step.
     setSpotlight(null)
     setParentSpotlight(null)
 
-    // Empty targetId = intentional "no spotlight" step (e.g. intro overview).
-    // Stay in full-backdrop mode — no measurement needed, no rAF, no resize listener.
+    // Empty targetId = intentional "no spotlight" step (welcome card).
     if (!currentStep.targetId) return
 
-    function measure() {
-      const el = document.querySelector<HTMLElement>(
-        `[data-tutorial-target="${currentStep.targetId}"]`,
-      )
-      if (!el) return
-      const r = el.getBoundingClientRect()
-      setSpotlight({
-        top: r.top, left: r.left,
-        width: r.width, height: r.height,
-        vw: window.innerWidth, vh: window.innerHeight,
-      })
+    const { targetId, fallbackTargetId, parentTargetId } = currentStep
+    // Bring the target into view first: the first To Do card may sit above a scrolled column, and the
+    // ring would then frame an invisible card over the header. jsdom has no scrollIntoView, hence `?.`.
+    const element = findTarget(targetId) ?? (fallbackTargetId ? findTarget(fallbackTargetId) : null)
+    element?.scrollIntoView?.({ block: 'nearest', inline: 'nearest' })
 
+    function measure() {
+      // The fallback target stands in when the target is missing (e.g. an empty To Do column).
+      const target = measureTarget(targetId) ?? (fallbackTargetId ? measureTarget(fallbackTargetId) : null)
+      setSpotlight(target)
       // Measure parent panel when specified — enables the two-level overlay.
-      if (currentStep.parentTargetId) {
-        const parentEl = document.querySelector<HTMLElement>(
-          `[data-tutorial-target="${currentStep.parentTargetId}"]`,
-        )
-        if (parentEl) {
-          const pr = parentEl.getBoundingClientRect()
-          setParentSpotlight({
-            top: pr.top, left: pr.left,
-            width: pr.width, height: pr.height,
-            vw: window.innerWidth, vh: window.innerHeight,
-          })
-        } else {
-          setParentSpotlight(null)
-        }
-      } else {
-        setParentSpotlight(null)
-      }
+      setParentSpotlight(target && parentTargetId ? measureTarget(parentTargetId) : null)
     }
 
-    // Use rAF so the DOM has settled after any React re-renders before we measure.
+    measure()
     const raf = requestAnimationFrame(measure)
     window.addEventListener('resize', measure)
     return () => {
       cancelAnimationFrame(raf)
       window.removeEventListener('resize', measure)
     }
-  }, [currentStep.targetId, currentStep.parentTargetId])
+  }, [currentStep])
+
+  // Measure the card's real size whenever the step (and so its text) changes and when the window is
+  // resized (a narrow window narrows the card and re-wraps the text). Keeping the previous object when
+  // nothing changed lets React skip the extra render.
+  useLayoutEffect(() => {
+    function measureCard() {
+      const el = cardRef.current
+      if (!el || el.offsetWidth === 0 || el.offsetHeight === 0) return
+      const next = { width: el.offsetWidth, height: el.offsetHeight }
+      setCardSize(prev => (prev.width === next.width && prev.height === next.height ? prev : next))
+    }
+    measureCard()
+    window.addEventListener('resize', measureCard)
+    return () => window.removeEventListener('resize', measureCard)
+  }, [currentStep])
+
+  // „← Back“ on step 2 removes the button it was pressed on (step 1 has none). Keep a keyboard user
+  // inside the card: when the focus fell out of it, move it to the main action.
+  useLayoutEffect(() => {
+    if (!restoreFocusRef.current) return
+    restoreFocusRef.current = false
+    if (!cardRef.current?.contains(document.activeElement)) primaryRef.current?.focus()
+  }, [stepIndex])
 
   /** Moves to the next step (or completes the tutorial on the last step). */
   function handleNext() {
@@ -177,47 +258,79 @@ export function TutorialOverlay({ mode, onComplete }: TutorialOverlayProps) {
     }
   }
 
+  /** Moves one step back (the button is not shown on the first step). */
+  function handleBack() {
+    restoreFocusRef.current = cardRef.current?.contains(document.activeElement) ?? false
+    setStepIndex(i => Math.max(0, i - 1))
+  }
+
   // Card is always positioned relative to the child spotlight (the specific sub-element).
-  const cardPos = spotlight ? calcCardPos(spotlight) : null
+  const cardPos = spotlight ? calcCardPos(spotlight, cardSize) : null
+
+  // Position of the card: next to the spotlight; centred for the welcome card; otherwise (target not
+  // found) at the bottom centre, as before.
+  const placement = cardPos
+    ? { top: cardPos.top, left: cardPos.left, transform: 'none', bottom: 'auto' }
+    : isIntro
+      ? { top: '50%', left: '50%', transform: 'translate(-50%, -50%)' }
+      : { bottom: 40, left: '50%', transform: 'translateX(-50%)' }
 
   // Shared card content — same regardless of backdrop style.
   const card = (
     <div
-      className={styles.card}
-      style={{
-        position: 'fixed',
-        ...(cardPos
-          ? { top: cardPos.top, left: cardPos.left, transform: 'none', bottom: 'auto' }
-          : { bottom: 40, left: '50%', transform: 'translateX(-50%)' }),
-        pointerEvents: 'auto',
-      }}
+      ref={cardRef}
+      className={[styles.card, isIntro && styles.welcome].filter(Boolean).join(' ')}
+      style={{ position: 'fixed', ...placement, pointerEvents: 'auto' }}
     >
       <div className={styles.topRow}>
-        <span className={styles.progress}>{stepIndex + 1} / {steps.length}</span>
+        <span className={styles.progress}>{`${currentStep.chapter} · ${stepIndex + 1} / ${steps.length}`}</span>
         <button className={styles.skipButton} onClick={onComplete}>
           Skip tutorial
         </button>
       </div>
-      <p className={styles.description}>{currentStep.description}</p>
+      <div className={styles.body}>
+        <h2 className={styles.title}>{currentStep.title}</h2>
+        <p className={styles.description}>{renderTutorialText(currentStep.description)}</p>
+      </div>
+      {currentStep.bullets && (
+        <ul className={styles.bullets}>
+          {currentStep.bullets.map(bullet => <li key={bullet}>{renderTutorialText(bullet)}</li>)}
+        </ul>
+      )}
       <div className={styles.actions}>
+        {stepIndex > 0 && (
+          <Button variant="secondary" onBar onClick={handleBack}>← Back</Button>
+        )}
         {isLastStep ? (
-          <Button variant="light" onClick={onComplete}>Finish</Button>
+          <Button ref={primaryRef} variant="light" onClick={onComplete}>Finish</Button>
         ) : (
-          <Button variant="light" onClick={handleNext}>Next →</Button>
+          <Button ref={primaryRef} variant="light" onClick={handleNext}>Next →</Button>
         )}
       </div>
     </div>
   )
 
-  // While we haven't measured the target yet, show a full-screen backdrop.
-  if (!spotlight) {
-    return (
-      <div data-testid="tutorial-overlay" className={styles.backdrop}>
-        {card}
-      </div>
-    )
-  }
+  // One wrapper for both states (full backdrop / spotlight), with the card always as its last child:
+  // the card is never re-mounted between steps, so keyboard focus on its buttons survives a step change.
+  return (
+    <div data-testid="tutorial-overlay" className={spotlight ? styles.layer : styles.backdrop}>
+      {spotlight && renderSpotlight(spotlight, parentSpotlight)}
+      {card}
+    </div>
+  )
+}
 
+/**
+ * Dimmed backdrop pieces around the spotlight and the pulse ring.
+ *
+ * Two-level dimming (when a step has a parent panel): the outer, darker pieces cover everything outside
+ * the parent panel; the inner, lighter pieces cover the rest of the parent panel.
+ *
+ * @param spotlight - Measured rect of the spotlighted sub-element
+ * @param parentSpotlight - Measured rect of the parent panel, or null when the step has none
+ * @returns The backdrop pieces and the ring
+ */
+function renderSpotlight(spotlight: SpotlightState, parentSpotlight: SpotlightState | null) {
   // Outer cutout is based on the parent panel (if present) or the child element.
   // Everything outside this rect gets the darker `dim` backdrop.
   const outer = parentSpotlight ?? spotlight
@@ -226,7 +339,7 @@ export function TutorialOverlay({ mode, onComplete }: TutorialOverlayProps) {
   const { top: ct, left: cl, width: cw, height: ch } = spotlight
 
   return (
-    <div data-testid="tutorial-overlay" className={styles.layer}>
+    <>
       {/* ── Outer backdrop (dim) — covers everything outside the outer spotlight ── */}
 
       {ot > 0 && (
@@ -293,8 +406,9 @@ export function TutorialOverlay({ mode, onComplete }: TutorialOverlayProps) {
         )
       })()}
 
-      {/* Pulse ring — animated frame around the spotlighted sub-element. */}
+      {/* Pulse ring — animated frame 5 px around the spotlighted sub-element (square corners, feat-025). */}
       <div
+        data-testid="tutorial-ring"
         className={styles.pulseRing}
         style={{
           top:    ct - 5,
@@ -303,8 +417,6 @@ export function TutorialOverlay({ mode, onComplete }: TutorialOverlayProps) {
           height: ch + 10,
         }}
       />
-
-      {card}
-    </div>
+    </>
   )
 }

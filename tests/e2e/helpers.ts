@@ -11,14 +11,15 @@ export const BASE = process.env.BASE_URL ?? 'http://localhost:3000'
 
 /**
  * Označí tutoriál jako dokončený a všechny módy jako viděné ještě před načtením stránky.
- * Tutorial overlay by jinak na první návštěvě (i při prvním přepnutí do Advanced) blokoval kliknutí.
+ * Tutorial overlay by jinak na první návštěvě (i při prvním přepnutí do Advanced nebo Cash Flow, feat-025)
+ * blokoval kliknutí.
  *
  * @param page - Stránka Playwrightu
  */
 export async function skipTutorial(page: Page): Promise<void> {
   await page.addInitScript(() => {
     localStorage.setItem('tutorial-completed', 'true')
-    localStorage.setItem('tutorial-seen-modes', JSON.stringify(['compare', 'experiment']))
+    localStorage.setItem('tutorial-seen-modes', JSON.stringify(['compare', 'experiment', 'cashflow']))
   })
 }
 

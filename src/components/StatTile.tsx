@@ -31,6 +31,8 @@ interface StatTileProps {
    * s `aria-expanded`; obsah se vykresluje jen v rozbaleném stavu. Ve výchozím stavu je sbalený.
    */
   details?: React.ReactNode
+  /** Volitelný `data-tutorial-target` dlaždice (feat-025: dlaždice výnosu v Cash Flow). */
+  tutorialTarget?: string
 }
 
 /**
@@ -42,7 +44,7 @@ interface StatTileProps {
  *   (obrací barvy delty), `children` (obsah pod hodnotou) a `details` (rozbalitelný detail, feat-018)
  * @returns Vykreslená dlaždice
  */
-export function StatTile({ label, value, unit, hint, tooltip, variant, finished, wide, delta, higherIsBetter = false, children, details }: StatTileProps) {
+export function StatTile({ label, value, unit, hint, tooltip, variant, finished, wide, delta, higherIsBetter = false, children, details, tutorialTarget }: StatTileProps) {
   const isTimer = variant === 'timer'
   // Stav rozbalení je lokální — nepersistuje se (feat-018); rodič ho resetuje změnou `key`
   const [expanded, setExpanded] = useState(false)
@@ -63,6 +65,7 @@ export function StatTile({ label, value, unit, hint, tooltip, variant, finished,
     <div
       title={tooltip}
       data-testid={`stat-tile-${label}`}
+      data-tutorial-target={tutorialTarget}
       className={tileClass}
       // '1 / -1' roztáhne dlaždici přes všechny sloupce nadřazeného gridu
       // (aktuálně repeat(2, 1fr) v Simulator.tsx — při změně gridu upravit i toto)

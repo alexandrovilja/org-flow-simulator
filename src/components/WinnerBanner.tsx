@@ -13,7 +13,7 @@ interface WinnerBannerProps {
 /**
  * Rám výsledku, který se ukáže, když obě simulace v Compare doběhnou (design system Org Flow,
  * feat-021, Příklad 9): písmeno vítězného týmu, titulek „Team B was 42% faster“ podle průměrného
- * lead time, jedna věta proč a ručně psaná poznámka kouče. Týmy se nerozlišují barvou (dřív
+ * cycle time, jedna věta proč a ručně psaná poznámka kouče. Týmy se nerozlišují barvou (dřív
  * oranžová / zelená), ale písmenem — rám bere barvy jen z tokenů a nemá emoji.
  *
  * @param props - Stav a statistiky obou týmů
@@ -26,7 +26,7 @@ export function WinnerBanner({ stateA, statsA, stateB, statsB }: WinnerBannerPro
   const delta = calcCompareDelta(statsA.avg, statsB.avg)
   if (delta === undefined) return null
 
-  // Negative delta means Team B has lower (better) lead time.
+  // Negative delta means Team B has lower (better) average cycle time.
   const bWins = delta < 0
   const improvementPct = Math.abs(delta).toFixed(0)
   const winner = bWins ? 'B' : 'A'
@@ -35,7 +35,8 @@ export function WinnerBanner({ stateA, statsA, stateB, statsB }: WinnerBannerPro
     <div className={styles.frame} role="status">
       <span className={styles.badge}>{winner}</span>
       <div>
-        <div className={styles.eyebrow}>Result · avg lead time</div>
+        {/* Rám počítá průměrný cycle time (stejné číslo jako dlaždice Avg Cycle Time), proto i popisek (feat-025) */}
+        <div className={styles.eyebrow}>Result · avg cycle time</div>
         <h2 className={styles.title}>
           Team {winner} was <em className={styles.gain}>{improvementPct}% faster</em>
         </h2>

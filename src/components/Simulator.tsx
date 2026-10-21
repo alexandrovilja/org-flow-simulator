@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef, useMemo, useCallback } from 'react'
+import { useState, useEffect, useRef, useMemo, useCallback, type ReactNode } from 'react'
 import { flushSync } from 'react-dom'
 import {
   ROLE_META, MEMBER_NAMES, TEAM_NAMES, PRESETS, mulberry32,
@@ -375,6 +375,16 @@ export function Simulator() {
     }
   }, [])
 
+  const handleSwitchToCashFlow = useCallback(() => {
+    setMode('cashflow')
+    // First visit to Cash Flow starts its own tour, like Advanced (feat-025, Example 8).
+    // Only the per-mode flag counts — a returning user who skipped Compare still gets the Cash Flow tour.
+    if (!hasSeenMode('cashflow')) {
+      setTutorialMode('cashflow')
+      setShowTutorial(true)
+    }
+  }, [])
+
   // ── Compare mode handlers ──────────────────────────────────────────────────
 
   const handleCompareReset = useCallback(() => {
@@ -733,7 +743,7 @@ export function Simulator() {
   const handleSelectMode = (next: AppMode) => {
     if (next === 'compare') handleSwitchToCompare()
     else if (next === 'experiment') handleSwitchToExperiment()
-    else setMode('cashflow')
+    else handleSwitchToCashFlow()
   }
 
   /** Run / Pause v Compare: první kliknutí spustí obě simulace, další je pozastaví a znovu rozběhne. */
@@ -757,6 +767,19 @@ export function Simulator() {
     // ukáže svůj výsledek (poděkování nebo chybu) až teď — uživatel se tak dozví, jak dopadlo
     setFeedbackErrors({})
     setFeedbackOpen(true)
+  }
+
+  /**
+   * „?“ v ovládání: zastaví běžící simulaci daného módu (jako dialog zpětné vazby) a spustí jeho prohlídku
+   * od kroku 1. Za běhu by se karty pod zvýrazněním posouvaly a rámeček by ukazoval vedle (review feat-025).
+   *
+   * @param m - Mód, jehož prohlídka se spustí (vždy ten aktivní)
+   */
+  const handleRestartTutorial = (m: TutorialMode) => {
+    if (m === 'compare') setComparePaused(true)
+    else if (m === 'experiment') setPaused(true)
+    else setCashFlowPaused(true)
+    handleTutorialRelaunch(m)
   }
 
   /** Změna formuláře: uloží koncept a schová hlášky — uživatel právě opravuje (Příklad 6). */
@@ -805,31 +828,35 @@ export function Simulator() {
   }
 
   // Ovládání běhu je ve všech třech módech stejné (SpeedControl, feat-021 Příklad 14); liší se jen
-  // tím, co Reset vrací, a tím, že Cash Flow nemá tutoriál, a tak ani tlačítko „?“.
+  // tím, co Reset vrací. Od feat-025 má prohlídku i Cash Flow, a tak i tlačítko „?“.
   const header = (
     <TopBar mode={mode} onSelectMode={handleSelectMode} onOpenFeedback={handleOpenFeedback}>
       {mode === 'cashflow' ? (
-        <SpeedControl
-          speed={cashFlowSpeed}
-          paused={cashFlowPaused}
-          hasStarted={cashFlowHasStarted}
-          finished={cf.stateRef.current?.finished ?? false}
-          onSpeedChange={setCashFlowSpeed}
-          onTogglePause={() => { setCashFlowPaused(p => !p); setCashFlowHasStarted(true) }}
-          onReset={() => {
-            // Promote the last naturally-finished run into prevStats for comparison —
-            // same pattern as Advanced mode's handleReset.
-            promoteCashFlowFinishedRun()
-            if (cf.stateRef.current) resetFromSnapshot(cf.stateRef.current)
-            // Dialog změny křivky by se ptal na zahozený běh
-            cf.setConfirmingRevenueProfile(null)
-            setCashFlowPaused(true)
-            setCashFlowHasStarted(false)
-            cf.forceUpdate()
-          }}
-          resetTitle={RESET_BACKLOG_TITLE}
-          runButtonTarget="cashflow-run-button"
-        />
+        // data-tutorial-target lets the spotlight overlay focus on the whole control row, including „?“ (feat-025)
+        <div data-tutorial-target="cashflow-controls" className={styles.controls}>
+          <SpeedControl
+            speed={cashFlowSpeed}
+            paused={cashFlowPaused}
+            hasStarted={cashFlowHasStarted}
+            finished={cf.stateRef.current?.finished ?? false}
+            onSpeedChange={setCashFlowSpeed}
+            onTogglePause={() => { setCashFlowPaused(p => !p); setCashFlowHasStarted(true) }}
+            onReset={() => {
+              // Promote the last naturally-finished run into prevStats for comparison —
+              // same pattern as Advanced mode's handleReset.
+              promoteCashFlowFinishedRun()
+              if (cf.stateRef.current) resetFromSnapshot(cf.stateRef.current)
+              // Dialog změny křivky by se ptal na zahozený běh
+              cf.setConfirmingRevenueProfile(null)
+              setCashFlowPaused(true)
+              setCashFlowHasStarted(false)
+              cf.forceUpdate()
+            }}
+            onRestartTutorial={() => handleRestartTutorial('cashflow')}
+            resetTitle={RESET_BACKLOG_TITLE}
+            runButtonTarget="cashflow-run-button"
+          />
+        </div>
       ) : mode === 'compare' ? (
         // data-tutorial-target lets the spotlight overlay focus on the compare simulation controls
         <div data-tutorial-target="compare-controls" className={styles.controls}>
@@ -842,7 +869,7 @@ export function Simulator() {
             onSpeedChange={setCompareSpeed}
             onTogglePause={handleToggleCompareRun}
             onReset={handleCompareReset}
-            onRestartTutorial={() => handleTutorialRelaunch('compare')}
+            onRestartTutorial={() => handleRestartTutorial('compare')}
             runButtonTarget="compare-run-button"
           />
         </div>
@@ -857,7 +884,7 @@ export function Simulator() {
             onSpeedChange={setSpeed}
             onTogglePause={() => { setPaused(p => !p); setHasStarted(true) }}
             onReset={() => { handleReset(); setPaused(true); setHasStarted(false) }}
-            onRestartTutorial={() => handleTutorialRelaunch('experiment')}
+            onRestartTutorial={() => handleRestartTutorial('experiment')}
             resetTitle={RESET_BACKLOG_TITLE}
             runButtonTarget="experiment-run-button"
           />
@@ -880,10 +907,28 @@ export function Simulator() {
     />
   )
 
+  /**
+   * Přidá k rozložení módu kartu tutoriálu (zobrazenou při první návštěvě módu nebo po „?“).
+   * Karta je jen na tomto jednom místě pro všechny tři módy (review feat-025) a leží mimo mřížku
+   * rozložení (position: fixed). key = mód: prohlídka jiného módu vždy začne krokem 1, i když se
+   * přepnutí módu sejde s přeskočením předchozí prohlídky v jednom překreslení.
+   *
+   * @param layout - Rozložení aktivního módu
+   * @returns Rozložení a případně karta tutoriálu
+   */
+  const withTutorial = (layout: ReactNode) => (
+    <>
+      {layout}
+      {showTutorial && (
+        <TutorialOverlay key={tutorialMode} mode={tutorialMode} onComplete={handleTutorialComplete} />
+      )}
+    </>
+  )
+
   // ── Compare layout ─────────────────────────────────────────────────────────
 
   if (mode === 'compare') {
-    return (
+    return withTutorial(
       <div className={styles.compare}>
         {header}
         {feedbackDialog}
@@ -930,11 +975,6 @@ export function Simulator() {
             />
           </div>
         </div>
-
-        {/* Tutorial overlay — shown on first visit or when ? is clicked */}
-        {showTutorial && (
-          <TutorialOverlay mode={tutorialMode} onComplete={handleTutorialComplete} />
-        )}
       </div>
     )
   }
@@ -943,7 +983,7 @@ export function Simulator() {
   // plus revenue tracking, minus Total Wait/Avg Handoffs (feat-015) ────────────────────
 
   if (mode === 'cashflow') {
-    return (
+    return withTutorial(
       <div className={styles.threeColumns}>
         {header}
         {feedbackDialog}
@@ -1020,7 +1060,7 @@ export function Simulator() {
 
   // ── Experiment layout (original 3-column layout, unchanged) ───────────────
 
-  return (
+  return withTutorial(
     <div className={styles.threeColumns}>
       {header}
       {feedbackDialog}
@@ -1098,11 +1138,6 @@ export function Simulator() {
           )
         })}
       </ResultsAside>
-
-      {/* Tutorial overlay — shown on first visit to experiment mode or when ? is clicked */}
-      {showTutorial && (
-        <TutorialOverlay mode={tutorialMode} onComplete={handleTutorialComplete} />
-      )}
     </div>
   )
 }

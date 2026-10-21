@@ -100,7 +100,8 @@ describe('feat-013: tutorial storage — hasSeenMode / markModeSeen', () => {
 // ---------------------------------------------------------------------------
 
 describe('feat-013: TUTORIAL_STEPS — compare mode', () => {
-  it('contains exactly 14 steps for compare mode (intro + drill-down A + drill-down B + feedback, feat-024)', () => {
+  // Přesné pořadí, části, nadpisy a cíle kroků od feat-025 hlídá feat-025-tutorial-steps.test.ts.
+  it('contains exactly 14 steps for compare mode (feat-025: welcome → top bar → Compare in detail)', () => {
     expect(TUTORIAL_STEPS.compare).toHaveLength(14)
   })
 
@@ -116,94 +117,17 @@ describe('feat-013: TUTORIAL_STEPS — compare mode', () => {
     }
   })
 
-  it('every compare step has a non-empty targetId (used to locate the DOM element)', () => {
-    for (const step of TUTORIAL_STEPS.compare) {
+  it('every compare step except the welcome card has a non-empty targetId (feat-025)', () => {
+    for (const step of TUTORIAL_STEPS.compare.slice(1)) {
       expect(step.targetId).toBeTruthy()
     }
+    // Úvodní karta nic nezvýrazňuje — prázdný cíl znamená celoplošné ztmavení
+    expect(TUTORIAL_STEPS.compare[0].targetId).toBe('')
   })
 
   it('compare step IDs are unique', () => {
     const ids = TUTORIAL_STEPS.compare.map(s => s.id)
     expect(new Set(ids).size).toBe(ids.length)
-  })
-
-  it('starts with the Compare tab spotlighted on the first step', () => {
-    expect(TUTORIAL_STEPS.compare[0].targetId).toBe('mode-tab-compare')
-  })
-
-  it('Team A panel is the second step (index 1) — after the intro', () => {
-    expect(TUTORIAL_STEPS.compare[1].targetId).toBe('compare-team-a-panel')
-  })
-
-  it('Team B panel is introduced after all Team A sub-steps (not immediately after A panel)', () => {
-    const targets = TUTORIAL_STEPS.compare.map(s => s.targetId)
-    const bPanelIdx = targets.indexOf('compare-team-b-panel')
-    const aResultsIdx = targets.indexOf('compare-team-a-results')
-    expect(bPanelIdx).not.toBe(-1)
-    expect(aResultsIdx).not.toBe(-1)
-    // B panel must come after Team A has been fully drilled down
-    expect(bPanelIdx).toBeGreaterThan(aResultsIdx)
-  })
-
-  it('drill-down A: settings → composition → kanban → results in order for Team A', () => {
-    const targets = TUTORIAL_STEPS.compare.map(s => s.targetId)
-    const aSettingsIdx   = targets.indexOf('compare-team-a-settings')
-    const aCompIdx       = targets.indexOf('compare-team-a-composition')
-    const aKanbanIdx     = targets.indexOf('compare-team-a-kanban')
-    const aResultsIdx    = targets.indexOf('compare-team-a-results')
-    // All four A sub-steps must be present and in this exact drill-down order
-    expect(aSettingsIdx).not.toBe(-1)
-    expect(aCompIdx).not.toBe(-1)
-    expect(aKanbanIdx).not.toBe(-1)
-    expect(aResultsIdx).not.toBe(-1)
-    expect(aSettingsIdx).toBeLessThan(aCompIdx)
-    expect(aCompIdx).toBeLessThan(aKanbanIdx)
-    expect(aKanbanIdx).toBeLessThan(aResultsIdx)
-  })
-
-  it('drill-down B: settings → composition → kanban → results in order for Team B', () => {
-    const targets = TUTORIAL_STEPS.compare.map(s => s.targetId)
-    const bSettingsIdx   = targets.indexOf('compare-team-b-settings')
-    const bCompIdx       = targets.indexOf('compare-team-b-composition')
-    const bKanbanIdx     = targets.indexOf('compare-team-b-kanban')
-    const bResultsIdx    = targets.indexOf('compare-team-b-results')
-    // All four B sub-steps must be present and in this exact drill-down order
-    expect(bSettingsIdx).not.toBe(-1)
-    expect(bCompIdx).not.toBe(-1)
-    expect(bKanbanIdx).not.toBe(-1)
-    expect(bResultsIdx).not.toBe(-1)
-    expect(bSettingsIdx).toBeLessThan(bCompIdx)
-    expect(bCompIdx).toBeLessThan(bKanbanIdx)
-    expect(bKanbanIdx).toBeLessThan(bResultsIdx)
-  })
-
-  it('Team A block precedes Team B block — all A sub-steps come before all B sub-steps', () => {
-    const targets = TUTORIAL_STEPS.compare.map(s => s.targetId)
-    // The last A sub-step must appear before the first B sub-step
-    const maxA = Math.max(
-      targets.indexOf('compare-team-a-settings'),
-      targets.indexOf('compare-team-a-composition'),
-      targets.indexOf('compare-team-a-kanban'),
-      targets.indexOf('compare-team-a-results'),
-    )
-    const minB = Math.min(
-      targets.indexOf('compare-team-b-settings'),
-      targets.indexOf('compare-team-b-composition'),
-      targets.indexOf('compare-team-b-kanban'),
-      targets.indexOf('compare-team-b-results'),
-    )
-    expect(maxA).toBeLessThan(minB)
-  })
-
-  it('controls step comes right before the feedback step, which comes right before the Run button step (feat-024)', () => {
-    const targets = TUTORIAL_STEPS.compare.map(s => s.targetId)
-    const controlsIdx = targets.indexOf('compare-controls')
-    const runIdx = targets.indexOf('compare-run-button')
-    expect(controlsIdx).not.toBe(-1)
-    expect(runIdx).not.toBe(-1)
-    // Controls orientation, then the feedback icon (feat-024), then the call-to-action
-    expect(targets[controlsIdx + 1]).toBe('feedback-button')
-    expect(runIdx).toBe(controlsIdx + 2)
   })
 
   it('ends with the Run button as the final call-to-action', () => {
@@ -213,8 +137,8 @@ describe('feat-013: TUTORIAL_STEPS — compare mode', () => {
 })
 
 describe('feat-013: TUTORIAL_STEPS — experiment mode', () => {
-  it('contains exactly 10 steps for experiment mode (incl. the feedback step, feat-024)', () => {
-    expect(TUTORIAL_STEPS.experiment).toHaveLength(10)
+  it('contains exactly 15 steps for experiment mode (feat-025)', () => {
+    expect(TUTORIAL_STEPS.experiment).toHaveLength(15)
   })
 
   it('every experiment step has a non-empty id', () => {
@@ -293,14 +217,14 @@ describe('feat-013: TutorialOverlay — initial render', () => {
     expect(screen.getByTestId('tutorial-overlay')).toBeInTheDocument()
   })
 
-  it('shows the first step description on initial render', () => {
+  it('shows the first step title on initial render (feat-025: the welcome card)', () => {
     renderOverlay('compare')
-    expect(screen.getByText(TUTORIAL_STEPS.compare[0].description)).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: TUTORIAL_STEPS.compare[0].title })).toBeInTheDocument()
   })
 
-  it('shows progress indicator "1 / 14" on the first step', () => {
+  it('shows progress indicator "WELCOME · 1 / 14" on the first step (feat-025)', () => {
     renderOverlay('compare')
-    expect(screen.getByText('1 / 14')).toBeInTheDocument()
+    expect(screen.getByText('WELCOME · 1 / 14')).toBeInTheDocument()
   })
 
   it('shows "Next →" button (not "Finish") on the first step', () => {
@@ -329,10 +253,10 @@ describe('feat-013: TutorialOverlay — step navigation', () => {
     expect(screen.getByText(TUTORIAL_STEPS.compare[1].description)).toBeInTheDocument()
   })
 
-  it('shows progress "2 / 14" on step 2', () => {
+  it('shows progress "TOP BAR · 2 / 14" on step 2 (feat-025)', () => {
     renderOverlay('compare')
     clickNext(1)
-    expect(screen.getByText('2 / 14')).toBeInTheDocument()
+    expect(screen.getByText('TOP BAR · 2 / 14')).toBeInTheDocument()
   })
 
   it('advances to step 3 on second "Next →" click', () => {
@@ -341,16 +265,16 @@ describe('feat-013: TutorialOverlay — step navigation', () => {
     expect(screen.getByText(TUTORIAL_STEPS.compare[2].description)).toBeInTheDocument()
   })
 
-  it('shows progress "3 / 14" on step 3', () => {
+  it('shows progress "TOP BAR · 3 / 14" on step 3 (feat-025)', () => {
     renderOverlay('compare')
     clickNext(2)
-    expect(screen.getByText('3 / 14')).toBeInTheDocument()
+    expect(screen.getByText('TOP BAR · 3 / 14')).toBeInTheDocument()
   })
 
-  it('shows progress "14 / 14" after thirteen "Next →" clicks (last step)', () => {
+  it('shows progress "COMPARE · 14 / 14" after thirteen "Next →" clicks (last step, feat-025)', () => {
     renderOverlay('compare')
     clickNext(13)
-    expect(screen.getByText('14 / 14')).toBeInTheDocument()
+    expect(screen.getByText('COMPARE · 14 / 14')).toBeInTheDocument()
   })
 
   it('shows "Finish" button instead of "Next →" on the last step (step 14)', () => {
@@ -367,9 +291,9 @@ describe('feat-013: TutorialOverlay — step navigation', () => {
     expect(screen.getByText(TUTORIAL_STEPS.experiment[1].description)).toBeInTheDocument()
   })
 
-  it('shows "Finish" instead of "Next →" on experiment mode last step (step 10)', () => {
+  it('shows "Finish" instead of "Next →" on experiment mode last step (step 15, feat-025)', () => {
     renderOverlay('experiment')
-    clickNext(9) // advance through all 10 steps (0-indexed: clicks 9 times to reach step 10)
+    clickNext(14) // advance through all 15 steps (0-indexed: clicks 14 times to reach step 15)
     expect(screen.getByRole('button', { name: /finish/i })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /next/i })).not.toBeInTheDocument()
   })

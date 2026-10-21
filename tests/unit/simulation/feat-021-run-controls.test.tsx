@@ -5,11 +5,12 @@ import { Simulator } from '@/components/Simulator'
 import { SpeedControl } from '@/components/SpeedControl'
 import { TUTORIAL_STEPS } from '@/lib/tutorialSteps'
 import { markTutorialCompleted, markModeSeen, resetTutorial } from '@/lib/storage'
+import { barControls, controlNames, namesIn } from './topBarControls'
 
 // feat-021, změna 2026-10-20: ovládání běhu v horní liště je ve všech třech módech stejné jako v Compare.
 //
 // Schválený kontrakt (spec features/feat-021-prevod-design-system-org-flow.md, Příklady 14–17):
-//  - Příklad 14: vpravo za přepínačem tématu je v pořadí „?“ (jen Compare a Advanced), „↺ Reset“,
+//  - Příklad 14: vpravo za přepínačem tématu je v pořadí „?“ (od feat-025 ve všech třech módech), „↺ Reset“,
 //    rychlost 0.5× / 1× / 10× (výchozí 1×) a „▶ Run“, který před prvním spuštěním pulzuje. Žádný mód
 //    nemá „Start“, „Resume“, „Reset backlog“ ani rychlost „2×“. Reset má v Advanced a Cash Flow tooltip
 //    „Restore the initial backlog and clear in-progress / done“, v Compare žádný.
@@ -17,7 +18,8 @@ import { markTutorialCompleted, markModeSeen, resetTutorial } from '@/lib/storag
 //    další kliknutí pokračuje od stejného bodu); po doběhnutí „✓ Done“, vypnuté.
 //  - Příklad 16: Reset po doběhnutí vrátí pulzující „▶ Run“.
 //  - Příklad 17: oblast tutoriálu `experiment-controls` obsahuje celé ovládání včetně „?“ a texty
-//    kroků tutoriálu Advanced popisují nové ovládání.
+//    kroků tutoriálu Advanced popisují nové ovládání. Od feat-025 má stejnou oblast `cashflow-controls`
+//    i Cash Flow a texty kroků jsou podle specu feat-025.
 //  - Komponenta `SpeedControl` je společná pro všechny tři módy: „?“ vykreslí jen s `onRestartTutorial`,
 //    tooltip Resetu nese `resetTitle`.
 //  Barvy tlačítek a pulz v prohlížeči ověřuje E2E test (jsdom nepočítá styly z CSS modulů).
@@ -30,13 +32,14 @@ beforeEach(() => {
   markTutorialCompleted()
   markModeSeen('compare')
   markModeSeen('experiment')
+  markModeSeen('cashflow')
 })
 
 afterEach(() => {
   vi.useRealTimers()
 })
 
-/** Ovládací prvky běhu v pořadí zleva doprava (bez „?“, ten má jen Compare a Advanced). */
+/** Ovládací prvky běhu v pořadí zleva doprava (bez „?“, ten vykreslí jen SpeedControl s onRestartTutorial). */
 const RUN_CONTROLS = ['↺ Reset', '0.5×', '1×', '10×', '▶ Run']
 
 /** Tooltip tlačítka Reset v Advanced a Cash Flow (v Compare Reset tooltip nemá). */
@@ -58,35 +61,6 @@ const click = (name: string | RegExp) => fireEvent.click(screen.getByRole('butto
 
 /** Přepne na záložku módu (Compare je výchozí, ale kliknutí na jeho záložku je neškodné). */
 const openMode = (mode: ModeName) => fireEvent.click(screen.getByRole('tab', { name: mode }))
-
-/**
- * Přístupný název tlačítka: `aria-label` (např. u „?“), jinak viditelný text.
- *
- * @param el - Tlačítko
- * @returns Název, jak ho uvidí čtečka obrazovky
- */
-function nameOf(el: Element): string {
-  return el.getAttribute('aria-label') ?? el.textContent?.trim() ?? ''
-}
-
-/**
- * Názvy všech tlačítek v daném kořeni v pořadí, v jakém jsou v DOM.
- *
- * @param root - Element nebo kontejner, ve kterém se tlačítka hledají
- * @returns Seznam názvů zleva doprava
- */
-function namesIn(root: ParentNode): string[] {
-  return Array.from(root.querySelectorAll('button')).map(nameOf)
-}
-
-/** Pravá část horní lišty: zpětná vazba, přepínač tématu a ovládání běhu (třetí potomek `<header>`, viz TopBar). */
-const barControls = () => document.querySelector('header')!.lastElementChild as HTMLElement
-
-/**
- * Ovládání běhu v liště bez ikony zpětné vazby (feat-024) a přepínače tématu — oboje je ve všech
- * módech stejné a nepatří k ovládání běhu.
- */
-const controlNames = () => namesIn(barControls()).filter(n => n !== 'Send feedback' && !/theme$/.test(n))
 
 /** Tlačítko běhu „▶ Run“ (název se shoduje přesně, takže „✓ Done“ ani „❙❙ Pause“ nesedí). */
 const runButton = () => screen.getByRole('button', { name: '▶ Run' })
@@ -229,7 +203,7 @@ describe('feat-021 Příklad 14: stejné ovládání běhu ve všech třech mód
   it.each([
     ['Compare', ['Restart tutorial', ...RUN_CONTROLS]],
     ['Advanced', ['Restart tutorial', ...RUN_CONTROLS]],
-    ['Cash Flow', RUN_CONTROLS],
+    ['Cash Flow', ['Restart tutorial', ...RUN_CONTROLS]],
   ] as const)('%s: ovládání v liště je v pořadí %j', (mode, expected) => {
     render(<Simulator />)
     openMode(mode)
@@ -406,6 +380,7 @@ describe('feat-021 Příklad 17: tutoriál popisuje a zvýrazňuje nové ovlád�
   it.each([
     ['Compare', 'compare-controls', 'compare-run-button'],
     ['Advanced', 'experiment-controls', 'experiment-run-button'],
+    ['Cash Flow', 'cashflow-controls', 'cashflow-run-button'],
   ] as const)('%s: oblast „%s“ obsahuje „?“, Reset, rychlost i Run a cíl „%s“ je tlačítko Run', (mode, controlsTarget, runTarget) => {
     render(<Simulator />)
     openMode(mode)
@@ -421,14 +396,17 @@ describe('feat-021 Příklad 17: tutoriál popisuje a zvýrazňuje nové ovlád�
     expect(document.querySelector('[data-tutorial-target="cashflow-run-button"]')).toBe(runButton())
   })
 
-  it('texty kroků o ovládání v obou tutoriálech uvádějí rychlosti 0.5×, 1×, 10× a tlačítko Run', () => {
-    const description = (mode: 'compare' | 'experiment', id: string) => TUTORIAL_STEPS[mode].find(s => s.id === id)?.description
-    expect(description('compare', 'compare-controls')).toBe('Set the simulation speed (0.5×, 1×, or 10×) or reset the run to start over.')
-    expect(description('experiment', 'experiment-controls')).toBe(
-      'Simulation controls: choose speed (0.5×, 1×, or 10×) or reset the run to restore the original backlog and start fresh.',
+  it('texty kroků o ovládání uvádějí rychlosti 0.5×, 1×, 10×, Reset, „?“ a tlačítko Run (feat-025)', () => {
+    const description = (mode: 'compare' | 'experiment' | 'cashflow', targetId: string) =>
+      TUTORIAL_STEPS[mode].find(s => s.targetId === targetId)?.description
+    expect(description('compare', 'compare-controls')).toBe(
+      'Change the speed (0.5×, 1×, 10×) at any time, even mid-run. ↺ Reset starts over with the default Single vs Double teams. ? brings this tour back.',
     )
-    expect(description('experiment', 'experiment-run')).toBe(
-      'Click ▶ Run to start the simulation. Adjust the team, reset, and re-run as many times as you like.',
+    expect(description('experiment', 'experiment-controls')).toBe(
+      'Change the speed (0.5×, 1×, 10×) at any time. ↺ Reset puts the same backlog back to the start and keeps your units. ? brings this tour back.',
+    )
+    expect(description('experiment', 'experiment-run-button')).toBe(
+      'Click ▶ Run. When the run finishes, change one thing — a unit, a skill or a rule — press ↺ Reset and run again. Each tile then shows the change against the previous run.',
     )
   })
 })

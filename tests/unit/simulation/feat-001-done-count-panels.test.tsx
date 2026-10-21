@@ -96,6 +96,7 @@ describe('feat-001 Příklad 6: hlavička Done v Advanced módu (Simulator)', { 
     markTutorialCompleted()
     markModeSeen('compare')
     markModeSeen('experiment')
+    markModeSeen('cashflow')
   })
 
   afterEach(() => {

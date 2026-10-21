@@ -41,6 +41,7 @@ beforeEach(() => {
   markTutorialCompleted()
   markModeSeen('compare')
   markModeSeen('experiment')
+  markModeSeen('cashflow')
   vi.stubEnv('NEXT_PUBLIC_WEB3FORMS_ACCESS_KEY', TEST_KEY)
   fetchMock = vi.fn(async () => web3formsResponse(true))
   vi.stubGlobal('fetch', fetchMock)

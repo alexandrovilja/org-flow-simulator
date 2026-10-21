@@ -38,6 +38,8 @@ interface FeatureCardProps {
    * Rámeček je přes box-shadow, takže se rozměry karty (a mřížka okolo) nemění. Výchozí false.
    */
   active?: boolean
+  /** Volitelný `data-tutorial-target` karty (feat-025: první karta To Do je cílem kroku „A feature“). */
+  tutorialTarget?: string
 }
 
 /**
@@ -48,7 +50,7 @@ interface FeatureCardProps {
  * @param props - Feature, tým (pro iniciály), režim zobrazení a volitelné doplňky (výnos, koordinace, aktivní stav)
  * @returns Vykreslená karta
  */
-export function FeatureCard({ feature, team = [], compact = false, neutral = false, maxWork = 0, roleConfig, revenue, showCoordination = false, active = false }: FeatureCardProps) {
+export function FeatureCard({ feature, team = [], compact = false, neutral = false, maxWork = 0, roleConfig, revenue, showCoordination = false, active = false, tutorialTarget }: FeatureCardProps) {
   const totalWork = featureTotalWork(feature.tasks)
   // Počet reworků při připojení karty (feat-016) — probliknutí vráceného tasku jen pro nové reworky
   const [mountReworks] = useState(feature.reworkCount)
@@ -74,7 +76,7 @@ export function FeatureCard({ feature, team = [], compact = false, neutral = fal
   }
 
   return (
-    <div data-active={active} className={cardClass} style={cardStyle}>
+    <div data-active={active} data-tutorial-target={tutorialTarget} className={cardClass} style={cardStyle}>
       <div className={styles.top}>
         <span className={styles.name}>{feature.name}</span>
         <div className={styles.meta}>

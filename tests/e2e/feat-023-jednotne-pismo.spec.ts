@@ -303,7 +303,7 @@ test.describe('feat-023: jednotné písmo — celá aplikace v JetBrains Mono', 
     await runButton(page, 'Run').click()
     await expect(runButton(page, 'Done')).toBeVisible({ timeout: 220_000 })
 
-    const frame = page.getByRole('status').filter({ hasText: 'Result · avg lead time' })
+    const frame = page.getByRole('status').filter({ hasText: 'Result · avg cycle time' })
     const title = await styleOf(frame.getByRole('heading'))
     expect(title.family).toMatch(MONO)
     expect(title.size).toBe('36px')
@@ -496,13 +496,14 @@ test.describe('feat-023: jednotné písmo — celá aplikace v JetBrains Mono', 
     await runButton(page, 'Run').click()
     await expect(runButton(page, 'Done')).toBeVisible({ timeout: 220_000 })
 
-    const box = await page.getByRole('status').filter({ hasText: 'Result · avg lead time' }).boundingBox()
+    const box = await page.getByRole('status').filter({ hasText: 'Result · avg cycle time' }).boundingBox()
     expect(box!.x).toBeGreaterThanOrEqual(0)
     expect(box!.x + box!.width).toBeLessThanOrEqual(1024)
     expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(1024)
   })
 
-  for (const mode of ['Compare', 'Advanced']) {
+  // Od feat-025 má prohlídku i Cash Flow (a „?“ v ovládání)
+  for (const mode of ['Compare', 'Advanced', 'Cash Flow']) {
     test(`Příklad 11: tutoriál ${mode} se na 1024 × 768 vejde do okna na každém kroku`, async ({ page }) => {
       await page.setViewportSize({ width: 1024, height: 768 })
       await openApp(page)

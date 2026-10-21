@@ -122,6 +122,7 @@ Barvy a písmo z design systému Org Flow (JetBrains Mono, tokeny z `globals.css
 - Given: uživatel prochází tutoriál v Compare nebo Advanced
 - When: dojde na předposlední krok
 - Then: zvýrazněná je ikona bubliny v horní liště a text kroku je „Got an idea, or something you'd like to tell the author? Click the speech-bubble icon in the top bar to send feedback at any time.“; následuje poslední krok s „▶ Run“; Compare má 14 kroků (dříve 13), Advanced 10 (dříve 9); krok s ovládáním běhu je hned před krokem zpětné vazby
+- *Změna ve feat-025 (revize tutoriálu): krok se zpětnou vazbou je krok 5 prohlídky Compare (v části „TOP BAR“, s nadpisem „Feedback“ a textem „Got an idea, found a bug, or something unclear? Click the speech-bubble icon any time to write to the author.“). Z prohlídky Advanced mizí.*
 
 ## Out of Scope
 - Aplikace se sama neptá: žádná otázka po skončení běhu ani průzkum ve stylu Superhuman („jak moc by vám to chybělo“). Může přijít později.
@@ -193,3 +194,4 @@ Bezplatná verze poprvé posílá data mimo prohlížeč, a to přes třetí str
 - **feat-015-cash-flow-mod:** ikona je i v Cash Flow a otevření dialogu pozastaví i Cash Flow simulaci; Cash Flow tutoriál nemá.
 - **feat-021-prevod-design-system-org-flow:** horní lišta dostane ikonu vlevo od přepínače tématu; šířka 1024 px (Příklad 11) se musí dál vejít. Dialog vychází ze vzoru `ConfirmOverlay`.
 - **feat-022-sjednoceni-designu, feat-023-jednotne-pismo-textu:** nový dialog dodržuje jejich pravidla (CSS moduly, bez emoji, JetBrains Mono).
+- **feat-025-revize-tutorialu (draft):** mění Příklad 14: krok se zpětnou vazbou je krok 5 prohlídky Compare, prohlídka Advanced ho nemá. Úvodní karta tutoriálu navíc říká, proč je zpětná vazba vítaná.

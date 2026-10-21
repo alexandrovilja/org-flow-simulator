@@ -48,6 +48,7 @@ beforeEach(() => {
   markTutorialCompleted()
   markModeSeen('compare')
   markModeSeen('experiment')
+  markModeSeen('cashflow')
 })
 
 afterEach(() => {

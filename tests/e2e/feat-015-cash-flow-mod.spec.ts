@@ -8,13 +8,14 @@
  */
 
 import { test, expect } from '@playwright/test'
+import { skipTutorial } from './helpers'
 
 const BASE = process.env.BASE_URL ?? 'http://localhost:3000'
 
 test.describe('Cash Flow mód (feat-015)', () => {
   test.beforeEach(async ({ page }) => {
-    // Tutorial overlay by jinak na první návštěvě blokovala kliknutí na tab.
-    await page.addInitScript(() => localStorage.setItem('tutorial-completed', 'true'))
+    // Tutorial overlay by jinak na první návštěvě blokovala kliknutí na tab; od feat-025 má prohlídku i Cash Flow.
+    await skipTutorial(page)
     await page.goto(BASE)
     await page.getByRole('tab', { name: /Cash Flow/i }).click()
   })

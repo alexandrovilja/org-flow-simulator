@@ -29,7 +29,7 @@ test.describe('Smoke: základní funkčnost', () => {
     // Tutorial overlay (feat-013) by jinak na první návštěvě (i prvním přepnutí do Advanced) blokovala kliknutí
     await page.addInitScript(() => {
       localStorage.setItem('tutorial-completed', 'true')
-      localStorage.setItem('tutorial-seen-modes', JSON.stringify(['compare', 'experiment']))
+      localStorage.setItem('tutorial-seen-modes', JSON.stringify(['compare', 'experiment', 'cashflow']))
     })
     await page.goto(BASE)
   })

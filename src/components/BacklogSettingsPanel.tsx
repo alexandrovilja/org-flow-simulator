@@ -91,12 +91,14 @@ export function BacklogSettingsPanel({
   /**
    * Hlavička akordeonu v nastavení (Backlog, Specializations, Team): hranaté tlačítko přes celou
    * šířku ve stylu „eyebrow“. Šipka ▸ / ▾ je samostatný aria-hidden prvek, aby přístupný název
-   * zůstal jen název sekce; stav říká aria-expanded.
+   * zůstal jen název sekce; stav říká aria-expanded. Tlačítko je zároveň cílem kroku tutoriálu
+   * (feat-025) — tutoriál zvýrazní jen hlavičku a sekci nerozbaluje.
    */
-  const accordionButton = (label: string, open: boolean, toggle: () => void) => (
+  const accordionButton = (label: string, open: boolean, toggle: () => void, tutorialTarget: string) => (
     <button
       type="button"
       aria-expanded={open}
+      data-tutorial-target={tutorialTarget}
       className={[styles.accordionButton, open && styles.accordionOpen].filter(Boolean).join(' ')}
       onClick={toggle}
     >
@@ -121,7 +123,7 @@ export function BacklogSettingsPanel({
       <div data-tutorial-target={`${tutorialTargetPrefix}-settings`} className={styles.settings}>
         <h3 className={styles.title}>Settings</h3>
 
-        <div className={styles.presetSection}>
+        <div data-tutorial-target={`${tutorialTargetPrefix}-unit-preset`} className={styles.presetSection}>
           <div className={styles.fieldLabel}>Unit preset</div>
           <div className={styles.presetRow}>
             {/* Ručně upravený tým (Custom) neodpovídá žádnému presetu → žádný segment není stisknutý.
@@ -172,7 +174,7 @@ export function BacklogSettingsPanel({
         />
 
         <div className={styles.accordion}>
-          {accordionButton('Backlog', showBacklogControls, () => setShowBacklogControls(v => !v))}
+          {accordionButton('Backlog', showBacklogControls, () => setShowBacklogControls(v => !v), `${tutorialTargetPrefix}-backlog-accordion`)}
           {showBacklogControls && (
             <div className={styles.accordionBody}>
               <div className={styles.fileRow}>
@@ -230,7 +232,7 @@ export function BacklogSettingsPanel({
           )}
         </div>
         <div className={styles.accordion}>
-          {accordionButton('Specializations', showRoleSettings, () => setShowRoleSettings(v => !v))}
+          {accordionButton('Specializations', showRoleSettings, () => setShowRoleSettings(v => !v), `${tutorialTargetPrefix}-specializations-accordion`)}
           {showRoleSettings && (
             <div className={styles.accordionBody}>
               <RoleSettings roleConfig={roleConfig} onChange={handleRoleChange} onAdd={handleAddRole} onDelete={handleDeleteRole} />
@@ -238,7 +240,7 @@ export function BacklogSettingsPanel({
           )}
         </div>
         <div className={styles.accordion}>
-          {accordionButton('Team', showTeamSettings, () => setShowTeamSettings(v => !v))}
+          {accordionButton('Team', showTeamSettings, () => setShowTeamSettings(v => !v), `${tutorialTargetPrefix}-team-accordion`)}
           {showTeamSettings && (
             <div className={styles.accordionBody}>
               <SegmentedControl
