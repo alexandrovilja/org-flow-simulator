@@ -54,7 +54,7 @@ export function InProgressTeamPanel({
         <PanelHeader title="Units" count={state.team.length} hint="Click + to add a specialty" />
 
         <div className={styles.members}>
-          {state.team.map(m => {
+          {state.team.map((m, i) => {
             let cf: Feature | null = null
             let ct: Task | null = null
             if (m.currentTask) {
@@ -74,7 +74,9 @@ export function InProgressTeamPanel({
               <MemberCard key={m.id} member={m} currentFeature={cf} currentTask={ct}
                 roleConfig={roleConfig} onAddRole={handleAssignRole} onRemoveRole={handleRemoveRole}
                 onRename={handleRenameMember} onRemove={handleRemoveMember}
-                onSetAiMultiplier={handleSetAiMultiplier} isWaiting={isWaiting} />
+                onSetAiMultiplier={handleSetAiMultiplier} isWaiting={isWaiting}
+                // První jednotka je cílem kroků „Shape your units“ a „AI speed-up“ (feat-025)
+                tutorialTarget={i === 0 ? `${tutorialTargetPrefix}-first-unit` : undefined} />
             )
           })}
         </div>

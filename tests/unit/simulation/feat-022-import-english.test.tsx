@@ -60,6 +60,7 @@ beforeEach(() => {
   markTutorialCompleted()
   markModeSeen('compare')
   markModeSeen('experiment')
+  markModeSeen('cashflow')
   vi.mocked(XLSX.writeFile).mockClear()
 })
 

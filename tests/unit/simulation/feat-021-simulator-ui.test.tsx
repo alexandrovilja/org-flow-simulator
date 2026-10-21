@@ -20,6 +20,7 @@ beforeEach(() => {
   markTutorialCompleted()
   markModeSeen('compare')
   markModeSeen('experiment')
+  markModeSeen('cashflow')
 })
 
 const tab = (name: string) => screen.getByRole('tab', { name })

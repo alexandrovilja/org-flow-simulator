@@ -34,6 +34,11 @@ interface MemberCardProps {
    * Odpovídá přesně podmínce, kdy engine akumuluje member.idleSec.
    */
   isWaiting?: boolean
+  /**
+   * Volitelný `data-tutorial-target` karty (feat-025: první jednotka v Advanced a Cash Flow).
+   * Tlačítko AI pak dostane cíl `${tutorialTarget}-ai`.
+   */
+  tutorialTarget?: string
 }
 
 /**
@@ -57,7 +62,7 @@ function BoltIcon() {
  * @param props - Jednotka, její aktuální feature a úkol, konfigurace specializací, callbacky
  *                pro úpravu jednotky (role, jméno, odebrání, AI) a příznak čekání
  */
-export function MemberCard({ member, currentFeature, currentTask, roleConfig, onAddRole, onRemoveRole, onRename, onRemove, onSetAiMultiplier, isWaiting = false }: MemberCardProps) {
+export function MemberCard({ member, currentFeature, currentTask, roleConfig, onAddRole, onRemoveRole, onRename, onRemove, onSetAiMultiplier, isWaiting = false, tutorialTarget }: MemberCardProps) {
   const [adding, setAdding] = useState(false)
   // Plné jméno v title jen tehdy, když ho v úzké kartě zkrátí výpustka (feat-023)
   const [nameRef, nameTruncated] = useIsTruncated<HTMLInputElement>(member.name)
@@ -82,7 +87,7 @@ export function MemberCard({ member, currentFeature, currentTask, roleConfig, on
   const swatchStyle: CssVariables | undefined = currentFeature ? { '--hue': currentFeature.hue } : undefined
 
   return (
-    <div className={[styles.card, isWaiting && styles.waiting].filter(Boolean).join(' ')}>
+    <div data-tutorial-target={tutorialTarget} className={[styles.card, isWaiting && styles.waiting].filter(Boolean).join(' ')}>
       {/* Řádek 1: avatar + editovatelné jméno + tlačítko AI + tlačítko smazání */}
       <div className={styles.top}>
         {/* U týmů „Team X“ písmeno týmu, u lidí první písmeno jména (feat-021) */}
@@ -109,6 +114,7 @@ export function MemberCard({ member, currentFeature, currentTask, roleConfig, on
           onClick={() => onSetAiMultiplier(member.id, nextAi)}
           title={aiTitle}
           aria-label={aiLabel}
+          data-tutorial-target={tutorialTarget ? `${tutorialTarget}-ai` : undefined}
           className={aiOn ? `${styles.aiButton} ${styles.aiButtonOn}` : styles.aiButton}
         >
           {aiOn && <BoltIcon />}

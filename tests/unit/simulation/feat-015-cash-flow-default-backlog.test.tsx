@@ -16,6 +16,7 @@ beforeEach(() => {
   markTutorialCompleted()
   markModeSeen('compare')
   markModeSeen('experiment')
+  markModeSeen('cashflow')
 })
 
 const click = (name: string | RegExp) => fireEvent.click(screen.getByRole('button', { name }))

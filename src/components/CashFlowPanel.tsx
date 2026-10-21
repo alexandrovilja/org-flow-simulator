@@ -82,6 +82,8 @@ export function CashFlowPanel({
       sampleCount={stats.count}
       doneCount={doneCount(state)}
       isEmpty={done.length === 0}
+      // Cíle kroků prohlídky Cash Flow (feat-025)
+      tutorialTargets={{ metrics: 'cashflow-results', done: 'cashflow-done' }}
       tiles={<>
         <StatTile label="Total Time" value={totalTimeDisplay} variant="timer" finished={state.finished} wide tooltip="Elapsed simulation time." delta={timeDelta} />
         <StatTile label="Avg Cycle Time" value={stats.count ? stats.avg.toFixed(1) : '—'} unit={stats.count ? 's' : undefined} tooltip="Mean cycle time across all completed features (from work start to delivery)." delta={ltDelta} />
@@ -89,6 +91,7 @@ export function CashFlowPanel({
         <StatTile
           key={runEpoch}
           label="Revenue (time-matched)"
+          tutorialTarget="cashflow-revenue"
           value={formatEuro(revenueComparison.value)}
           tooltip="Revenue of both runs compared at the same point in time (the shorter run's total time), so a longer run does not look better just because it ran longer. Open Details for the full total."
           delta={comparison?.delta}

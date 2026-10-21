@@ -174,7 +174,7 @@ test.describe('feat-022: sjednocení designu v celém nástroji', () => {
     await runButton(page, 'Run').click()
     await expect(runButton(page, 'Done')).toBeVisible({ timeout: 220_000 })
 
-    const frame = page.getByRole('status').filter({ hasText: 'Result · avg lead time' })
+    const frame = page.getByRole('status').filter({ hasText: 'Result · avg cycle time' })
     const badge = frame.locator('> span').first()
     await expect(badge).toHaveText(/^[AB]$/)
     const s = await styleOf(badge)

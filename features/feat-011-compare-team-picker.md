@@ -73,6 +73,7 @@ The selected type is highlighted. Clicking a type:
 - **feat-013-zprehledneni-aplikace** — the Compare mode tutorial Step 2 covers Team A / Team B
   configuration. Once feat-011 is implemented, the Step 2 tutorial text should be updated to
   also mention the team type picker (Single / Double / Multi) so new users know it exists.
+- **feat-025-revize-tutorialu (draft)** — přepínač typu týmu vysvětluje krok 6 prohlídky Compare („Team type“), včetně toho, že přepnutí spustí oba běhy znovu.
 
 ## Acceptance criteria
 1. Each column in Compare mode shows a 3-button picker (Single / Double / Multi) below the team label.

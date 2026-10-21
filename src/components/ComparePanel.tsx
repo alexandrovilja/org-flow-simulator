@@ -77,6 +77,14 @@ export function ComparePanel({
   // opponentLabel is always a valid TeamType, so the lookup is guaranteed to succeed.
   const vsLabel = `vs ${TEAM_TYPE_OPTIONS.find(o => o.value === opponentLabel)!.label}`
 
+  /**
+   * Cíl tutoriálu pro část panelu (např. `compare-team-a-todo`), nebo nic, když panel prefix nemá.
+   *
+   * @param part - Část panelu za prefixem
+   * @returns Hodnota `data-tutorial-target`
+   */
+  const target = (part: string) => (tutorialTargetPrefix ? `${tutorialTargetPrefix}-${part}` : undefined)
+
   // Compute max feature size across all columns so bar widths are proportional.
   // Using all three columns keeps the scale stable as items flow through.
   const maxWork = featureMaxWork(
@@ -108,14 +116,17 @@ export function ComparePanel({
         data-tutorial-target={tutorialTargetPrefix ? `${tutorialTargetPrefix}-kanban` : undefined}
         className={styles.board}
       >
-        {/* To Do — neutrální */}
+        {/* To Do — neutrální. Sloupce i první karta jsou cíle kroků tutoriálu (feat-025): když je
+            To Do po doběhnutí prázdné, krok „A feature“ zvýrazní celý sloupec. */}
         <KanbanColumn
           title="To Do"
           count={state.backlog.length}
           flow="todo"
+          tutorialTarget={target('todo')}
         >
-          {state.backlog.map(f => (
-            <FeatureCard key={f.id} feature={f} compact neutral maxWork={maxWork} />
+          {state.backlog.map((f, i) => (
+            <FeatureCard key={f.id} feature={f} compact neutral maxWork={maxWork}
+              tutorialTarget={i === 0 ? target('first-feature') : undefined} />
           ))}
           {state.backlog.length === 0 && <EmptyNote>Backlog empty</EmptyNote>}
         </KanbanColumn>
@@ -125,6 +136,7 @@ export function ComparePanel({
           title="In Progress"
           count={state.inProgress.length}
           flow="doing"
+          tutorialTarget={target('in-progress')}
         >
           {state.inProgress.map(f => (
             <FeatureCard key={f.id} feature={f} compact team={state.team} maxWork={maxWork} />
@@ -138,6 +150,7 @@ export function ComparePanel({
           title="Done"
           count={doneCount(state)}
           flow="done"
+          tutorialTarget={target('done')}
         >
           {state.done.map(f => {
             const lt = (f.finishedAt ?? 0) - f.createdAt
@@ -298,14 +311,16 @@ interface KanbanColumnProps {
   count: number
   /** Stav toku sloupce — určuje barvu hlavičky (To Do neutrální, In Progress accent, Done done). */
   flow: 'todo' | 'doing' | 'done'
+  /** Volitelný `data-tutorial-target` celého sloupce (feat-025: kroky tutoriálu To Do / In Progress / Done). */
+  tutorialTarget?: string
   children: React.ReactNode
 }
 
 /** One column of the Kanban board with a flow-state header and scrollable item list. */
-function KanbanColumn({ title, count, flow, children }: KanbanColumnProps) {
+function KanbanColumn({ title, count, flow, tutorialTarget, children }: KanbanColumnProps) {
   const headClass = [styles.columnHead, flow === 'doing' && styles.doing, flow === 'done' && styles.done].filter(Boolean).join(' ')
   return (
-    <div className={styles.column}>
+    <div data-tutorial-target={tutorialTarget} className={styles.column}>
       <div className={headClass}>
         <span>{title}</span>
         <span className={styles.count}>{count}</span>
