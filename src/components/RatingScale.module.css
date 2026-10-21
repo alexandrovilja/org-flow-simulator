@@ -1,0 +1,77 @@
+/* Škála užitečnosti 1–5 (feat-024): stejný rámeček a výplň vybrané volby jako SegmentedControl,
+   ale přes celou šířku dialogu a s vyššími poli, aby se číslo dobře trefovalo i na projektoru. */
+.root {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
+.track {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: var(--space-2);
+  padding: var(--space-2);
+  border: var(--border-hair) solid var(--line-control);
+  border-radius: var(--radius-sm);
+  background: var(--surface-panel);
+}
+
+/* Bod škály: číslo ve stylu „code“ (mono 700, tabulkové číslice) */
+.point {
+  height: var(--size-control);
+  border: 0;
+  border-radius: var(--radius-none);
+  background: transparent;
+  color: var(--ink-3);
+  font-family: var(--font-mono);
+  font-size: 13px;
+  line-height: 16px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.15s ease;
+}
+
+/* Najetí myší zvýrazní jen nevybraný bod (stejné pravidlo jako u SegmentedControl, feat-021 Příklad 12) */
+.point[aria-pressed='false']:hover {
+  color: var(--ink);
+}
+
+/* Body pod vybraným: jemný podklad dráhy, text zůstává čitelný */
+.below {
+  background: var(--track);
+  color: var(--ink-2);
+}
+
+/* Vybraný bod: plná výplň ink, text v barvě panelu (v tmavém tématu se obojí převrátí samo) */
+.point[aria-pressed='true'] {
+  background: var(--ink);
+  color: var(--surface-panel);
+}
+
+.point:focus-visible {
+  outline: var(--border-active) solid var(--focus);
+  outline-offset: 2px;
+}
+
+/* Popisky pod škálou: kraje vlevo a vpravo, vybraný bod uprostřed */
+.legend {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  gap: var(--space-8);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  line-height: 16px;
+  color: var(--ink-3);
+}
+
+.legend > :last-child {
+  text-align: right;
+}
+
+/* Název vybraného bodu v barvě výběru */
+.picked {
+  color: var(--accent);
+  font-weight: 700;
+  text-align: center;
+}

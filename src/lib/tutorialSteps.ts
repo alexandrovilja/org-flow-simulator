@@ -1,11 +1,13 @@
 /**
  * Static configuration for the spotlight tutorial walkthrough.
- * Compare mode uses 13 steps in a "Introduce A fully, then introduce B" order:
+ * Compare mode uses 14 steps in a "Introduce A fully, then introduce B" order:
  * intro (no spotlight) → A panel → (settings → composition → kanban → results) for A →
- * B panel → (settings → composition → kanban → results) for B → controls → Run.
+ * B panel → (settings → composition → kanban → results) for B → controls → feedback → Run.
  * The user first understands Team A completely, then mirrors that mental model onto Team B.
  * An empty `targetId` (step 1) signals a full-backdrop intro card with no spotlight.
- * Experiment mode keeps 3 steps — one per major panel.
+ * Experiment mode uses 10 steps — one per major panel, then controls → feedback → Run.
+ * The feedback step (feat-024) is the second to last in both tours and spotlights the speech-bubble
+ * icon in the top bar, which is shared by all modes (`feedback-button`).
  *
  * Each step's `targetId` matches the `data-tutorial-target` attribute
  * on the corresponding DOM element in Simulator.tsx / ComparePanel.tsx.
@@ -13,6 +15,23 @@
  */
 
 import type { TutorialMode, TutorialStep } from '@/types/tutorial'
+
+/**
+ * Second-to-last step of both tours (feat-024, Example 14): points out where to send feedback to the
+ * author. The icon lives in the top bar, outside any panel, so the step has no `parentTargetId`.
+ *
+ * @param id - Step id, unique within its tour (e.g. `compare-feedback`)
+ * @returns The feedback step for that tour
+ */
+function feedbackStep(id: string): TutorialStep {
+  return {
+    id,
+    description:
+      "Got an idea, or something you'd like to tell the author? " +
+      'Click the speech-bubble icon in the top bar to send feedback at any time.',
+    targetId: 'feedback-button',
+  }
+}
 
 /**
  * All tutorial steps, keyed by application mode.
@@ -121,9 +140,11 @@ export const TUTORIAL_STEPS: Record<TutorialMode, TutorialStep[]> = {
         'Set the simulation speed (0.5×, 1×, or 10×) or reset the run to start over.',
       targetId: 'compare-controls',
     },
+    // Step 13: Where to send ideas to the author (feat-024) — right before the call-to-action
+    feedbackStep('compare-feedback'),
     {
       id: 'compare-run',
-      // Step 13: The call-to-action — everything before was context, now act.
+      // Step 14: The call-to-action — everything before was context, now act.
       description:
         'Click ▶ Run to start both simulations simultaneously. ' +
         'A Winner banner will reveal which team delivered faster — and by how much.',
@@ -197,9 +218,11 @@ export const TUTORIAL_STEPS: Record<TutorialMode, TutorialStep[]> = {
         'to restore the original backlog and start fresh.',
       targetId: 'experiment-controls',
     },
+    // Step 9: Where to send ideas to the author (feat-024) — right before the call-to-action
+    feedbackStep('experiment-feedback'),
     {
       id: 'experiment-run',
-      // Step 9: Call-to-action — start the simulation.
+      // Step 10: Call-to-action — start the simulation.
       description:
         'Click ▶ Run to start the simulation. ' +
         'Adjust the team, reset, and re-run as many times as you like.',

@@ -33,6 +33,10 @@ import type { TeamType } from '@/simulation/compareMode'
 import { isTutorialCompleted, markTutorialCompleted, hasSeenMode, markModeSeen, getActivePresetId, setActivePresetId } from '@/lib/storage'
 import { TutorialOverlay } from '@/components/TutorialOverlay'
 import type { TutorialMode } from '@/types/tutorial'
+import { FeedbackDialog } from '@/components/FeedbackDialog'
+import { EMPTY_FEEDBACK_DRAFT, buildFeedbackFields, formatFeedbackDate, sendFeedback, validateFeedback } from '@/lib/feedback'
+import { MODE_LABELS } from '@/lib/modeLabels'
+import type { FeedbackDraft, FeedbackErrors, FeedbackStatus } from '@/types/feedback'
 import styles from './Simulator.module.css'
 
 // ── Types ────────────────────────────────────────────────────────────────────
@@ -165,6 +169,16 @@ export function Simulator() {
   }
   const [cashFlowPrevStats, setCashFlowPrevStats] = useState<CashFlowRunSnapshot | null>(null)
   const cashFlowLastFinishedRef = useRef<CashFlowRunSnapshot | null>(null)
+
+  // ── Zpětná vazba (feat-024) ───────────────────────────────────────────────
+  // Simulator je vždy připojený, takže rozepsaný koncept přežije zavření dialogu i přepnutí módu;
+  // drží se jen v paměti, po obnovení stránky je formulář prázdný (Příklad 12)
+  const [feedbackOpen, setFeedbackOpen] = useState(false)
+  const [feedbackDraft, setFeedbackDraft] = useState<FeedbackDraft>(EMPTY_FEEDBACK_DRAFT)
+  const [feedbackStatus, setFeedbackStatus] = useState<FeedbackStatus>('editing')
+  const [feedbackErrors, setFeedbackErrors] = useState<FeedbackErrors>({})
+  // E-mail z odeslané zpětné vazby se zájmem o rozhovor — poděkování ho ukáže, i když se formulář už vyprázdnil
+  const [feedbackCallEmail, setFeedbackCallEmail] = useState<string | null>(null)
 
   // ── Experiment mode state ─────────────────────────────────────────────────
   const [settings, setSettings] = useState<SimSettings>(DEFAULT_SETTINGS)
@@ -728,10 +742,72 @@ export function Simulator() {
     setCompareHasStarted(true)
   }
 
+  // ── Zpětná vazba (feat-024) ────────────────────────────────────────────────
+
+  /**
+   * Otevře dialog zpětné vazby. Běžící simulaci aktivního módu zastaví stejně jako „❙❙ Pause“
+   * (Příklad 3) — tlačítko běhu pak ukáže „▶ Run“ a uživatel ji po zavření rozběhne sám.
+   * Nespuštěná i dokončená simulace už stojí, takže se jí to netýká.
+   */
+  const handleOpenFeedback = () => {
+    if (mode === 'compare') setComparePaused(true)
+    else if (mode === 'experiment') setPaused(true)
+    else setCashFlowPaused(true)
+    // Staré hlášky kontroly by mátly. Fáze zůstává: odeslání, které doběhlo, když byl dialog zavřený,
+    // ukáže svůj výsledek (poděkování nebo chybu) až teď — uživatel se tak dozví, jak dopadlo
+    setFeedbackErrors({})
+    setFeedbackOpen(true)
+  }
+
+  /** Změna formuláře: uloží koncept a schová hlášky — uživatel právě opravuje (Příklad 6). */
+  const handleFeedbackDraftChange = (draft: FeedbackDraft) => {
+    setFeedbackDraft(draft)
+    setFeedbackErrors({})
+    setFeedbackStatus(status => (status === 'error' ? 'editing' : status))
+  }
+
+  /**
+   * Send v dialogu: zkontroluje formulář (Příklady 6–8), odešle zprávu přes Web3Forms a podle výsledku
+   * ukáže poděkování (formulář se vyprázdní), nebo chybu (formulář zůstane vyplněný, Příklad 11).
+   *
+   * @param botcheck - `true`, když robot vyplnil skryté pole
+   */
+  const handleSendFeedback = async (botcheck: boolean) => {
+    const errors = validateFeedback(feedbackDraft)
+    if (errors.form !== undefined || errors.email !== undefined) {
+      setFeedbackErrors(errors)
+      return
+    }
+
+    // Koncept v okamžiku odeslání — poděkování z něj vezme e-mail, i kdyby se mezitím změnil
+    const sent = feedbackDraft
+    setFeedbackStatus('sending')
+    const fields = buildFeedbackFields(sent, { mode: MODE_LABELS[mode], date: formatFeedbackDate(new Date()) })
+    // Next.js tuto proměnnou při sestavení nahradí hodnotou; musí být zapsaná celá, ne přes proměnnou
+    const ok = await sendFeedback(fields, { accessKey: process.env.NEXT_PUBLIC_WEB3FORMS_ACCESS_KEY, botcheck })
+
+    if (ok) {
+      setFeedbackCallEmail(sent.openToCall ? sent.email.trim() : null)
+      setFeedbackDraft(EMPTY_FEEDBACK_DRAFT)
+      setFeedbackStatus('sent')
+    } else {
+      setFeedbackStatus('error')
+    }
+  }
+
+  /** Cancel, Close nebo Esc: dialog se zavře, rozepsaný koncept zůstane (Příklad 12). */
+  const handleCloseFeedback = () => {
+    setFeedbackOpen(false)
+    setFeedbackErrors({})
+    // Viděný výsledek se zavřením končí: po poděkování začne další otevření prázdným formulářem, po chybě
+    // vyplněným bez hlášky. Probíhající odeslání („sending“) běží dál a výsledek ukáže příští otevření.
+    setFeedbackStatus(status => (status === 'sending' ? status : 'editing'))
+  }
+
   // Ovládání běhu je ve všech třech módech stejné (SpeedControl, feat-021 Příklad 14); liší se jen
   // tím, co Reset vrací, a tím, že Cash Flow nemá tutoriál, a tak ani tlačítko „?“.
   const header = (
-    <TopBar mode={mode} onSelectMode={handleSelectMode}>
+    <TopBar mode={mode} onSelectMode={handleSelectMode} onOpenFeedback={handleOpenFeedback}>
       {mode === 'cashflow' ? (
         <SpeedControl
           speed={cashFlowSpeed}
@@ -790,12 +866,27 @@ export function Simulator() {
     </TopBar>
   )
 
+  // Dialog zpětné vazby (feat-024) leží přes celou aplikaci (position: fixed), takže ve všech třech
+  // módech stojí hned za lištou a nezabírá buňku mřížky
+  const feedbackDialog = feedbackOpen && (
+    <FeedbackDialog
+      draft={feedbackDraft}
+      onDraftChange={handleFeedbackDraftChange}
+      status={feedbackStatus}
+      errors={feedbackErrors}
+      callEmail={feedbackCallEmail}
+      onSend={botcheck => { void handleSendFeedback(botcheck) }}
+      onClose={handleCloseFeedback}
+    />
+  )
+
   // ── Compare layout ─────────────────────────────────────────────────────────
 
   if (mode === 'compare') {
     return (
       <div className={styles.compare}>
         {header}
+        {feedbackDialog}
 
         {/* Rám výsledku po doběhnutí obou běhů (feat-021, Příklad 9) — kdo byl rychlejší, o kolik a proč */}
         {bothFinished && compareHasStarted && (
@@ -855,6 +946,7 @@ export function Simulator() {
     return (
       <div className={styles.threeColumns}>
         {header}
+        {feedbackDialog}
 
         <BacklogSettingsPanel
           state={cfState}
@@ -931,6 +1023,7 @@ export function Simulator() {
   return (
     <div className={styles.threeColumns}>
       {header}
+      {feedbackDialog}
 
       {/* LEFT: BACKLOG + CONTROLS */}
       <BacklogSettingsPanel

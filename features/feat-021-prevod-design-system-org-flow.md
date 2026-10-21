@@ -171,3 +171,4 @@ Rozložení obrazovek a chování zůstávají stejné, mění se vzhled podle d
 - **feat-019-ai-multiplikator-vykonu:** AI odznak bude fialový (`--accent`).
 - **feat-001-simulace-prubehu-vyvoje, feat-003-konfigurace-backlogu, feat-004-analyza-lead-time, feat-015-cash-flow-mod (změna 2026-10-20):** ovládání běhu v Advanced a Cash Flow je stejné jako v Compare („▶ Run“ místo „Start“ / „Resume“, „↺ Reset“ místo „Reset backlog“, rychlosti 0.5× / 1× / 10×); popisky v jejich příkladech jsou upravené.
 - **feat-013-zprehledneni-aplikace (změna 2026-10-20):** texty kroků tutoriálu Advanced o ovládání a tlačítku běhu (Příklad 17).
+- **feat-024-zpetna-vazba-uzivatelu (rozpracováno):** horní lišta dostane ikonu bubliny („Send feedback“) vlevo od přepínače tématu ve všech módech; lišta se musí dál vejít na 1024 px (Příklad 11). Dialog zpětné vazby vychází ze vzoru `ConfirmOverlay`. Ovládání běhu (Příklady 14–17) se nemění.

@@ -79,11 +79,14 @@ function namesIn(root: ParentNode): string[] {
   return Array.from(root.querySelectorAll('button')).map(nameOf)
 }
 
-/** Pravá část horní lišty: přepínač tématu a ovládání běhu (třetí potomek `<header>`, viz TopBar). */
+/** Pravá část horní lišty: zpětná vazba, přepínač tématu a ovládání běhu (třetí potomek `<header>`, viz TopBar). */
 const barControls = () => document.querySelector('header')!.lastElementChild as HTMLElement
 
-/** Ovládání běhu v liště bez přepínače tématu (ten má ve všech módech stejný). */
-const controlNames = () => namesIn(barControls()).filter(n => !/theme$/.test(n))
+/**
+ * Ovládání běhu v liště bez ikony zpětné vazby (feat-024) a přepínače tématu — oboje je ve všech
+ * módech stejné a nepatří k ovládání běhu.
+ */
+const controlNames = () => namesIn(barControls()).filter(n => n !== 'Send feedback' && !/theme$/.test(n))
 
 /** Tlačítko běhu „▶ Run“ (název se shoduje přesně, takže „✓ Done“ ani „❙❙ Pause“ nesedí). */
 const runButton = () => screen.getByRole('button', { name: '▶ Run' })

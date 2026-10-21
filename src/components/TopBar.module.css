@@ -98,11 +98,14 @@
   outline-offset: -4px;
 }
 
+/* Odsazení zleva drží minimální mezeru od záložek i na projektoru 1024 px, kde ovládání (s ikonou
+   zpětné vazby, feat-024) vyplní celý svůj sloupec — místo si mřížka vezme z volného sloupce značky */
 .controls {
   display: flex;
   align-items: center;
   justify-content: flex-end;
   gap: var(--space-8);
+  padding-left: var(--space-12);
 }
 
 /* Užší obrazovka, např. projektor 1024 × 768 (feat-021, Příklad 11): s celým názvem potřebuje lišta

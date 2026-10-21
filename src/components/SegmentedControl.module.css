@@ -17,6 +17,15 @@
   background: var(--surface-panel);
 }
 
+/* Přes celou šířku rodiče (pole formuláře v dialogu zpětné vazby, feat-024); segmenty zůstanou stejně široké */
+.fullWidth {
+  display: block;
+}
+
+.fullWidth .track {
+  display: grid;
+}
+
 .disabled {
   opacity: 0.45;
 }

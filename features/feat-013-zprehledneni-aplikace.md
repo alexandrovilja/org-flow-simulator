@@ -226,3 +226,4 @@ Tests in `feat-013-zprehledneni-aplikace.test.ts` must be updated to assert `toH
 
 ## Related Features
 - **feat-021-prevod-design-system-org-flow:** tooltip `HelpIcon` a karta tutoriálu se přestylují podle design systému (antracit `surface-bar`, číslo kroku v `highlight`); obsah a chování beze změny.
+- **feat-024-zpetna-vazba-uzivatelu (rozpracováno):** tutoriály Compare a Advanced dostanou předposlední krok o zpětné vazbě (cíl `feedback-button`, ikona bubliny v horní liště). Compare bude mít 14 kroků místo 13, Advanced 10 místo 9 a pořadí na konci bude ovládání → zpětná vazba → Run; testy tohoto specu na počet kroků a na „ovládání hned před Run“ se upraví v rámci feat-024.

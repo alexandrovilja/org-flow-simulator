@@ -1,0 +1,238 @@
+/* Dialog „Send feedback“ (feat-024) — vychází z potvrzovacího dialogu ConfirmOverlay (feat-021),
+   jen leží přes celou aplikaci včetně horní lišty a nese delší formulář. */
+
+/* Závoj v barvě stránky na 84 % s lehkým rozmazáním, stejně jako ConfirmOverlay */
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-popover);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-16);
+  background: color-mix(in srgb, var(--surface-page) 84%, transparent);
+  backdrop-filter: blur(2px);
+}
+
+/* Karta: 460 px pojme roli se čtyřmi volbami na jeden řádek; na nízké obrazovce se obsah posune */
+.card {
+  width: 460px;
+  max-width: 100%;
+  max-height: 100%;
+  overflow-y: auto;
+  padding: var(--space-20);
+  background: var(--surface-raised);
+  border: var(--border-hair) solid var(--line);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-pop);
+}
+
+.form,
+.thanks {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-16);
+}
+
+/* Obal polí formuláře: fieldset kvůli zamčení všech polí naráz během odesílání (atribut disabled);
+   výchozí rámeček a odsazení prohlížeče se ruší, mezery drží stejný rytmus jako formulář */
+.fields {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-16);
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+/* Zamčená pole během odesílání jsou ztlumená, aby bylo vidět, že teď nejdou měnit */
+.fields:disabled {
+  opacity: 0.6;
+}
+
+.header {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+/* Styl „title“ (jako ConfirmOverlay) */
+.title {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 15px;
+  line-height: 20px;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+/* Poděkování: fajfka v jemném zeleném čtverci před titulkem */
+.thanksTitle {
+  display: flex;
+  align-items: center;
+  gap: var(--space-8);
+}
+
+/* Na nadpis se fokus přesouvá jen programově (kvůli čtečce obrazovky) — rámeček fokusu by tu jen rušil */
+.thanksTitle:focus {
+  outline: none;
+}
+
+.check {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--size-control);
+  height: var(--size-control);
+  flex-shrink: 0;
+  border-radius: var(--radius-sm);
+  background: var(--done-soft);
+  color: var(--done);
+}
+
+/* Styl „body-sm“ */
+.intro {
+  margin: 0;
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--ink-2);
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
+/* Popisek pole: otázka ve větné velikosti, o stupeň silnější než text kolem */
+.label {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+/* „(optional, for a reply)“ / „(required for the call)“ za popiskem */
+.labelHint {
+  font-weight: 400;
+  color: var(--ink-3);
+}
+
+/* Pole stejně jako v nastavení specializací: hranaté, obrys line-control, mono */
+.input,
+.textarea {
+  width: 100%;
+  min-width: 0;
+  padding: var(--space-6) var(--space-8);
+  border: var(--border-hair) solid var(--line-control);
+  border-radius: var(--radius-none);
+  background: var(--surface-panel);
+  color: var(--ink);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 16px;
+}
+
+.input {
+  height: var(--size-control);
+}
+
+/* Víceřádkové pole roste jen na výšku, šířku drží karta */
+.textarea {
+  resize: vertical;
+  min-height: 64px;
+}
+
+.input::placeholder,
+.textarea::placeholder {
+  color: var(--ink-4);
+}
+
+.input:focus-visible,
+.textarea:focus-visible,
+.checkbox:focus-visible,
+.link:focus-visible {
+  outline: var(--border-active) solid var(--focus);
+  outline-offset: 2px;
+}
+
+.inputError {
+  border-color: var(--rework);
+}
+
+/* Zaškrtávátko rozhovoru: celý řádek je klikací popisek */
+.checkboxRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-8);
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.checkbox {
+  width: 14px;
+  height: 14px;
+  margin: 0;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+/* Hláška u pole (rework je v design systému barva problému) */
+.error {
+  margin: 0;
+  font-size: 11px;
+  line-height: 16px;
+  color: var(--rework);
+}
+
+/* Past na roboty: v DOM pro roboty, ale bez místa na obrazovce (stejný vzor jako schovaný název v liště) */
+.honeypot {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  /* Velikost ze škály design systému — kontrola typografie v E2E prochází i schované prvky */
+  font-size: 11px;
+}
+
+/* Poznámka o ochraně údajů: malé tlumené písmo, oddělené od formuláře jemnou linkou */
+.note {
+  margin: 0;
+  padding-top: var(--space-12);
+  border-top: var(--border-hair) solid var(--line-2);
+  font-size: 11px;
+  line-height: 16px;
+  color: var(--ink-3);
+}
+
+.link {
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.link:hover {
+  color: var(--ink);
+}
+
+/* Patička: hláška k formuláři vlevo, Cancel a Send vpravo */
+.footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-6);
+}
+
+.formMessage {
+  flex: 1;
+  margin: 0;
+  font-size: 11px;
+  line-height: 16px;
+  color: var(--rework);
+}
