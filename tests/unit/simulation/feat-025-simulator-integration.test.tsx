@@ -262,7 +262,7 @@ describe('feat-025 Příklad 5: každý cíl kroku existuje v DOM svého módu',
     render(<Simulator />)
     openMode(tab)
     expect(accordionButton(`${prefix}-backlog-accordion`)).toHaveAccessibleName('Backlog')
-    expect(accordionButton(`${prefix}-specializations-accordion`)).toHaveAccessibleName('Specializations')
+    expect(accordionButton(`${prefix}-specializations-accordion`)).toHaveAccessibleName('Skills')
     expect(accordionButton(`${prefix}-team-accordion`)).toHaveAccessibleName('Team')
   })
 

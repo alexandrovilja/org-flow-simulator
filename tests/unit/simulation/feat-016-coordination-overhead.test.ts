@@ -267,8 +267,8 @@ describe('feat-016: inicializace polí featury', () => {
 
   it('featury z XLS importu mají čítače 0, prázdné pole čekajících rozporů a konečný coordSeed', () => {
     const result = parseRows([
-      { Feature: 'Login', Specializace: 'FE', Tym: 'Squad A', Velikost: 3 },
-      { Feature: 'Login', Specializace: 'BE', Tym: 'Squad B', Velikost: 2 },
+      { Feature: 'Login', Skill: 'FE', Unit: 'Squad A', Size: 3 },
+      { Feature: 'Login', Skill: 'BE', Unit: 'Squad B', Size: 2 },
     ])
     for (const f of result.features) {
       expect(f.joinCount).toBe(0)

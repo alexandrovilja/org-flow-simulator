@@ -11,9 +11,11 @@ import type { SimSettings } from '@/types/simulation'
 //
 // Schválený kontrakt (spec features/feat-022-sjednoceni-designu.md):
 //  - Příklad 12: zprávy po importu XLS i chyby importu jsou anglicky. Úspěch „Imported 8 features,
-//    18 tasks, 2 team members.“ (jednotné číslo u 1), varování „2 rows skipped (invalid Velikost).“,
+//    18 tasks, 2 units.“ (jednotné číslo u 1), varování „2 rows skipped (invalid Size).“,
 //    chyby „The file contains no data.“ apod., obecné selhání „Could not read the file.“ /
-//    „Could not load the file.“. Názvy sloupců souboru (Feature, Specializace, Tym, Velikost) zůstávají.
+//    „Could not load the file.“.
+//  - Od feat-026 jsou sloupce anglicky (Feature, Skill, Unit, Size), souhrn mluví o „units“ místo
+//    „team members“ a varování o „invalid Size“ místo „invalid Velikost“.
 //  - Příklad 5: šablona se stahuje jako `org-flow-template.xlsx`.
 // Zprávu skládá exportovaná `formatImportSummary(result)`, kterou sdílí Advanced i Cash Flow.
 
@@ -23,10 +25,10 @@ vi.mock('xlsx', async importOriginal => ({
   writeFile: vi.fn(),
 }))
 
-const row = (feature: string, role: string, tym: string, velikost: unknown) =>
-  ({ Feature: feature, Specializace: role, Tym: tym, Velikost: velikost })
+const row = (feature: string, skill: string, unit: string, size: unknown) =>
+  ({ Feature: feature, Skill: skill, Unit: unit, Size: size })
 
-/** Dvě featury, čtyři tasky, dva členové týmu. */
+/** Dvě featury, čtyři tasky, dvě jednotky. */
 const VALID_ROWS = [
   row('Login', 'FE', 'Squad A', 3),
   row('Login', 'BE', 'Squad B', 2),
@@ -69,7 +71,7 @@ describe('feat-022 Příklad 12: chyby a varování importu anglicky', () => {
     expect(() => parseRows([])).toThrow('The file contains no data.')
   })
 
-  it.each(['Feature', 'Specializace', 'Tym', 'Velikost'])('chybí sloupec %s: nabídne přeložené pokyny a ponechá název sloupce', column => {
+  it.each(['Feature', 'Skill', 'Unit', 'Size'])('chybí sloupec %s: anglická hláška s názvem sloupce', column => {
     const rows = VALID_ROWS.map(r => {
       const copy: Record<string, unknown> = { ...r }
       delete copy[column]
@@ -83,9 +85,9 @@ describe('feat-022 Příklad 12: chyby a varování importu anglicky', () => {
     expect(() => parseRows(rows)).toThrow('Backlog too large (max 200 features). The file contains more than 200 unique features.')
   })
 
-  it('víc než 50 členů týmu: „Too many team members (max 50). …“', () => {
+  it('víc než 50 jednotek: „Too many units (max 50). …“', () => {
     const rows = Array.from({ length: 51 }, (_, i) => row(`F${i}`, 'FE', `T${i}`, 1))
-    expect(() => parseRows(rows)).toThrow('Too many team members (max 50). The file contains more than 50 unique values in the Tym column.')
+    expect(() => parseRows(rows)).toThrow('Too many units (max 50). The file contains more than 50 unique values in the Unit column.')
   })
 
   it('žádný řádek s platnou velikostí: „The file contains no valid data.“', () => {
@@ -93,27 +95,27 @@ describe('feat-022 Příklad 12: chyby a varování importu anglicky', () => {
   })
 
   it.each([
-    [2, '2 rows skipped (invalid Velikost).'],
-    [1, '1 row skipped (invalid Velikost).'],
+    [2, '2 rows skipped (invalid Size).'],
+    [1, '1 row skipped (invalid Size).'],
   ])('přeskočené řádky (%s): varování „%s“', (skipped, message) => {
-    // Každý neplatný řádek má jinou feature: shodná trojice Feature + Specializace + Tym se jinak přeskakuje tiše jako duplicita
+    // Každý neplatný řádek má jinou feature: shodná trojice Feature + Skill + Unit se jinak přeskakuje tiše jako duplicita
     const rows = [row('F1', 'BE', 'A', 5), ...Array.from({ length: skipped }, (_, i) => row(`Bad${i}`, 'FE', 'A', 'abc'))]
     expect(parseRows(rows).warnings).toEqual([message])
   })
 })
 
 describe('feat-022 Příklad 12: formatImportSummary', () => {
-  it('množné číslo: „Imported 2 features, 4 tasks, 2 team members.“', () => {
-    expect(formatImportSummary(parseRows(VALID_ROWS))).toBe('Imported 2 features, 4 tasks, 2 team members.')
+  it('množné číslo: „Imported 2 features, 4 tasks, 2 units.“', () => {
+    expect(formatImportSummary(parseRows(VALID_ROWS))).toBe('Imported 2 features, 4 tasks, 2 units.')
   })
 
-  it('jednotné číslo: „Imported 1 feature, 1 task, 1 team member.“', () => {
-    expect(formatImportSummary(parseRows([row('Login', 'FE', 'Squad A', 3)]))).toBe('Imported 1 feature, 1 task, 1 team member.')
+  it('jednotné číslo: „Imported 1 feature, 1 task, 1 unit.“', () => {
+    expect(formatImportSummary(parseRows([row('Login', 'FE', 'Squad A', 3)]))).toBe('Imported 1 feature, 1 task, 1 unit.')
   })
 
   it('varování se připojí za zprávu o úspěchu', () => {
     const result = parseRows([row('F1', 'BE', 'A', 5), row('F1', 'FE', 'A', 'abc')])
-    expect(formatImportSummary(result)).toBe('Imported 1 feature, 1 task, 1 team member. 1 row skipped (invalid Velikost).')
+    expect(formatImportSummary(result)).toBe('Imported 1 feature, 1 task, 1 unit. 1 row skipped (invalid Size).')
   })
 })
 
@@ -122,7 +124,7 @@ describe('feat-022 Příklad 12: zprávy v Cash Flow (hook)', () => {
     const { result } = renderHook(() => useCashFlowSimSetup(SETTINGS))
     act(() => { result.current.handleXlsImport(makeXlsFile(VALID_ROWS)) })
     await waitFor(() => expect(result.current.importMsg).not.toBeNull())
-    expect(result.current.importMsg).toEqual({ ok: true, text: 'Imported 2 features, 4 tasks, 2 team members.' })
+    expect(result.current.importMsg).toEqual({ ok: true, text: 'Imported 2 features, 4 tasks, 2 units.' })
   })
 
   it('soubor bez dat ukáže anglickou chybu z parseru', async () => {
@@ -152,9 +154,9 @@ describe('feat-022 Příklad 12: zprávy v Advanced (Simulator)', () => {
     fireEvent.change(input, { target: { files: [file] } })
   }
 
-  it('úspěšný import ukáže „✓ Imported 2 features, 4 tasks, 2 team members.“', async () => {
+  it('úspěšný import ukáže „✓ Imported 2 features, 4 tasks, 2 units.“', async () => {
     await importInAdvanced(makeXlsFile(VALID_ROWS))
-    expect(await screen.findByText('✓ Imported 2 features, 4 tasks, 2 team members.')).toBeInTheDocument()
+    expect(await screen.findByText('✓ Imported 2 features, 4 tasks, 2 units.')).toBeInTheDocument()
   })
 
   it('soubor bez dat ukáže „× The file contains no data.“', async () => {

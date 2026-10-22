@@ -266,7 +266,7 @@ export const TUTORIAL_STEPS: Record<TutorialMode, TutorialStep[]> = {
     {
       id: 'experiment-specializations',
       chapter: 'BACKLOG & RULES',
-      title: 'Specializations',
+      title: 'Skills',
       description:
         'Define the skills and mandates units can have: add, rename or recolor them. Phase sets the order — a ' +
         'later phase starts only when earlier phases of that feature are done.',
@@ -314,7 +314,7 @@ export const TUTORIAL_STEPS: Record<TutorialMode, TutorialStep[]> = {
       title: 'Metrics',
       description:
         'Hover ? on a tile for its definition. Total Wait and Avg Handoffs stay at zero until you give skills ' +
-        'different phases under Specializations.',
+        'different phases under Skills.',
       targetId: 'experiment-results',
     },
     sandboxControlsStep('experiment-controls', 'experiment-controls'),

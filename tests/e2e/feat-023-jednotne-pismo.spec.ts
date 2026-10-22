@@ -81,10 +81,10 @@ async function openPresetDialog(page: Page): Promise<void> {
 /** Malý .xlsx soubor pro import (dvě featury, čtyři tasky) — formát podle feat-012. */
 function xlsxBuffer(): Buffer {
   const rows = [
-    { Feature: 'Login', Specializace: 'FE', Tym: 'Squad A', Velikost: 3 },
-    { Feature: 'Login', Specializace: 'BE', Tym: 'Squad B', Velikost: 2 },
-    { Feature: 'Search', Specializace: 'FE', Tym: 'Squad A', Velikost: 4 },
-    { Feature: 'Search', Specializace: 'QA', Tym: 'Squad B', Velikost: 1 },
+    { Feature: 'Login', Skill: 'FE', Unit: 'Squad A', Size: 3 },
+    { Feature: 'Login', Skill: 'BE', Unit: 'Squad B', Size: 2 },
+    { Feature: 'Search', Skill: 'FE', Unit: 'Squad A', Size: 4 },
+    { Feature: 'Search', Skill: 'QA', Unit: 'Squad B', Size: 1 },
   ]
   const wb = XLSX.utils.book_new()
   XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(rows), 'Backlog')
@@ -208,7 +208,7 @@ test.describe('feat-023: jednotné písmo — celá aplikace v JetBrains Mono', 
     expect(chip.color).toBe('rgb(255, 255, 255)')
 
     // Výběr role na kartě jednotky po kliknutí na „+“
-    await page.getByRole('button', { name: 'Add specialization' }).first().click()
+    await page.getByRole('button', { name: 'Add skill' }).first().click()
     const pick = await styleOf(page.locator('[class*="MemberCard-module__"][class*="__pickRole"]').first())
     expect(pick.family).toMatch(MONO)
     expect(pick.size).toBe('11px')
@@ -221,7 +221,7 @@ test.describe('feat-023: jednotné písmo — celá aplikace v JetBrains Mono', 
     await page.getByRole('tab', { name: 'Advanced' }).click()
     expectMono(await textStyles(page, /^Nothing in flight\.$/), '11px', '400', 'Advanced: In progress')
     expectMono(await textStyles(page, /^No completed features yet\.$/), '11px', '400', 'Advanced: Done')
-    expectMono(await textStyles(page, /^(auto-scaled|Click \+ to add a specialty|\d+ features? sampled)$/), '11px', '400', 'Advanced: poznámky')
+    expectMono(await textStyles(page, /^(auto-scaled|Click \+ to add a skill|\d+ features? sampled)$/), '11px', '400', 'Advanced: poznámky')
 
     await openAccordions(page)
     expectMono(await textStyles(page, /^(Backlog size|Item size variability)$/), '11px', '500', 'popisky sliderů')
@@ -266,7 +266,7 @@ test.describe('feat-023: jednotné písmo — celá aplikace v JetBrains Mono', 
     await page.getByRole('tab', { name: 'Advanced' }).click()
     await page.getByRole('button', { name: 'Backlog', exact: true }).click() // „Import XLS“ je v akordeonu Backlog
     await heading(page.getByRole('button', { name: /Import XLS$/ }), '13px', 'Import XLS')
-    await page.getByRole('button', { name: 'Specializations', exact: true }).click()
+    await page.getByRole('button', { name: 'Skills', exact: true }).click()
     await heading(page.getByRole('button', { name: 'Add', exact: true }), '13px', 'Add')
   })
 

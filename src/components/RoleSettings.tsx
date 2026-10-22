@@ -30,7 +30,7 @@ interface RoleNameInputProps {
 
 /**
  * Editovatelný název jedné specializace v seznamu. Plný název je v `title` jen tehdy, když ho v úzkém poli
- * zkrátí výpustka (feat-023); vstup má přístupný název „Specialization name“, aby čtečka obrazovky
+ * zkrátí výpustka (feat-023); vstup má přístupný název „Skill name“ (feat-026), aby čtečka obrazovky
  * řekla, k čemu pole je, a ne jen jeho hodnotu. Je to samostatná komponenta, protože měření zkrácení
  * je hook a ten nejde volat uvnitř cyklu přes specializace.
  *
@@ -45,7 +45,7 @@ function RoleNameInput({ value, onChange }: RoleNameInputProps) {
       type="text"
       value={value}
       title={truncated ? value : undefined}
-      aria-label="Specialization name"
+      aria-label="Skill name"
       onChange={e => onChange(e.target.value)}
       className={styles.input}
     />
@@ -263,7 +263,7 @@ export function RoleSettings({ roleConfig, onChange, onAdd, onDelete }: RoleSett
 
       {/* Formulář pro přidání nové specializace */}
       <div className={styles.addSection}>
-        <span className={styles.colLabel}>Add specialization</span>
+        <span className={styles.colLabel}>Add skill</span>
 
         <div className={styles.addRow}>
           {/* Barevný čtverec nové role s floating pickerem */}

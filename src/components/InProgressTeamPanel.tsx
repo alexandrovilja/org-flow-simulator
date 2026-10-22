@@ -51,7 +51,7 @@ export function InProgressTeamPanel({
 
       <div data-tutorial-target={`${tutorialTargetPrefix}-team-composition`} className={styles.team}>
         {/* Stejná hlavička jako ostatní panely: nadpisek, počet jednotek a poznámka vpravo */}
-        <PanelHeader title="Units" count={state.team.length} hint="Click + to add a specialty" />
+        <PanelHeader title="Units" count={state.team.length} hint="Click + to add a skill" />
 
         <div className={styles.members}>
           {state.team.map((m, i) => {

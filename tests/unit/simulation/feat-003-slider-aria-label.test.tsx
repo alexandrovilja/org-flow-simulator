@@ -16,10 +16,10 @@ describe('feat-003: přístupné jméno slideru', () => {
     render(
       <>
         <Slider label="Backlog size" value={100} min={10} max={1000} step={10} onChange={() => {}} />
-        <Slider label="Min. specializations per item" value={1} min={1} max={6} step={1} onChange={() => {}} />
+        <Slider label="Min. skills per item" value={1} min={1} max={6} step={1} onChange={() => {}} />
       </>,
     )
     expect(screen.getByRole('slider', { name: 'Backlog size' })).toHaveValue('100')
-    expect(screen.getByRole('slider', { name: 'Min. specializations per item' })).toHaveValue('1')
+    expect(screen.getByRole('slider', { name: 'Min. skills per item' })).toHaveValue('1')
   })
 })

@@ -15,8 +15,8 @@ import type { Member, SimSettings } from '@/types/simulation'
 // Schválený kontrakt (spec features/feat-022-sjednoceni-designu.md):
 //  - Příklad 1: nadpisy „Units“ a „Metrics“ jsou hlavičky panelu jako „Backlog“, „In Progress“ a „Done“
 //    (stejná třída nadpisu); počet jednotek je sourozenec nadpisu se stejnou třídou jako počet u Backlogu;
-//    poznámky „Click + to add a specialty“ a „N features sampled“ mají stejnou třídu jako „auto-scaled“.
-//  - Příklad 2: hlavičky akordeonů mají přístupné názvy „Backlog“, „Specializations“, „Team“ bez emoji;
+//    poznámky „Click + to add a skill“ (do feat-026 „…a specialty“) a „N features sampled“ mají stejnou třídu jako „auto-scaled“.
+//  - Příklad 2: hlavičky akordeonů mají přístupné názvy „Backlog“, „Skills“ (do feat-026 „Specializations“), „Team“ bez emoji;
 //    šipka ▸ / ▾ je skrytá před čtečkami (aria-hidden) a řídí se stavem; aria-expanded odpovídá stavu.
 //  - Příklad 3: „Generate new backlog“ a „Takes effect after Reset“ bez emoji; smazání specializace
 //    ukazuje „×“ s přístupným názvem „Delete <role>“; zpráva o importu začíná „✓“ nebo „×“;
@@ -102,18 +102,18 @@ describe.each(['Advanced', 'Cash Flow'])('feat-022 Příklad 1: nadpisy Units a 
     expect(unitsCount?.textContent).toBe(String(screen.getAllByTitle('Remove unit').length))
   })
 
-  it('poznámky „Click + to add a specialty“ a „N features sampled“ mají styl poznámky jako „auto-scaled“', () => {
+  it('poznámky „Click + to add a skill“ a „N features sampled“ mají styl poznámky jako „auto-scaled“', () => {
     const hintClass = screen.getByText('auto-scaled').className
-    expect(screen.getByText('Click + to add a specialty').className).toBe(hintClass)
+    expect(screen.getByText('Click + to add a skill').className).toBe(hintClass)
     expect(screen.getByText(/^\d+ features? sampled$/).className).toBe(hintClass)
   })
 })
 
 describe('feat-022 Příklad 2: akordeony nastavení bez emoji', () => {
-  it('hlavičky mají názvy „Backlog“, „Specializations“, „Team“ a skrytou šipku ▸ / ▾ podle stavu', () => {
+  it('hlavičky mají názvy „Backlog“, „Skills“, „Team“ a skrytou šipku ▸ / ▾ podle stavu', () => {
     render(<Simulator />)
     tab('Advanced')
-    for (const name of ['Backlog', 'Specializations', 'Team']) {
+    for (const name of ['Backlog', 'Skills', 'Team']) {
       const button = screen.getByRole('button', { name })
       const caret = () => button.querySelector('[aria-hidden="true"]')
       expect(button).toHaveAttribute('aria-expanded', 'false')
@@ -169,7 +169,7 @@ describe('feat-022 Příklad 3: ovládání bez emoji', () => {
       <MemberCard member={member} currentFeature={null} currentTask={null} roleConfig={ROLE_META}
         onAddRole={vi.fn()} onRemoveRole={vi.fn()} onRename={vi.fn()} onRemove={vi.fn()} onSetAiMultiplier={vi.fn()} />,
     )
-    fireEvent.click(screen.getByRole('button', { name: 'Add specialization' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Add skill' }))
     expect(screen.getByRole('button', { name: 'Close' }).textContent).toBe('×')
   })
 })

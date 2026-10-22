@@ -205,7 +205,7 @@ describe('feat-017: dialog výběru presetu po přechodu na sdílený ConfirmOve
   it('zobrazí nadpis s názvem presetu a tlačítka Cancel / Apply preset', () => {
     renderPanel({ confirmingPreset: PRESETS[1] })
     expect(screen.getByText('Apply \u201cPeople\u201d preset?')).toBeTruthy()
-    expect(screen.getByText('Your current team and specializations will be replaced. This cannot be undone.')).toBeTruthy()
+    expect(screen.getByText('Your current team and skills will be replaced. This cannot be undone.')).toBeTruthy()
     expect(screen.getByRole('button', { name: 'Apply preset' })).toBeTruthy()
   })
 })

@@ -89,7 +89,7 @@ export function BacklogSettingsPanel({
   onConfirmRevenueProfile, onCancelRevenueProfile,
 }: BacklogSettingsPanelProps) {
   /**
-   * Hlavička akordeonu v nastavení (Backlog, Specializations, Team): hranaté tlačítko přes celou
+   * Hlavička akordeonu v nastavení (Backlog, Skills, Team): hranaté tlačítko přes celou
    * šířku ve stylu „eyebrow“. Šipka ▸ / ▾ je samostatný aria-hidden prvek, aby přístupný název
    * zůstal jen název sekce; stav říká aria-expanded. Tlačítko je zároveň cílem kroku tutoriálu
    * (feat-025) — tutoriál zvýrazní jen hlavičku a sekci nerozbaluje.
@@ -143,7 +143,7 @@ export function BacklogSettingsPanel({
         {confirmingPreset && (
           <ConfirmOverlay
             title={<>Apply &ldquo;{confirmingPreset.label}&rdquo; preset?</>}
-            body="Your current team and specializations will be replaced. This cannot be undone."
+            body="Your current team and skills will be replaced. This cannot be undone."
             confirmLabel="Apply preset"
             onCancel={() => setConfirmingPreset(null)}
             onConfirm={handleConfirmPreset}
@@ -216,23 +216,23 @@ export function BacklogSettingsPanel({
                 onChange={v => setSettings(s => ({ ...s, initialBacklog: v }))}
                 format={v => `${v} items`}
                 tooltip="Number of features generated when clicking 'Generate new backlog'." />
-              <Slider label="Min. specializations per item" value={settings.minSpecializations} min={1} max={6} step={1}
+              <Slider label="Min. skills per item" value={settings.minSpecializations} min={1} max={6} step={1}
                 onChange={v => setSettings(s => ({ ...s, minSpecializations: v }))}
-                format={v => v === 1 ? 'no minimum' : `≥ ${v} roles`}
-                tooltip="Minimum number of different specializations each backlog item must require." />
+                format={v => v === 1 ? 'no minimum' : `≥ ${v} skills`}
+                tooltip="Minimum number of different skills each backlog item must require." />
               <Slider label="Item size variability" value={settings.sizeVar} min={0} max={1} step={0.05}
                 onChange={v => setSettings(s => ({ ...s, sizeVar: v }))}
                 format={v => v < 0.1 ? 'uniform' : v < 0.5 ? 'low' : v < 0.85 ? 'high' : 'extreme'}
                 tooltip="How much effort varies between items." />
-              <Slider label="Role-mix variability" value={settings.roleVar} min={0} max={1} step={0.05}
+              <Slider label="Skill-mix variability" value={settings.roleVar} min={0} max={1} step={0.05}
                 onChange={v => setSettings(s => ({ ...s, roleVar: v }))}
-                format={v => v < 0.1 ? '2 roles' : v < 0.5 ? 'low' : v < 0.85 ? 'high' : '1–6 roles'}
-                tooltip="How many different roles each item requires." />
+                format={v => v < 0.1 ? '2 skills' : v < 0.5 ? 'low' : v < 0.85 ? 'high' : '1–6 skills'}
+                tooltip="How many different skills each item requires." />
             </div>
           )}
         </div>
         <div className={styles.accordion}>
-          {accordionButton('Specializations', showRoleSettings, () => setShowRoleSettings(v => !v), `${tutorialTargetPrefix}-specializations-accordion`)}
+          {accordionButton('Skills', showRoleSettings, () => setShowRoleSettings(v => !v), `${tutorialTargetPrefix}-specializations-accordion`)}
           {showRoleSettings && (
             <div className={styles.accordionBody}>
               <RoleSettings roleConfig={roleConfig} onChange={handleRoleChange} onAdd={handleAddRole} onDelete={handleDeleteRole} />

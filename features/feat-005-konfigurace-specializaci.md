@@ -3,6 +3,8 @@
 ## Status
 implemented
 
+*Poznámka 2026-10-22 (feat-026): panel „Specializations“ se v UI jmenuje „Skills“, vstup názvu má přístupný název „Skill name“. Chování se nemění.*
+
 ## Problem
 Fixní sada rolí (FE, BE, DSGN, QA, OPS, DATA) neumožňuje simulovat reálné týmy, kde mají role jiné názvy, jiné pořadí fází (např. Design musí vždy předcházet vývoji) nebo kde jsou některé role povinné v každé položce backlogu (např. QA). Bez konfigurace specializací kouč nemůže přizpůsobit simulaci konkrétnímu klientskému kontextu.
 

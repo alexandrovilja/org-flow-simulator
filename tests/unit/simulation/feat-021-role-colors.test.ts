@@ -18,9 +18,9 @@ const SLOTS = [
   'var(--role-ochre)', 'var(--role-teal)', 'var(--role-violet)', 'var(--role-slate)',
 ]
 
-/** Minimální platný řádek XLS importu (stejný tvar jako v testech feat-012). */
-function row(feature: string, specializace: string, tym: string, velikost: number) {
-  return { Feature: feature, Specializace: specializace, Tym: tym, Velikost: velikost }
+/** Minimální platný řádek XLS importu (stejný tvar jako v testech feat-012; anglické sloupce od feat-026). */
+function row(feature: string, skill: string, unit: string, size: number) {
+  return { Feature: feature, Skill: skill, Unit: unit, Size: size }
 }
 
 describe('feat-021 Příklad 7: barvy rolí podle slotů', () => {

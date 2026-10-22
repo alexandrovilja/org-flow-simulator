@@ -485,8 +485,8 @@ describe('feat-017: profil při generování backlogu', () => {
 
   it('Příklad 13 — featury z XLS importu mají flat a revenueTickCount 0 (aktuální profil jim nastaví hook)', () => {
     const result = parseRows([
-      { Feature: 'Login', Specializace: 'FE', Tym: 'Squad A', Velikost: 3 },
-      { Feature: 'Login', Specializace: 'BE', Tym: 'Squad B', Velikost: 2 },
+      { Feature: 'Login', Skill: 'FE', Unit: 'Squad A', Size: 3 },
+      { Feature: 'Login', Skill: 'BE', Unit: 'Squad B', Size: 2 },
     ])
     for (const f of result.features) {
       expect(f.revenueProfile).toBe('flat')

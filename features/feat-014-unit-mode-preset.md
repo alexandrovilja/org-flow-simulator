@@ -3,6 +3,8 @@
 ## Stav
 `draft`
 
+*Poznámka 2026-10-22 (feat-026): sekce „Specializations“ se v UI jmenuje „Skills“ a text potvrzovacího dialogu je „Your current team and skills will be replaced. This cannot be undone.“*
+
 ## Kontext
 Simulátor momentálně zobrazuje jednotky vždy jako osoby (Ada, Ben, Chen…) a specializace jsou zaměřené na tech stack (React, Java, QA…). Agile coaches potřebují simulátor použít ve dvou různých kontextech:
 
