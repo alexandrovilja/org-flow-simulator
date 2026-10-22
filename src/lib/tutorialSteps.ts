@@ -59,6 +59,10 @@ export const TUTORIAL_STEPS: Record<TutorialMode, TutorialStep[]> = {
         "It's still in development, so I'd really appreciate your feedback. It helps me steer the tool where it's most useful.",
         'To learn more about organizational design, I recommend [Org Topologies](https://www.orgtopologies.com).',
       ],
+      // The card speaks in the first person — the footer says who "I" is and how to connect
+      footer:
+        "Made by Ilja Alexandrov. I'd be glad to connect with you on " +
+        '[LinkedIn](https://www.linkedin.com/in/ilja-alexandrov).',
       targetId: '',
     },
     // Top bar: what each mode is for, then where to send feedback (feat-024 step moved here)

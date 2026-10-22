@@ -3,7 +3,7 @@
  * Ověřují v reálném prohlížeči to, co jsdom neumí: umístění úvodní karty uprostřed okna, její šířku,
  * otevření odkazu v nové záložce, ostré rohy rámečku zvýraznění a rámeček kolem záložky Cash Flow.
  *
- * Schválený kontrakt: features/feat-025-revize-tutorialu.md (Příklady 1, 2, 8, 15, 17)
+ * Schválený kontrakt: features/feat-025-revize-tutorialu.md (Příklady 1, 2, 8, 15, 17, 18, 19)
  * a schválená maketa docs/feat-025-ui-mockup.html.
  * Vejití karty do okna 1024 × 768 na každém kroku všech tří prohlídek hlídá feat-023 (Příklad 11).
  *
@@ -55,6 +55,34 @@ test.describe('feat-025: revize tutoriálu', () => {
     await popup.close()
     await expect(page.getByText('WELCOME · 1 / 14')).toBeVisible()
     await expect(page.getByRole('heading', { name: 'Welcome to Org Flow Simulator' })).toBeVisible()
+  })
+
+  test('Příklad 18 a 19: patička o autorovi má linku nahoře a odkaz na LinkedIn v nové záložce', async ({ page, context }) => {
+    // Cizí web nenačítáme — odpovíme prázdnou stránkou
+    await context.route('https://www.linkedin.com/**', route => route.fulfill({ status: 200, contentType: 'text/html', body: '<p>ok</p>' }))
+    await openFirstVisit(page)
+    const footer = card(page).locator('footer')
+    await expect(footer).toBeVisible()
+    await expect(footer).toHaveText("Made by Ilja Alexandrov. I'd be glad to connect with you on LinkedIn.")
+    // Patičku od odrážek odděluje tenká linka (1 px nahoře)
+    const border = await footer.evaluate(el => {
+      const s = getComputedStyle(el)
+      return { width: s.borderTopWidth, style: s.borderTopStyle }
+    })
+    expect(border).toEqual({ width: '1px', style: 'solid' })
+    // Patička je celá uvnitř karty (karta se s ní pořád vejde do okna, Příklad 15)
+    const cardBox = (await card(page).boundingBox())!
+    const footerBox = (await footer.boundingBox())!
+    expect(footerBox.y + footerBox.height).toBeLessThanOrEqual(cardBox.y + cardBox.height)
+    expect(cardBox.y + cardBox.height).toBeLessThanOrEqual(VIEWPORT.height)
+
+    const [popup] = await Promise.all([
+      context.waitForEvent('page'),
+      footer.getByRole('link', { name: 'LinkedIn' }).click(),
+    ])
+    expect(popup.url()).toBe('https://www.linkedin.com/in/ilja-alexandrov')
+    await popup.close()
+    await expect(page.getByText('WELCOME · 1 / 14')).toBeVisible()
   })
 
   test('Příklad 17: rámeček zvýraznění má ostré rohy, karta zůstává zaoblená', async ({ page }) => {

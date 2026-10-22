@@ -28,6 +28,12 @@ export interface TutorialStep {
    */
   bullets?: string[]
   /**
+   * Optional footer line under the bullets, separated by a thin line (used by the welcome card to say
+   * who the author is and link to the author's LinkedIn profile — feat-025, change 2026-10-22).
+   * May contain links in the same `[label](https://…)` form.
+   */
+  footer?: string
+  /**
    * Matches the value of the `data-tutorial-target` attribute on the DOM element
    * that should be spotlighted. The overlay uses this to position the highlight.
    *
