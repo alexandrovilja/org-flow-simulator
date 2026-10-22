@@ -165,7 +165,8 @@ function renderTutorialText(text: string) {
  *      ("I'm still inside Team A") while focusing on the highlighted detail.
  *
  * The card shows the part of the tour and the step ("TOP BAR · 2 / 14"), a title, the text and
- * "← Back" / "Next →" (feat-025). A step without a target (the welcome card) is centred on the screen.
+ * "← Back" / "Next →" (feat-025). A step without a target (the welcome card) is centred on the screen;
+ * it also has bullets and a footer about the author with a LinkedIn link (feat-025, change 2026-10-22).
  *
  * @param mode       - Which mode's steps to display.
  * @param onComplete - Callback fired when the tutorial is finished or skipped.
@@ -296,6 +297,10 @@ export function TutorialOverlay({ mode, onComplete }: TutorialOverlayProps) {
         <ul className={styles.bullets}>
           {currentStep.bullets.map(bullet => <li key={bullet}>{renderTutorialText(bullet)}</li>)}
         </ul>
+      )}
+      {/* A <footer>, not a <p>: the card text must stay a single paragraph (E2E feat-023 measures it) */}
+      {currentStep.footer && (
+        <footer className={styles.footer}>{renderTutorialText(currentStep.footer)}</footer>
       )}
       <div className={styles.actions}>
         {stepIndex > 0 && (

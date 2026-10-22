@@ -5,6 +5,8 @@ in-progress
 
 *Obsah prohlídek prošel s uživatelem krok po kroku 2026-10-21 (texty, pořadí, vzhled karty). Spec, UI návrh i testy schváleny 2026-10-21. Implementace (fáze 5) a opravy z review (fáze 6, 6 nálezů) hotové na větvi `feat/025-revize-tutorialu`: 1053/1053 unit, 70/70 E2E, typecheck a lint čisté.*
 
+*Změna 2026-10-22: patička o autorovi s odkazem na LinkedIn na úvodní kartě — viz „Autor na úvodní kartě“, Příklady 18–19. Spec schválen 2026-10-22 (text bez role), testy schváleny 2026-10-22. Implementace (fáze 5) hotová na větvi `feat/025-autor-na-uvodni-karte`: testy tutoriálu zelené, E2E feat-025 a feat-023 Př. 11 zelené (8/8), typecheck a lint čisté, ověřeno v prohlížeči na 1024 × 768. Review (fáze 6, 2026-10-22): bez blokujících nálezů; doplněna zmínka o patičce do JSDoc `TutorialOverlay`.*
+
 ## Problem
 Tutoriál (feat-013) ukazuje, *kde* co na obrazovce je, ale skoro nevysvětluje, *jak to číst*. Nikde neřekne, co znamenají barevné úseky na kartě featury, proč práce čeká, ani k čemu jsou jednotlivé módy. Uživatel se nedozví, že existují Advanced a Cash Flow, dokud na ně neklikne.
 
@@ -42,6 +44,16 @@ Nemá co zvýraznit, takže je **uprostřed obrazovky** (vodorovně i svisle) a 
 
 ### Prohlídka Compare (14 kroků)
 Spouští se automaticky při první návštěvě a přes „?“ v Compare. Vždy začíná úvodní kartou.
+#### Autor na úvodní kartě (změna 2026-10-22)
+Úvodní karta mluví v první osobě („I'd really appreciate your feedback“, „I recommend“), ale nikde neříká, kdo je „já“. Kouč, který nástroj ukáže na workshopu, nemá jak se s autorem spojit. Na úvodní kartu proto přibude **patička o autorovi** s odkazem na LinkedIn.
+
+- **Místo:** pod odrážkami, nad tlačítky „Next →“ / „Skip tutorial“. Jen na úvodní kartě, ostatní kroky ji nemají.
+- **Vzhled:** oddělená tenkou vodorovnou linkou nahoře, písmo stejné jako odrážky (13 px, barva textu karty). Bez nadpisu, bez fotky.
+- **Odkaz:** „LinkedIn“ se otevírá v nové záložce se stejnou značkou nové záložky jako ostatní odkazy na kartě. Prohlídku nezavře ani neposune.
+- **Text:**
+
+> Made by Ilja Alexandrov. I'd be glad to connect with you on [LinkedIn](https://www.linkedin.com/in/ilja-alexandrov).
+
 
 | # | Část | Zvýrazní | Nadpis | Text |
 |---|---|---|---|---|
@@ -195,6 +207,18 @@ Popisek nad výsledkem se mění z „Result · avg lead time“ na **„Result 
 
 ## Out of Scope
 - Interaktivní kroky: tutoriál nečeká na akci uživatele, sám nic nerozbaluje, nepřepíná ani nespouští.
+**Příklad 18: Patička o autorovi na úvodní kartě** *(změna 2026-10-22)*
+- Given: tutoriál Compare je na úvodní kartě
+- When: karta se zobrazí
+- Then: pod odrážkami a nad tlačítky je patička oddělená linkou s textem „Made by Ilja Alexandrov. I'd be glad to connect with you on LinkedIn.“, kde „LinkedIn“ je odkaz na `https://www.linkedin.com/in/ilja-alexandrov`; na kroku 2 ani na žádném kroku prohlídek Advanced a Cash Flow patička není
+
+**Příklad 19: Odkaz na LinkedIn** *(změna 2026-10-22)*
+- Given: tutoriál je na úvodní kartě
+- When: uživatel klikne na odkaz „LinkedIn“
+- Then: profil autora se otevře v nové záložce (`target="_blank"`, `rel="noopener noreferrer"`); tutoriál zůstane na kroku 1
+
+*Příklad 15 platí i s patičkou: úvodní karta se v okně 1024 × 768 px vejde celá.*
+
 - Nápověda po skončení běhu (např. upozornění na rámeček výsledku).
 - Jiné jazyky než angličtina.
 - Přejmenování „Specializations“ v UI na „skills and mandates“. V detailních krocích Compare zůstává slovo „roles“.
@@ -204,6 +228,7 @@ Popisek nad výsledkem se mění z „Result · avg lead time“ na **„Result 
 - Analytika průchodu tutoriálem.
 
 ## Technical Notes
+- Fotka autora, další sociální sítě a informace o autorovi jinde v aplikaci (mimo úvodní kartu).
 - **Typy (`src/types/tutorial.ts`):** `TutorialMode` dostane `'cashflow'`. `TutorialStep` dostane povinné `title` a `chapter` a nepovinné `bullets?: string[]` (odrážky úvodní karty) a `fallbackTargetId?: string` (cíl, když `targetId` v DOM není, Příklad 7).
 - **Odkazy:** text a odrážky mohou obsahovat odkazy ve tvaru `[popisek](https://…)`. Overlay je vykreslí jako `<a target="_blank" rel="noopener noreferrer">`. Povolené jsou jen adresy `https://`. Konfigurace kroků tak zůstává čistá data bez JSX.
 - **Konfigurace (`src/lib/tutorialSteps.ts`):** tři prohlídky podle tabulek. Pomocná funkce `feedbackStep` se použije jen pro Compare (krok 5).
@@ -264,8 +289,20 @@ Testy jsou kontrakt pro implementaci. Kromě tabulek v UI / Design z nich plyne:
 
 ## Open Questions
 - Přesný název hry Roberta Batůška. Zatím „multi-learning game“, uživatel může upřesnit. Neblokuje implementaci.
+### Autor na úvodní kartě (změna 2026-10-22)
+- **Typ:** `TutorialStep` dostane nepovinné `footer?: string`, text ve stejném formátu jako popis a odrážky (odkazy `[popisek](https://…)`). Vyplní ho jen krok `compare-welcome` v `src/lib/tutorialSteps.ts`.
+- **Overlay:** patičku vykreslí jako `<footer>` mezi odrážkami a tlačítky, odkazy přes stávající `renderTutorialText`. **Ne jako `<p>`:** E2E feat-023 (Př. 11) hledá text karty přes `card.locator('p')` a počítá s jediným odstavcem.
+- **Styl (`TutorialOverlay.module.css`):** `.footer` s `border-top: 1px solid var(--line-on-bar)`, odsazením nahoře `var(--space-12)` a písmem jako `.bullets li` (13 px / 20 px, `var(--ink-on-bar)`).
+- **Testy (fáze 4):**
+  - unit `tests/unit/simulation/feat-025-author-footer.test.tsx` (vlastní soubor, aby se nepletl se souběžnými úpravami testů feat-025 kvůli feat-026): text patičky, pořadí odrážky → patička → tlačítka, jediný `<p>` na kartě, patička jen na kroku 1 Compare (projde všechny tři prohlídky), odkaz LinkedIn (adresa, nová záložka, ikona) a klik, který prohlídku neposune;
+  - E2E `tests/e2e/feat-025-revize-tutorialu.spec.ts`, test „Příklad 18 a 19“: linka nad patičkou (`border-top` 1 px solid), patička uvnitř karty, karta v okně 1024 × 768 a otevření profilu v nové záložce;
+  - testy ověřují jen vykreslený DOM, ne pole `footer` v konfiguraci — název pole je na implementaci;
+  - vejití karty na každém kroku dál hlídá E2E feat-023 (Příklad 11) a typografii úvodní karty E2E feat-025 (Příklad 1 a 15).
+- **Review (fáze 6):** overlay se vykresluje mimo `<main>`, takže `<footer>` prohlížeč nabízí čtečkám jako orientační bod „contentinfo“ (informace o stránce), dokud je úvodní karta vidět. Jiný takový prvek aplikace nemá a údaj o autorovi do něj obsahově patří, proto zůstává `<footer>`.
+
 
 ## Related Features
+- **Autor (změna 2026-10-22):** URL profilu doplněna (`https://www.linkedin.com/in/ilja-alexandrov`). Zda za jméno přidat roli (např. „Made by Ilja Alexandrov, agile coach.“). Bez odpovědi zůstává text bez role; neblokuje implementaci.
 - **feat-013-zprehledneni-aplikace:** základ tutoriálu. Feat-025 nahrazuje obsah a pořadí kroků obou prohlídek, přidává třetí prohlídku a rozšiřuje kartu (nadpis, část, Back, úvodní karta).
 - **feat-024-zpetna-vazba-uzivatelu:** krok se zpětnou vazbou se přesouvá z předposledního místa na krok 5 prohlídky Compare a z prohlídky Advanced mizí (mění Příklad 14).
 - **feat-021-prevod-design-system-org-flow:** „?“ v ovládání je nově i v Cash Flow (Příklad 14 feat-021 uváděl jen Compare a Advanced); mění se popisek rámečku výsledku; karta zůstává ve stylu design systému.
