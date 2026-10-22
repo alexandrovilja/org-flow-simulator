@@ -301,7 +301,8 @@ describe('feat-021 Příklad 14: rychlost z lišty řídí tempo simulace ve vš
 
 // ── Příklad 15: stavy tlačítka běhu v Advanced a Cash Flow ───────────────────
 
-describe('feat-021 Příklad 15: stavy tlačítka běhu v Advanced a Cash Flow', () => {
+// Test posouvá simulaci o 4 s se 100 featurami; na CI to trvá ~6 s, proto stejný limit jako sousední bloky
+describe('feat-021 Příklad 15: stavy tlačítka běhu v Advanced a Cash Flow', { timeout: SIM_RUN_TIMEOUT_MS }, () => {
   it.each(['Advanced', 'Cash Flow'] as const)('%s: Run → Pause → Run (bez pulzu); za pauzy čas neběží, další Run pokračuje', async mode => {
     render(<Simulator />)
     openMode(mode)
