@@ -7,9 +7,9 @@ import { roleColorForIndex } from '@/simulation/roleColors'
 export interface ImportResult {
   /** Vygenerovaný backlog — každá unikátní Feature hodnota = jedna položka. */
   features: Feature[]
-  /** Vygenerovaný tým — každá unikátní Tym hodnota = jeden člen. */
+  /** Vygenerovaný tým — každá unikátní hodnota ve sloupci Unit = jedna jednotka. */
   team: Member[]
-  /** Konfigurace rolí — každá unikátní Specializace = jedna položka. */
+  /** Konfigurace rolí (skillů) — každá unikátní hodnota ve sloupci Skill = jedna položka. */
   roleConfig: Record<Role, RoleMeta>
   /** Varování o přeskočených řádcích (neblokující). Prázdné pokud vše proběhlo v pořádku. */
   warnings: string[]
@@ -49,7 +49,8 @@ export function parseRows(rawRows: Record<string, unknown>[]): ImportResult {
   const normalizeKey = (k: string) => k.trim().toLowerCase()
   const firstRowKeys = Object.keys(rows[0]).map(normalizeKey)
 
-  const REQUIRED_COLUMNS = ['feature', 'specializace', 'tym', 'velikost'] as const
+  // Názvy sloupců jsou od feat-026 anglicky; staré české názvy (Specializace, Tym, Velikost) se nepřijímají
+  const REQUIRED_COLUMNS = ['feature', 'skill', 'unit', 'size'] as const
   for (const col of REQUIRED_COLUMNS) {
     if (!firstRowKeys.includes(col)) {
       const display = col.charAt(0).toUpperCase() + col.slice(1)
@@ -70,14 +71,14 @@ export function parseRows(rawRows: Record<string, unknown>[]): ImportResult {
 
   // ── Průchod řádky — sbíráme data, validujeme a kontrolujeme limity inkrementálně ──
 
-  /** Klíč pro detekci duplikátů: "Feature\0Specializace\0Tym" */
+  /** Klíč pro detekci duplikátů: "Feature\0Skill\0Unit" */
   const seen = new Set<string>()
 
   /** feature name → pole tasků (tasks přidáváme inkrementálně) */
   const featureTasksMap = new Map<string, { tasks: RawTask[]; hue: number }>()
 
-  /** tym name → Set rolí */
-  const tymRolesMap = new Map<string, Set<string>>()
+  /** název jednotky (sloupec Unit) → Set rolí */
+  const unitRolesMap = new Map<string, Set<string>>()
 
   /** role key (uppercase) → pořadové číslo pro přiřazení barvy */
   const roleHueIndex = new Map<string, number>()
@@ -88,24 +89,24 @@ export function parseRows(rawRows: Record<string, unknown>[]): ImportResult {
 
   for (const row of rows) {
     const featureName = String(getCell(row, 'feature') ?? '').trim()
-    const specializaceRaw = String(getCell(row, 'specializace') ?? '').trim()
-    const tymRaw = String(getCell(row, 'tym') ?? '').trim()
-    const velikostRaw = getCell(row, 'velikost')
+    const skillRaw = String(getCell(row, 'skill') ?? '').trim()
+    const unitRaw = String(getCell(row, 'unit') ?? '').trim()
+    const sizeRaw = getCell(row, 'size')
 
     // Přeskočíme řádky bez hodnot v klíčových sloupcích
-    if (!featureName || !specializaceRaw || !tymRaw) continue
+    if (!featureName || !skillRaw || !unitRaw) continue
 
-    // Specializace → uppercase role key
-    const role = specializaceRaw.toUpperCase()
+    // Skill → klíč role velkými písmeny
+    const role = skillRaw.toUpperCase()
 
     // Duplicate check — tiché přeskočení
-    const dedupKey = `${featureName}\0${role}\0${tymRaw}`
+    const dedupKey = `${featureName}\0${role}\0${unitRaw}`
     if (seen.has(dedupKey)) continue
     seen.add(dedupKey)
 
-    // Velikost validace
-    const velikost = Number(velikostRaw)
-    if (!Number.isFinite(velikost) || velikost <= 0 || velikost > 999) {
+    // Validace velikosti (sloupec Size): kladné číslo nejvýš 999
+    const size = Number(sizeRaw)
+    if (!Number.isFinite(size) || size <= 0 || size > 999) {
       skippedCount++
       continue
     }
@@ -120,16 +121,16 @@ export function parseRows(rawRows: Record<string, unknown>[]): ImportResult {
       featureCounter++
     }
 
-    featureTasksMap.get(featureName)!.tasks.push({ id: taskIdCounter++, role, work: velikost })
+    featureTasksMap.get(featureName)!.tasks.push({ id: taskIdCounter++, role, work: size })
 
-    // Tym → role mapping + inline limit check
-    if (!tymRolesMap.has(tymRaw)) {
-      if (tymRolesMap.size >= 50) {
-        throw new Error('Too many team members (max 50). The file contains more than 50 unique values in the Tym column.')
+    // Unit → mapování rolí + průběžná kontrola limitu
+    if (!unitRolesMap.has(unitRaw)) {
+      if (unitRolesMap.size >= 50) {
+        throw new Error('Too many units (max 50). The file contains more than 50 unique values in the Unit column.')
       }
-      tymRolesMap.set(tymRaw, new Set())
+      unitRolesMap.set(unitRaw, new Set())
     }
-    tymRolesMap.get(tymRaw)!.add(role)
+    unitRolesMap.get(unitRaw)!.add(role)
 
     // Zaregistrujeme roli pokud ještě není
     if (!roleHueIndex.has(role)) {
@@ -208,7 +209,7 @@ export function parseRows(rawRows: Record<string, unknown>[]): ImportResult {
 
   let memberId = 1
   const team: Member[] = []
-  for (const [name, rolesSet] of tymRolesMap.entries()) {
+  for (const [name, rolesSet] of unitRolesMap.entries()) {
     team.push({
       id: memberId++,
       name,
@@ -220,7 +221,7 @@ export function parseRows(rawRows: Record<string, unknown>[]): ImportResult {
 
   const warnings: string[] = []
   if (skippedCount > 0) {
-    warnings.push(`${skippedCount} ${skippedCount === 1 ? 'row' : 'rows'} skipped (invalid Velikost).`)
+    warnings.push(`${skippedCount} ${skippedCount === 1 ? 'row' : 'rows'} skipped (invalid Size).`)
   }
 
   return { features, team, roleConfig, warnings }
@@ -228,7 +229,7 @@ export function parseRows(rawRows: Record<string, unknown>[]): ImportResult {
 
 /**
  * Složí zprávu o výsledku importu, kterou kouč uvidí pod tlačítky importu: „Imported 8 features,
- * 18 tasks, 2 team members.“ a případná varování (přeskočené řádky) za ní. Sdílí ji Advanced i
+ * 18 tasks, 2 units.“ a případná varování (přeskočené řádky) za ní. Sdílí ji Advanced i
  * Cash Flow, aby oba módy říkaly totéž stejnými slovy.
  *
  * @param result - Výsledek úspěšného importu (viz parseRows)
@@ -238,7 +239,7 @@ export function formatImportSummary(result: ImportResult): string {
   const taskCount = result.features.reduce((n, f) => n + f.tasks.length, 0)
   // Anglické množné číslo se liší jen koncovým „s“; u přesně jedné položky zůstává jednotné
   const count = (n: number, noun: string) => `${n} ${noun}${n === 1 ? '' : 's'}`
-  const summary = `Imported ${count(result.features.length, 'feature')}, ${count(taskCount, 'task')}, ${count(result.team.length, 'team member')}.`
+  const summary = `Imported ${count(result.features.length, 'feature')}, ${count(taskCount, 'task')}, ${count(result.team.length, 'unit')}.`
   return result.warnings.length > 0 ? `${summary} ${result.warnings.join(' ')}` : summary
 }
 
@@ -272,13 +273,13 @@ export function parseXlsFile(buffer: ArrayBuffer): ImportResult {
  */
 export function downloadTemplate(): void {
   const exampleRows = [
-    { Feature: 'Login flow',       Specializace: 'FE',  Tym: 'Squad A', Velikost: 3 },
-    { Feature: 'Login flow',       Specializace: 'BE',  Tym: 'Squad A', Velikost: 5 },
-    { Feature: 'Login flow',       Specializace: 'QA',  Tym: 'Squad B', Velikost: 2 },
-    { Feature: 'Dashboard',        Specializace: 'FE',  Tym: 'Squad A', Velikost: 4 },
-    { Feature: 'Dashboard',        Specializace: 'BE',  Tym: 'Squad B', Velikost: 6 },
-    { Feature: 'Payment gateway',  Specializace: 'BE',  Tym: 'Squad A', Velikost: 8 },
-    { Feature: 'Payment gateway',  Specializace: 'QA',  Tym: 'Squad B', Velikost: 3 },
+    { Feature: 'Login flow',       Skill: 'FE',  Unit: 'Squad A', Size: 3 },
+    { Feature: 'Login flow',       Skill: 'BE',  Unit: 'Squad A', Size: 5 },
+    { Feature: 'Login flow',       Skill: 'QA',  Unit: 'Squad B', Size: 2 },
+    { Feature: 'Dashboard',        Skill: 'FE',  Unit: 'Squad A', Size: 4 },
+    { Feature: 'Dashboard',        Skill: 'BE',  Unit: 'Squad B', Size: 6 },
+    { Feature: 'Payment gateway',  Skill: 'BE',  Unit: 'Squad A', Size: 8 },
+    { Feature: 'Payment gateway',  Skill: 'QA',  Unit: 'Squad B', Size: 3 },
   ]
 
   const ws = XLSX.utils.json_to_sheet(exampleRows)
@@ -286,9 +287,9 @@ export function downloadTemplate(): void {
   // Nastavíme šířku sloupců pro lepší čitelnost
   ws['!cols'] = [
     { wch: 20 }, // Feature
-    { wch: 14 }, // Specializace
-    { wch: 14 }, // Tym
-    { wch: 10 }, // Velikost
+    { wch: 14 }, // Skill
+    { wch: 14 }, // Unit
+    { wch: 10 }, // Size
   ]
 
   const wb = XLSX.utils.book_new()

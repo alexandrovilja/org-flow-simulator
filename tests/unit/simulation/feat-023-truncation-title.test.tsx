@@ -12,7 +12,7 @@ import type { Member } from '@/types/simulation'
 //  - jména jednotek, chipy rolí a vstupy specializací mají atribut `title` s plným textem JEN když je text
 //    zkrácený výpustkou (`scrollWidth > clientWidth`); nezkrácený text tooltip nemá. Stav se přepočítá
 //    při změně velikosti prvku (ResizeObserver).
-//  - vstup se jménem jednotky má `aria-label` „Unit name“, vstup názvu specializace „Specialization name“.
+//  - vstup se jménem jednotky má `aria-label` „Unit name“, vstup názvu skillu „Skill name“ (do feat-026 „Specialization name“).
 // jsdom nepočítá rozložení, proto `scrollWidth` a `clientWidth` dodáme přes prototyp a ResizeObserver nahradíme
 // ovladatelnou náhradou; bez ResizeObserveru (výchozí stav jsdom) se měří jen při změně textu a komponenty nesmí spadnout.
 
@@ -69,7 +69,7 @@ describe('feat-023: title jen u zkráceného textu', () => {
   it('název specializace: zkrácený má title, krátký ne a vstup má přístupný název', () => {
     const config = { ...ROLE_META, DSGN: { ...ROLE_META.DSGN, label: 'Long specialization name' } }
     render(<RoleSettings roleConfig={config} onChange={vi.fn()} onAdd={vi.fn()} onDelete={vi.fn()} />)
-    const inputs = screen.getAllByRole('textbox', { name: 'Specialization name' })
+    const inputs = screen.getAllByRole('textbox', { name: 'Skill name' })
     const long = inputs.find(i => (i as HTMLInputElement).value === 'Long specialization name')!
     const short = inputs.find(i => (i as HTMLInputElement).value === 'Frontend')!
     expect(long).toHaveAttribute('title', 'Long specialization name')

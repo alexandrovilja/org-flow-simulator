@@ -70,7 +70,7 @@ test.describe('feat-022: sjednocení designu v celém nástroji', () => {
         expect(s.size, `${mode}: ${name}`).toBe('11px')
         expect(s.transform, `${mode}: ${name}`).toBe('uppercase')
       }
-      for (const hint of [/^Click \+ to add a specialty$/, /^\d+ features? sampled$/]) {
+      for (const hint of [/^Click \+ to add a skill$/, /^\d+ features? sampled$/]) {
         const s = await styleOf(page.getByText(hint))
         // feat-023: poznámky jsou JetBrains Mono 11 px (dřív Archivo 12 px)
         expect(s.family, `${mode}: ${hint}`).toMatch(MONO)
@@ -83,7 +83,7 @@ test.describe('feat-022: sjednocení designu v celém nástroji', () => {
     await page.goto(BASE)
     for (const mode of ['Advanced', 'Cash Flow']) {
       await page.getByRole('tab', { name: mode }).click()
-      for (const name of ['Backlog', 'Specializations', 'Team']) {
+      for (const name of ['Backlog', 'Skills', 'Team']) {
         const s = await styleOf(page.getByRole('button', { name, exact: true }))
         expect(s.family, `${mode}: ${name}`).toMatch(MONO)
         expect(s.size, `${mode}: ${name}`).toBe('11px')

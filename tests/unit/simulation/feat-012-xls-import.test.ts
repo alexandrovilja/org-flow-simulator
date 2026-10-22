@@ -1,6 +1,8 @@
 import { describe, it, expect } from 'vitest'
 import { parseRows } from '@/lib/xlsImport'
 
+// Sloupce souboru jsou od feat-026 anglicky: Feature, Skill, Unit, Size (dříve Feature, Specializace, Tym, Velikost).
+
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
@@ -8,11 +10,11 @@ import { parseRows } from '@/lib/xlsImport'
 /** Minimal valid row — all four required columns present. */
 function row(
   feature: string,
-  specializace: string,
-  tym: string,
-  velikost: number | string,
+  skill: string,
+  unit: string,
+  size: number | string,
 ) {
-  return { Feature: feature, Specializace: specializace, Tym: tym, Velikost: velikost }
+  return { Feature: feature, Skill: skill, Unit: unit, Size: size }
 }
 
 // ---------------------------------------------------------------------------
@@ -42,19 +44,19 @@ describe('feat-012: parseRows — happy path', () => {
     expect(result.features[0].tasks).toHaveLength(3)
   })
 
-  it('maps Velikost 1:1 to task.work', () => {
+  it('maps Size 1:1 to task.work', () => {
     const rows = [row('F1', 'FE', 'A', 7)]
     const result = parseRows(rows)
     expect(result.features[0].tasks[0].work).toBe(7)
   })
 
-  it('maps decimal Velikost correctly', () => {
+  it('maps decimal Size correctly', () => {
     const rows = [row('F1', 'FE', 'A', 0.5)]
     const result = parseRows(rows)
     expect(result.features[0].tasks[0].work).toBe(0.5)
   })
 
-  it('returns one Member per unique Tym value', () => {
+  it('returns one Member per unique Unit value', () => {
     const rows = [
       row('F1', 'FE', 'Squad A', 3),
       row('F1', 'BE', 'Squad B', 5),
@@ -67,7 +69,7 @@ describe('feat-012: parseRows — happy path', () => {
     expect(names).toContain('Squad B')
   })
 
-  it('assigns all roles appearing under a Tym to that Member', () => {
+  it('assigns all roles appearing under a Unit to that Member', () => {
     const rows = [
       row('F1', 'FE', 'Squad A', 3),
       row('F1', 'BE', 'Squad A', 5),
@@ -80,7 +82,7 @@ describe('feat-012: parseRows — happy path', () => {
     expect(squadA.roles).not.toContain('QA')
   })
 
-  it('creates a new RoleMeta entry for each unique Specializace', () => {
+  it('creates a new RoleMeta entry for each unique Skill', () => {
     const rows = [
       row('F1', 'FE', 'A', 1),
       row('F1', 'BE', 'A', 2),
@@ -92,14 +94,14 @@ describe('feat-012: parseRows — happy path', () => {
     expect(Object.keys(result.roleConfig)).toContain('QA')
   })
 
-  it('converts Specializace to uppercase', () => {
+  it('converts Skill to uppercase', () => {
     const rows = [row('F1', 'frontend', 'A', 3)]
     const result = parseRows(rows)
     expect(result.features[0].tasks[0].role).toBe('FRONTEND')
     expect(Object.keys(result.roleConfig)).toContain('FRONTEND')
   })
 
-  it('trims whitespace from Specializace before uppercasing', () => {
+  it('trims whitespace from Skill before uppercasing', () => {
     const rows = [row('F1', '  fe  ', 'A', 3)]
     const result = parseRows(rows)
     expect(result.features[0].tasks[0].role).toBe('FE')
@@ -147,25 +149,25 @@ describe('feat-012: parseRows — happy path', () => {
 
 describe('feat-012: parseRows — column name handling', () => {
   it('accepts lowercase column names', () => {
-    const rows = [{ feature: 'F1', specializace: 'FE', tym: 'A', velikost: 3 }]
+    const rows = [{ feature: 'F1', skill: 'FE', unit: 'A', size: 3 }]
     expect(() => parseRows(rows)).not.toThrow()
     expect(parseRows(rows).features).toHaveLength(1)
   })
 
   it('accepts uppercase column names', () => {
-    const rows = [{ FEATURE: 'F1', SPECIALIZACE: 'FE', TYM: 'A', VELIKOST: 3 }]
+    const rows = [{ FEATURE: 'F1', SKILL: 'FE', UNIT: 'A', SIZE: 3 }]
     expect(() => parseRows(rows)).not.toThrow()
     expect(parseRows(rows).features).toHaveLength(1)
   })
 
   it('accepts mixed-case column names', () => {
-    const rows = [{ Feature: 'F1', Specializace: 'FE', Tym: 'A', Velikost: 3 }]
+    const rows = [{ Feature: 'F1', Skill: 'FE', Unit: 'A', Size: 3 }]
     expect(() => parseRows(rows)).not.toThrow()
     expect(parseRows(rows).features).toHaveLength(1)
   })
 
   it('trims whitespace from column names', () => {
-    const rows = [{ '  Feature  ': 'F1', ' Specializace': 'FE', 'Tym ': 'A', 'Velikost': 3 }]
+    const rows = [{ '  Feature  ': 'F1', ' Skill': 'FE', 'Unit ': 'A', 'Size': 3 }]
     expect(() => parseRows(rows)).not.toThrow()
   })
 })
@@ -175,7 +177,7 @@ describe('feat-012: parseRows — column name handling', () => {
 // ---------------------------------------------------------------------------
 
 describe('feat-012: parseRows — duplicate rows', () => {
-  it('keeps only the first row when Feature+Specializace+Tym is duplicated', () => {
+  it('keeps only the first row when Feature+Skill+Unit is duplicated', () => {
     const rows = [
       row('F1', 'FE', 'Squad A', 3),
       row('F1', 'FE', 'Squad A', 99), // duplicate — should be ignored
@@ -194,7 +196,7 @@ describe('feat-012: parseRows — duplicate rows', () => {
     expect(result.warnings).toHaveLength(0)
   })
 
-  it('treats same Feature+Specializace but different Tym as distinct tasks', () => {
+  it('treats same Feature+Skill but different Unit as distinct tasks', () => {
     const rows = [
       row('F1', 'FE', 'Squad A', 3),
       row('F1', 'FE', 'Squad B', 5),
@@ -203,7 +205,7 @@ describe('feat-012: parseRows — duplicate rows', () => {
     expect(result.features[0].tasks).toHaveLength(2)
   })
 
-  it('treats same Feature+Tym but different Specializace as distinct tasks', () => {
+  it('treats same Feature+Unit but different Skill as distinct tasks', () => {
     const rows = [
       row('F1', 'FE', 'Squad A', 3),
       row('F1', 'BE', 'Squad A', 5),
@@ -245,23 +247,23 @@ describe('feat-012: parseRows — empty rows', () => {
 
 describe('feat-012: parseRows — missing required columns', () => {
   it("throws when 'Feature' column is missing", () => {
-    const rows = [{ Specializace: 'FE', Tym: 'A', Velikost: 3 }]
+    const rows = [{ Skill: 'FE', Unit: 'A', Size: 3 }]
     expect(() => parseRows(rows)).toThrow(/Feature/i)
   })
 
-  it("throws when 'Specializace' column is missing", () => {
-    const rows = [{ Feature: 'F1', Tym: 'A', Velikost: 3 }]
-    expect(() => parseRows(rows)).toThrow(/Specializace/i)
+  it("throws when 'Skill' column is missing", () => {
+    const rows = [{ Feature: 'F1', Unit: 'A', Size: 3 }]
+    expect(() => parseRows(rows)).toThrow(/Skill/i)
   })
 
-  it("throws when 'Tym' column is missing", () => {
-    const rows = [{ Feature: 'F1', Specializace: 'FE', Velikost: 3 }]
-    expect(() => parseRows(rows)).toThrow(/Tym/i)
+  it("throws when 'Unit' column is missing", () => {
+    const rows = [{ Feature: 'F1', Skill: 'FE', Size: 3 }]
+    expect(() => parseRows(rows)).toThrow(/Unit/i)
   })
 
-  it("throws when 'Velikost' column is missing", () => {
-    const rows = [{ Feature: 'F1', Specializace: 'FE', Tym: 'A' }]
-    expect(() => parseRows(rows)).toThrow(/Velikost/i)
+  it("throws when 'Size' column is missing", () => {
+    const rows = [{ Feature: 'F1', Skill: 'FE', Unit: 'A' }]
+    expect(() => parseRows(rows)).toThrow(/Size/i)
   })
 
   it('throws when there are no data rows at all', () => {
@@ -269,15 +271,15 @@ describe('feat-012: parseRows — missing required columns', () => {
   })
 })
 
-describe('feat-012: parseRows — too many Tym values', () => {
-  it('throws when more than 50 unique Tym values are present', () => {
+describe('feat-012: parseRows — too many Unit values', () => {
+  it('throws when more than 50 unique Unit values are present', () => {
     const rows = Array.from({ length: 51 }, (_, i) =>
       row('F1', 'FE', `Unit-${i}`, 1),
     )
     expect(() => parseRows(rows)).toThrow(/50/i)
   })
 
-  it('does not throw with exactly 50 unique Tym values', () => {
+  it('does not throw with exactly 50 unique Unit values', () => {
     const rows = Array.from({ length: 50 }, (_, i) =>
       row('F1', 'FE', `Unit-${i}`, 1),
     )
@@ -305,8 +307,8 @@ describe('feat-012: parseRows — too many Feature values', () => {
 // feat-012: error states — skipped rows (non-blocking, warnings)
 // ---------------------------------------------------------------------------
 
-describe('feat-012: parseRows — invalid Velikost', () => {
-  it('skips rows where Velikost is not a number', () => {
+describe('feat-012: parseRows — invalid Size', () => {
+  it('skips rows where Size is not a number', () => {
     const rows = [
       row('F1', 'FE', 'A', 'abc'),
       row('F1', 'BE', 'A', 5),
@@ -316,7 +318,7 @@ describe('feat-012: parseRows — invalid Velikost', () => {
     expect(result.features[0].tasks[0].work).toBe(5)
   })
 
-  it('adds a warning when rows are skipped due to invalid Velikost', () => {
+  it('adds a warning when rows are skipped due to invalid Size', () => {
     const rows = [
       row('F1', 'FE', 'A', 'abc'),
       row('F1', 'BE', 'A', 5),
@@ -326,7 +328,7 @@ describe('feat-012: parseRows — invalid Velikost', () => {
     expect(result.warnings[0]).toMatch(/skipped/i)
   })
 
-  it('skips rows where Velikost is 0', () => {
+  it('skips rows where Size is 0', () => {
     const rows = [
       row('F1', 'FE', 'A', 0),
       row('F1', 'BE', 'A', 3),
@@ -335,7 +337,7 @@ describe('feat-012: parseRows — invalid Velikost', () => {
     expect(result.features[0].tasks).toHaveLength(1)
   })
 
-  it('skips rows where Velikost is negative', () => {
+  it('skips rows where Size is negative', () => {
     const rows = [
       row('F1', 'FE', 'A', -1),
       row('F1', 'BE', 'A', 3),
@@ -344,7 +346,7 @@ describe('feat-012: parseRows — invalid Velikost', () => {
     expect(result.features[0].tasks).toHaveLength(1)
   })
 
-  it('skips rows where Velikost exceeds 999', () => {
+  it('skips rows where Size exceeds 999', () => {
     const rows = [
       row('F1', 'FE', 'A', 1000),
       row('F1', 'BE', 'A', 3),
@@ -353,7 +355,7 @@ describe('feat-012: parseRows — invalid Velikost', () => {
     expect(result.features[0].tasks).toHaveLength(1)
   })
 
-  it('accepts Velikost exactly at boundary values 0.5 and 999', () => {
+  it('accepts Size exactly at boundary values 0.5 and 999', () => {
     const rows = [
       row('F1', 'FE', 'A', 0.5),
       row('F1', 'BE', 'A', 999),
@@ -375,11 +377,11 @@ describe('feat-012: parseRows — invalid Velikost', () => {
 })
 
 // ---------------------------------------------------------------------------
-// feat-012: Tym trimming (case-sensitive, but trimmed)
+// feat-012: Unit trimming (case-sensitive, but trimmed)
 // ---------------------------------------------------------------------------
 
-describe('feat-012: parseRows — Tym value handling', () => {
-  it('trims whitespace from Tym values', () => {
+describe('feat-012: parseRows — Unit value handling', () => {
+  it('trims whitespace from Unit values', () => {
     const rows = [
       row('F1', 'FE', '  Squad A  ', 3),
       row('F1', 'BE', 'Squad A', 5),
@@ -390,7 +392,7 @@ describe('feat-012: parseRows — Tym value handling', () => {
     expect(result.features[0].tasks).toHaveLength(2)
   })
 
-  it('treats differently-cased Tym values as distinct members (case-sensitive)', () => {
+  it('treats differently-cased Unit values as distinct members (case-sensitive)', () => {
     const rows = [
       row('F1', 'FE', 'squad a', 3),
       row('F1', 'BE', 'Squad A', 5),

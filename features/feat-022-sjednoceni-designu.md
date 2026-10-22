@@ -5,6 +5,8 @@ done
 
 *Hotovo 2026-10-20 v jednom PR (#26, 30f17a7), včetně code review (9 nálezů opraveno). Smoke test produkce prošel: písma a velikosti ve všech módech, akordeony bez emoji, čísla v Done v mono, 404 z tokenů.*
 
+*Poznámka 2026-10-22 (feat-026): sekce „Specializations“ se v UI jmenuje „Skills“. Sloupce importu jsou nově anglicky (Feature, Skill, Unit, Size), takže bod o ponechání českých sloupců v Out of Scope už neplatí; v Příkladu 12 platí „units“ místo „team members“ a „invalid Size“ místo „invalid Velikost“.*
+
 ## Problem
 Převod na design system Org Flow (feat-021) přestyloval komponenty design systému, ale části obrazovky, které žádnou komponentou nejsou, zůstaly ve starém stylu. Vedle nového vzhledu jsou proto vidět zbytky starého a nástroj nepůsobí jednotně:
 

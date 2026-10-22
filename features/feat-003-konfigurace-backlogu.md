@@ -3,6 +3,8 @@
 ## Status
 implemented
 
+*Poznámka 2026-10-22 (feat-026): posuvník „Min. specializations“ se v UI jmenuje „Min. skills per item“ (hodnota „≥ N skills“) a „Role-mix variability“ se jmenuje „Skill-mix variability“ (hodnoty „2 skills“ / „1–6 skills“); nápovědy obou mluví o skills. Chování se nemění.*
+
 ## Problem
 Agilní koučové potřebují demonstrovat různé scénáře — jednoduchý backlog se stejnorodými úkoly vs. komplexní backlog s velkou variabilitou. Bez možnosti nastavit parametry backlogu by každý workshop vypadal stejně a kouč by nemohl ukázat, jak variabilita práce ovlivňuje předvídatelnost dodání.
 

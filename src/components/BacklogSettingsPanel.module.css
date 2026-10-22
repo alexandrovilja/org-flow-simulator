@@ -87,7 +87,7 @@
   color: var(--ink-3);
 }
 
-/* Jedna sekce akordeonu (Backlog, Specializations, Team) */
+/* Jedna sekce akordeonu (Backlog, Skills, Team) */
 .accordion {
   padding-top: var(--space-8);
   border-top: var(--border-hair) solid var(--line);

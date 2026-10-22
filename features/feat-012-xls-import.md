@@ -3,6 +3,8 @@
 ## Stav
 `spec-approved`
 
+*Poznámka 2026-10-22 (feat-026): sloupce souboru jsou anglicky — Feature, Skill, Unit, Size (místo Feature, Specializace, Tym, Velikost) — a hlášky importu jsou anglicky podle feat-026 (již od feat-022). Soubory s českými sloupci se nepřijímají. Ostatní pravidla importu platí dál.*
+
 ## Kontext a motivace
 Koučové chtějí importovat reálná data z Jira (nebo jiného nástroje) a simulovat průběh na různých organizačních strukturách. Bez importu musí konfiguraci backlogu zadávat ručně, což je na workshopu pomalé a chybové.
 

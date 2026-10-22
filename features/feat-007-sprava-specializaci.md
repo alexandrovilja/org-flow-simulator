@@ -3,6 +3,8 @@
 ## Status
 implemented
 
+*Poznámka 2026-10-22 (feat-026): panel „⚙ Specializations“ se v UI jmenuje „Skills“ a formulář pro přidání „Add skill“. Chování se nemění.*
+
 ## Problem
 Kouč nemůže přizpůsobit sadu specializací reálnému týmu klienta. Aktuálních 6 rolí (FE, BE, DSGN, QA, OPS, DATA) je pevně zakódovaných — nelze přidat novou (např. „ML", „Security", „Scrum Master") ani odebrat ty, které klient nepoužívá. Při workshopu je přitom klíčové modelovat skutečnou strukturu týmu.
 

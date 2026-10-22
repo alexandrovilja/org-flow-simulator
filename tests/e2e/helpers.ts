@@ -79,7 +79,7 @@ export const styleOf = (el: Locator) => el.evaluate(e => {
  * @param page - Stránka Playwrightu
  */
 export async function openAccordions(page: Page): Promise<void> {
-  for (const name of ['Backlog', 'Specializations', 'Team']) {
+  for (const name of ['Backlog', 'Skills', 'Team']) {
     const button = page.getByRole('button', { name, exact: true })
     if (await button.getAttribute('aria-expanded') !== 'true') await button.click()
   }

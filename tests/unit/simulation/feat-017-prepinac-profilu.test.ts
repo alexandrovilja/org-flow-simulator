@@ -163,10 +163,10 @@ describe('feat-017: přepínač profilu v hooku Cash Flow', () => {
 /** Vytvoří .xlsx soubor se dvěma featurami (4 řádky) — formát podle feat-012. */
 function makeXlsFile(): File {
   const rows = [
-    { Feature: 'Login', Specializace: 'FE', Tym: 'Squad A', Velikost: 3 },
-    { Feature: 'Login', Specializace: 'BE', Tym: 'Squad B', Velikost: 2 },
-    { Feature: 'Search', Specializace: 'FE', Tym: 'Squad A', Velikost: 4 },
-    { Feature: 'Search', Specializace: 'QA', Tym: 'Squad B', Velikost: 1 },
+    { Feature: 'Login', Skill: 'FE', Unit: 'Squad A', Size: 3 },
+    { Feature: 'Login', Skill: 'BE', Unit: 'Squad B', Size: 2 },
+    { Feature: 'Search', Skill: 'FE', Unit: 'Squad A', Size: 4 },
+    { Feature: 'Search', Skill: 'QA', Unit: 'Squad B', Size: 1 },
   ]
   const workbook = XLSX.utils.book_new()
   XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(rows), 'Backlog')

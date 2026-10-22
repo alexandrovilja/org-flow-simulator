@@ -138,7 +138,7 @@ export function MemberCard({ member, currentFeature, currentTask, roleConfig, on
           />
         ))}
         {!adding && availableRoles.length > 0 && (
-          <button type="button" onClick={() => setAdding(true)} className={styles.addRole} aria-label="Add specialization">+</button>
+          <button type="button" onClick={() => setAdding(true)} className={styles.addRole} aria-label="Add skill">+</button>
         )}
       </div>
 

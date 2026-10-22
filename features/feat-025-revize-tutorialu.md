@@ -65,6 +65,8 @@ Kroky 6–11 zvýrazňují část týmu A a zbytek jeho panelu ztlumí méně ne
 ### Prohlídka Advanced (15 kroků)
 Spouští se automaticky při prvním přepnutí do Advanced a přes „?“ v Advanced. Krok se zpětnou vazbou v ní už není.
 
+*Poznámka 2026-10-22 (feat-026): sekce „Specializations“ se v UI jmenuje „Skills“. V prohlídce Advanced má krok 8 nadpis „Skills“ a text kroku 13 končí „…different phases under Skills.“*
+
 | # | Část | Zvýrazní | Nadpis | Text |
 |---|---|---|---|---|
 | 1 | INTRO | záložka Advanced | Your organization | Here you build and tune one organization. Left: backlog and settings. Middle: work in progress and your units. Right: results. |
@@ -197,7 +199,7 @@ Popisek nad výsledkem se mění z „Result · avg lead time“ na **„Result 
 - Interaktivní kroky: tutoriál nečeká na akci uživatele, sám nic nerozbaluje, nepřepíná ani nespouští.
 - Nápověda po skončení běhu (např. upozornění na rámeček výsledku).
 - Jiné jazyky než angličtina.
-- Přejmenování „Specializations“ v UI na „skills and mandates“. V detailních krocích Compare zůstává slovo „roles“.
+- V detailních krocích Compare zůstává slovo „roles“. (Přejmenování „Specializations“ na „Skills“ řeší feat-026.)
 - Výchozí fáze specializací a chování dlaždic Total Wait a Avg Handoffs (ve výchozí sestavě jsou nulové). Tutoriál to jen vysvětlí.
 - Změna metrik nebo toho, co ukazují čísla v Done. Mění se jen popisek rámečku výsledku.
 - Klávesové zkratky v tutoriálu a úpravy pro mobilní šířky nad rámec dnešního chování.
