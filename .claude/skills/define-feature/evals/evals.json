@@ -1,0 +1,23 @@
+{
+  "skill_name": "define-feature",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Chci přidat feature pro export výsledků simulace do PDF. Pomoz mi ji nadefinovat.",
+      "expected_output": "Skill provede rozhovor s jednou otázkou najednou, vyplní šablonu a uloží soubor features/feat-001-*.md s vyplněnými sekcemi Problem, User Story, UI/Design, Specification by Example (Given/When/Then), Out of Scope, Technical Notes, Open Questions.",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "I want to add a feature that lets users save and reload their team configuration between sessions.",
+      "expected_output": "Skill switches to English, conducts the interview one question at a time, and saves features/feat-001-*.md with all sections filled including at least one Given/When/Then example.",
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "Nadefinuj feature pro porovnání dvou běhů simulace vedle sebe, aby kouč mohl ukázat rozdíl před a po změně struktury týmu.",
+      "expected_output": "Skill provede rozhovor v češtině, vytvoří features/feat-001-*.md. Sekce Specification by Example obsahuje alespoň 2 příklady ve striktním Given/When/Then formátu.",
+      "files": []
+    }
+  ]
+}
