@@ -1,6 +1,6 @@
 # AI-Agent Development Workflow — Org Flow Simulator
 
-_Last updated: 2026-04-28_
+_Last updated: 2026-11-02_
 
 ---
 
@@ -25,8 +25,9 @@ AI agents are not a replacement for process — they are its executors. For this
        │
        ▼
  2. FEATURE SPEC ◀──── Feature Spec Agent ────▶  features/XXX.md
-    (clarify,            (asks questions,
-     edge cases)          writes spec)
+    (clarify,            (asks questions,        (+ optional research:
+     edge cases)          writes spec,           docs/feat-NNN-research.md)
+                          optional research)
        │
        ▼
  3. UI DESIGN ◀──────── UI Design Agent ───────▶  component code / mockup
@@ -102,7 +103,22 @@ As a [role], I want [goal] so that [reason].
 - Question that needs answer before implementation
 ```
 
-**Human checkpoint:** Review and approve the feature file before moving to Phase 3.
+#### Optional research (A: quick, B: deep)
+
+Research is **optional** and never starts on its own. After the Problem question, the `define-feature` skill asks whether to research how similar products solve the problem. The default answer is "no". Research is recommended for new concepts and new UI, not for tweaks of existing features or bug fixes.
+
+| Mode | What happens | Output |
+|---|---|---|
+| **Quick (A)** | One subagent finds 3–5 examples with links during the interview. The human marks what to take and what not to take. | `## Prior Art` section in the feature spec |
+| **Deep (B)** | The `research-feature` skill confirms the research question and product categories with the human, runs parallel subagents (or the `deep-research` skill if available) and writes a structured report. The interview pauses until the human approves the report. | `docs/feat-NNN-research.md` + a short `## Prior Art` summary with a link in the spec |
+
+Rules for both modes:
+- Every finding has a source link and an access date; findings are paraphrased, not copied.
+- If nothing is found, say so — never invent products or features.
+- Describe what other products do; never claim what it would change in our metrics.
+- Research is input, not a decision: it must not change scope (`Out of Scope`) without human approval.
+
+**Human checkpoint:** Review and approve the feature file before moving to Phase 3. After deep research (B), the human also approves the research report before the interview continues.
 
 ---
 
@@ -294,7 +310,8 @@ jobs:
 │
 ├── docs/
 │   ├── conventions.md               ← coding conventions agents must follow
-│   └── testing-strategy.md         ← how to write tests in this project
+│   ├── testing-strategy.md         ← how to write tests in this project
+│   └── feat-NNN-research.md         ← optional deep research for a feature (Phase 2)
 │
 ├── .claude/
 │   └── settings.json               ← Claude Code permissions and hooks
@@ -374,7 +391,7 @@ Every agent reads these files as context before acting. Keep them up to date —
 
 | Phase | Primary Tool | Supporting Tools |
 |---|---|---|
-| Feature Spec | Claude Code `define-feature` skill | — |
+| Feature Spec | Claude Code `define-feature` skill | `research-feature` skill (optional deep research) |
 | UI Design | Claude Code `frontend-design` skill | — |
 | TDD | Claude Code | Vitest, Playwright |
 | Implementation | Claude Code | TypeScript, Next.js |

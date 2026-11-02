@@ -11,6 +11,14 @@ Describe the situation without the feature and why that is painful or limiting.
 ## User Story
 As a [role], I want [goal] so that [reason].
 
+## Prior Art
+<!-- Optional. Fill in only if research was done (quick or deep), otherwise write "—". -->
+Research: [none | quick | deep — `docs/feat-NNN-research.md`]
+
+| Product | How it solves it | What we take / don't take | Source (URL, date) |
+|---|---|---|---|
+| [name] | [short description of behavior] | [take: … / don't take: …] | [link, YYYY-MM-DD] |
+
 ## UI / Design
 Describe what the user sees and interacts with:
 - What new elements appear on screen (buttons, panels, charts, inputs)?
