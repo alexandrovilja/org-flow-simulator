@@ -65,7 +65,7 @@ docs/               # Conventions and strategy docs
 - Delete files
 
 ## Development workflow (short version)
-1. Feature idea → `features/feat-NNN.md` spec
+1. Feature idea → (optional research) → `features/feat-NNN.md` spec
 2. Tests written and approved → `tests/unit/feat-NNN.test.ts`
 3. Implementation → `src/`
 4. Review → `/ultrareview`
