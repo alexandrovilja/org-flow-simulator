@@ -1,15 +1,17 @@
 'use client'
 
 import { useState } from 'react'
+import { BoltIcon } from './BoltIcon'
 import { RoleChip } from './RoleChip'
 import { TruncatedText } from './TruncatedText'
 import { useIsTruncated } from '@/hooks/useIsTruncated'
+import { getSkillAi } from '@/simulation/engine'
 import styles from './MemberCard.module.css'
 import { memberInitial } from '@/lib/memberInitial'
 import type { CssVariables } from '@/types/css'
 import type { AiMultiplier, Feature, Member, Task, Role, RoleMeta } from '@/types/simulation'
 
-/** Pořadí přepínání AI kliknutím (feat-019, změna 2026-10-20): každé kliknutí na tlačítko AI
+/** Pořadí přepínání AI kliknutím (feat-019): každé kliknutí na tlačítko AI na chipu skillu
  *  nastaví hodnotu, na kterou ukazuje ta současná — 1× → 2× → 5× → 1×. Po 5× se AI vypne. */
 const NEXT_AI: Record<AiMultiplier, AiMultiplier> = { 1: 2, 2: 5, 5: 1 }
 
@@ -26,8 +28,8 @@ interface MemberCardProps {
   onRename: (memberId: number, name: string) => void
   /** Callback pro odebrání jednotky. Volající zajistí uvolnění aktivního úkolu. */
   onRemove: (memberId: number) => void
-  /** Callback pro nastavení AI multiplikátoru jednotky (feat-019); 1 = vypnout AI. */
-  onSetAiMultiplier: (memberId: number, value: AiMultiplier) => void
+  /** Callback pro nastavení AI multiplikátoru jednoho skillu jednotky (feat-019); 1 = vypnout AI. */
+  onSetAiMultiplier: (memberId: number, role: Role, value: AiMultiplier) => void
   /**
    * True pokud člen čeká na práci: má roli pro dostupný 'todo' úkol,
    * ale ten úkol je zablokován fázovými závislostmi (level constraints).
@@ -36,28 +38,16 @@ interface MemberCardProps {
   isWaiting?: boolean
   /**
    * Volitelný `data-tutorial-target` karty (feat-025: první jednotka v Advanced a Cash Flow).
-   * Tlačítko AI pak dostane cíl `${tutorialTarget}-ai`.
+   * Tlačítko AI na jejím prvním chipu pak dostane cíl `${tutorialTarget}-ai`.
    */
   tutorialTarget?: string
 }
 
 /**
- * Ikona blesku na odznaku AI (feat-019). Barvu přebírá z textu tlačítka (`currentColor`),
- * takže na modrém odznaku je bílá. Pro čtečky obrazovky je skrytá — hodnotu nese aria-label tlačítka.
- */
-function BoltIcon() {
-  return (
-    <svg width={6} height={9} viewBox="0 0 6 9" aria-hidden="true" className={styles.boltIcon}>
-      <path d="M3.6 0 0 5h2.3L1.7 9 6 3.6H3.7L4.4 0z" fill="currentColor" />
-    </svg>
-  )
-}
-
-/**
  * Karta jednoho člena týmu zobrazující:
- * - editovatelné jméno + tlačítko AI (feat-019) + tlačítko pro odebrání jednotky
- * - přiřazené specializace (chipy s plným názvem)
- * - progress bar aktivního úkolu, nebo idle stav
+ * - editovatelné jméno + tlačítko pro odebrání jednotky
+ * - přiřazené specializace (chipy s plným názvem a tlačítkem AI u každého skillu, feat-019)
+ * - progress bar aktivního úkolu se značkou AI, nebo idle stav
  *
  * @param props - Jednotka, její aktuální feature a úkol, konfigurace specializací, callbacky
  *                pro úpravu jednotky (role, jméno, odebrání, AI) a příznak čekání
@@ -66,15 +56,35 @@ export function MemberCard({ member, currentFeature, currentTask, roleConfig, on
   const [adding, setAdding] = useState(false)
   // Plné jméno v title jen tehdy, když ho v úzké kartě zkrátí výpustka (feat-023)
   const [nameRef, nameTruncated] = useIsTruncated<HTMLInputElement>(member.name)
-  // Chybějící hodnota = 1× (bez AI); odznak se ukazuje jen při 2× nebo 5×
-  const ai = member.aiMultiplier ?? 1
-  const aiOn = ai > 1
-  // Hodnota, kterou nastaví další kliknutí na tlačítko AI
-  const nextAi = NEXT_AI[ai]
-  // Přístupný název obsahuje i viditelnou hodnotu („5×“), aby ji čtečka ohlásila (WCAG 2.5.3)
-  const aiLabel = aiOn ? `AI speed-up: ${ai}×` : 'AI speed-up'
-  // Tooltip říká, co udělá další kliknutí — bez menu by jinak nebylo poznat, že se hodnoty točí dokola
-  const aiTitle = `${aiLabel} – ${nextAi === 1 ? 'click to turn off' : `click for ${nextAi}×`}`
+
+  /**
+   * Ovládání AI pro chip jednoho skillu (feat-019): aktuální hodnota, přístupný název, tooltip a handler.
+   * Chybějící klíč v `aiBySkill` = 1× (bez AI).
+   *
+   * @param role  - Skill, jehož chip se vykresluje
+   * @param first - True u prvního chipu karty (u první jednotky je cílem kroku tutoriálu)
+   * @returns Props `ai` pro `RoleChip`
+   */
+  function aiFor(role: Role, first: boolean) {
+    const value = getSkillAi(member, role)
+    // Hodnota, kterou nastaví další kliknutí
+    const next = NEXT_AI[value]
+    const skill = roleConfig[role]?.label ?? role
+    // Přístupný název obsahuje skill (chipů je víc) i viditelnou hodnotu („5×“), aby ji čtečka ohlásila (WCAG 2.5.3)
+    const label = value > 1 ? `AI speed-up for ${skill}: ${value}×` : `AI speed-up for ${skill}`
+    // Tooltip říká, co udělá další kliknutí — bez menu by jinak nebylo poznat, že se hodnoty točí dokola
+    const title = `${label} – ${next === 1 ? 'click to turn off' : `click for ${next}×`}`
+    return {
+      value,
+      label,
+      title,
+      onCycle: () => onSetAiMultiplier(member.id, role, next),
+      tutorialTarget: first && tutorialTarget ? `${tutorialTarget}-ai` : undefined,
+    }
+  }
+
+  // AI skillu, na kterém jednotka právě pracuje — ukazuje se jako značka v řádku úkolu (jen při 2× nebo 5×)
+  const taskAi = currentTask ? getSkillAi(member, currentTask.role) : 1
 
   // Object.keys(roleConfig) místo statického ROLES — zahrnuje i uživatelsky přidané specializace
   const availableRoles = Object.keys(roleConfig).filter(r => !member.roles.includes(r))
@@ -88,7 +98,7 @@ export function MemberCard({ member, currentFeature, currentTask, roleConfig, on
 
   return (
     <div data-tutorial-target={tutorialTarget} className={[styles.card, isWaiting && styles.waiting].filter(Boolean).join(' ')}>
-      {/* Řádek 1: avatar + editovatelné jméno + tlačítko AI + tlačítko smazání */}
+      {/* Řádek 1: avatar + editovatelné jméno + tlačítko smazání jednotky */}
       <div className={styles.top}>
         {/* U týmů „Team X“ písmeno týmu, u lidí první písmeno jména (feat-021) */}
         <div className={styles.avatar}>{memberInitial(member.name)}</div>
@@ -105,29 +115,15 @@ export function MemberCard({ member, currentFeature, currentTask, roleConfig, on
           className={styles.name}
         />
 
-        {/* Tlačítko AI (feat-019): bez AI průhledné „AI“ ve velikosti křížku; se zapnutým AI
-            odznak v barvě accent s bleskem a hodnotou („⚡ 5×“). Každé kliknutí (i Enter / mezerník)
-            nastaví další hodnotu 1× → 2× → 5× → 1×; fokus na tlačítku zůstává, takže jde přepínat
-            opakovaně. */}
-        <button
-          type="button"
-          onClick={() => onSetAiMultiplier(member.id, nextAi)}
-          title={aiTitle}
-          aria-label={aiLabel}
-          data-tutorial-target={tutorialTarget ? `${tutorialTarget}-ai` : undefined}
-          className={aiOn ? `${styles.aiButton} ${styles.aiButtonOn}` : styles.aiButton}
-        >
-          {aiOn && <BoltIcon />}
-          {aiOn ? `${ai}×` : 'AI'}
-        </button>
-
         {/* Tlačítko odebrání jednotky */}
         <button type="button" onClick={() => onRemove(member.id)} title="Remove unit" className={styles.mini}>×</button>
       </div>
 
-      {/* Řádek 2: specializační chipy + tlačítko přidání role */}
+      {/* Řádek 2: specializační chipy s tlačítkem AI (feat-019) + tlačítko přidání role.
+          Každé kliknutí (i Enter / mezerník) na AI nastaví další hodnotu 1× → 2× → 5× → 1×; fokus na
+          tlačítku zůstává, takže jde přepínat opakovaně. */}
       <div className={styles.roles}>
-        {member.roles.map(r => (
+        {member.roles.map((r, index) => (
           <RoleChip
             key={r}
             role={r}
@@ -135,6 +131,7 @@ export function MemberCard({ member, currentFeature, currentTask, roleConfig, on
             label={roleConfig[r]?.label}
             removable
             onRemove={() => onRemoveRole(member.id, r)}
+            ai={aiFor(r, index === 0)}
           />
         ))}
         {!adding && availableRoles.length > 0 && (
@@ -171,6 +168,13 @@ export function MemberCard({ member, currentFeature, currentTask, roleConfig, on
               <TruncatedText className={styles.taskName} text={currentFeature.name} />
               {/* Plný název aktuálně pracované specializace — v ink-3, barva role by v tmavém tématu neprošla kontrastem */}
               <span className={styles.taskRole}>{roleConfig[currentTask.role].label}</span>
+              {/* Značka AI (feat-019): jen když skill právě zpracovávaného úkolu má AI. Jen informace, ne tlačítko. */}
+              {taskAi > 1 && (
+                <span className={styles.taskAi} title={`AI speed-up: ${taskAi}×`}>
+                  <BoltIcon />
+                  {taskAi}×
+                </span>
+              )}
             </div>
             {/* Progress bar — bez CSS transition, simulace běží na 60 fps a mutuje
                 progress přímo; transition by přidávala lag a artefakty při přepnutí úkolu.

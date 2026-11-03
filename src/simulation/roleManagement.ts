@@ -1,3 +1,4 @@
+import { removeMemberSkill } from '@/simulation/engine'
 import type { SimState, RoleMeta } from '@/types/simulation'
 
 /**
@@ -45,7 +46,7 @@ export function addRole(
  * - Členové aktivně pracující na tasku smazané role → currentTask = null, task → todo
  * - Tasky smazané role se odstraní ze všech features v backlogu a inProgress
  * - Features, které ztratí všechny tasky, se odstraní z backlogu/inProgress
- * - Smazaná role se odebere ze seznamu rolí každého člena týmu
+ * - Smazaná role se odebere ze seznamu rolí každého člena týmu a její nastavení AI (feat-019) se zapomene
  *
  * @param state      - Stav simulace (mutován in-place)
  * @param roleConfig - Stávající konfigurace specializací
@@ -83,9 +84,10 @@ export function deleteRole(
   }
   state.inProgress = state.inProgress.filter(f => f.tasks.length > 0)
 
-  // 4. Odebrat roli ze seznamu rolí každého člena.
+  // 4. Odebrat roli ze seznamu rolí každého člena a zapomenout její nastavení AI (feat-019),
+  //    aby po případném opětovném přidání skillu jednotka začínala na 1×.
   for (const member of state.team) {
-    member.roles = member.roles.filter(r => r !== roleId)
+    removeMemberSkill(member, roleId)
   }
 
   // 5. Vrátit nový roleConfig bez smazaného klíče (imutabilní — původní cfg zůstane).

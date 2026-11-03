@@ -5,7 +5,7 @@ import { flushSync } from 'react-dom'
 import {
   ROLE_META, MEMBER_NAMES, TEAM_NAMES, PRESETS, mulberry32,
   makeInitialState, resetFromSnapshot, regenerate, tick, computeStats, applyPreset, plateauRevenuePerTick, doneCount,
-  setMemberAiMultiplier,
+  setMemberAiMultiplier, removeMemberSkill,
 } from '@/simulation/engine'
 import type { AppMode, SimSettings, SimState, Feature, Role, RoleMeta, FocusMode, WipMode, UnitPreset, ActivePresetId, RevenueProfile, AiMultiplier } from '@/types/simulation'
 import { StatTile } from '@/components/StatTile'
@@ -433,7 +433,8 @@ export function Simulator() {
     if (!s) return
     const m = s.team.find(m => m.id === memberId)
     if (!m) return
-    m.roles = m.roles.filter(r => r !== role)
+    // Odebrání skillu zapomene i jeho nastavení AI (feat-019)
+    removeMemberSkill(m, role)
     if (m.currentTask) {
       const f = s.inProgress.find(f => f.id === m.currentTask!.featureId)
       if (f) {
@@ -553,16 +554,17 @@ export function Simulator() {
   }, [markCustom])
 
   /**
-   * Nastaví jednotce AI multiplikátor (feat-019); 1 = vypnout AI. Zápis dělá sdílený
-   * `setMemberAiMultiplier` (stejně jako Cash Flow). Skutečná změna je ruční úprava týmu, proto
+   * Nastaví jednotce AI multiplikátor u jednoho jejího skillu (feat-019); 1 = vypnout AI. Zápis dělá
+   * sdílený `setMemberAiMultiplier` (stejně jako Cash Flow). Skutečná změna je ruční úprava týmu, proto
    * preset přejde na „custom“; beze změny hodnoty se nic neděje.
    *
    * @param memberId - ID jednotky
+   * @param role     - Skill jednotky, jehož rychlost se mění
    * @param value    - Nový multiplikátor (1, 2 nebo 5)
    */
-  const handleSetAiMultiplier = useCallback((memberId: number, value: AiMultiplier) => {
+  const handleSetAiMultiplier = useCallback((memberId: number, role: Role, value: AiMultiplier) => {
     const s = stateRef.current
-    if (!s || !setMemberAiMultiplier(s, memberId, value)) return
+    if (!s || !setMemberAiMultiplier(s, memberId, role, value)) return
     markCustom()
     forceUpdate(n => n + 1)
   }, [markCustom])

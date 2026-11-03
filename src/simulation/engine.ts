@@ -1026,16 +1026,21 @@ export function tick(
   }
 
   // --- Postup práce ---
-  // Každý rozpracovaný úkol se posune o dtSim × AI multiplikátor jednotky, která ho zpracovává
-  // (feat-019; bez AI 1×). Multiplikátor čteme v každém ticku, takže změna za běhu platí hned
-  // a odvedená práce se neztratí. Pokud progress dosáhne work, je úkol hotov.
-  // Jednotku k tasku hledáme jen tehdy, když má někdo AI zapnuté — ve výchozím stavu (a v Compare
+  // Každý rozpracovaný úkol se posune o dtSim × AI multiplikátor skillu úkolu u jednotky, která ho
+  // zpracovává (feat-019; bez AI 1×). Rozhoduje skill úkolu (`t.role`), ne jednotka jako celek, takže
+  // AI u Development nezrychlí Code Review téže jednotky. Multiplikátor čteme v každém ticku, takže
+  // změna za běhu platí hned a odvedená práce se neztratí. Pokud progress dosáhne work, je úkol hotov.
+  // Jednotky k taskům hledáme jen tehdy, když má někdo AI zapnuté — ve výchozím stavu (a v Compare
   // módu) tak horká smyčka nedělá žádné hledání navíc a jednotku najde až při dokončení úkolu.
-  const anyAi = state.team.some(m => (m.aiMultiplier ?? 1) !== 1)
+  // Při AI se mapa id → jednotka postaví jednou za tick, aby velký tým nestál O(úkoly × tým) hledání.
+  // `aiBySkill` se při prázdném nastavení maže, proto stačí test na undefined.
+  const anyAi = state.team.some(m => m.aiBySkill !== undefined)
+  const memberById = anyAi ? new Map(state.team.map(m => [m.id, m])) : null
   for (const f of state.inProgress) {
     for (const t of f.tasks) {
       if (t.status === 'doing') {
-        const speed = anyAi ? (state.team.find(m => m.id === t.assignee)?.aiMultiplier ?? 1) : 1
+        const assignee = t.assignee !== null ? memberById?.get(t.assignee) : undefined
+        const speed = assignee ? getSkillAi(assignee, t.role) : 1
         t.progress += dtSim * speed
         if (t.progress >= t.work) {
           // Zaokrouhlíme na přesnou hodnotu aby nevznikaly floating-point odchylky
@@ -1144,22 +1149,85 @@ export function tick(
 }
 
 /**
- * Nastaví jednotce AI multiplikátor výkonu (feat-019). Sdílí ho Advanced (Simulator.tsx) i Cash Flow
- * (useCashFlowSimSetup.ts), aby se oba módy chovaly stejně. Hodnota se jen zapíše na jednotku —
- * `tick()` ji čte v každém ticku, takže rozpracovaný úkol si odvedenou práci ponechá.
+ * Nastaví jednotce AI multiplikátor výkonu u jednoho jejího skillu (feat-019). Sdílí ho Advanced
+ * (Simulator.tsx) i Cash Flow (useCashFlowSimSetup.ts), aby se oba módy chovaly stejně. Hodnota se
+ * jen zapíše na jednotku — `tick()` ji čte v každém ticku, takže rozpracovaný úkol si odvedenou práci
+ * ponechá.
+ *
+ * Ukládají se jen hodnoty 2× a 5×: nastavení na 1× klíč smaže a prázdný objekt se nahradí `undefined`.
+ * Zápis vždy vytvoří nový objekt `aiBySkill` (nemutuje starý), protože „Generate new backlog“ kopíruje
+ * členy mělce přes `{ ...m }` a vnořený objekt by se jinak sdílel mezi kopiemi.
  *
  * @param state    - Stav simulace, jehož tým se upravuje (mutován in-place)
  * @param memberId - ID jednotky
+ * @param role     - Skill jednotky, jehož rychlost se mění
  * @param value    - Nový multiplikátor; 1 = bez AI
  * @returns true, pokud se hodnota změnila (volající pak přepne preset na „custom“ a překreslí UI);
- *          false, pokud jednotka neexistuje nebo už tuto hodnotu má
+ *          false, pokud jednotka neexistuje, nemá daný skill, nebo už tuto hodnotu má
  */
-export function setMemberAiMultiplier(state: SimState, memberId: number, value: AiMultiplier): boolean {
+export function setMemberAiMultiplier(state: SimState, memberId: number, role: Role, value: AiMultiplier): boolean {
   const m = state.team.find(m => m.id === memberId)
-  // Chybějící hodnota a 1 znamenají totéž (bez AI) — takový zápis není změna týmu
-  if (!m || (m.aiMultiplier ?? 1) === value) return false
-  m.aiMultiplier = value
+  if (!m || !m.roles.includes(role)) return false
+  // Chybějící klíč a 1 znamenají totéž (bez AI) — takový zápis není změna týmu
+  if (getSkillAi(m, role) === value) return false
+  writeSkillAi(m, role, value)
   return true
+}
+
+/**
+ * Přečte AI multiplikátor jednoho skillu jednotky (feat-019). Vrací jen 2 nebo 5, vše ostatní
+ * (chybějící klíč, žádné `aiBySkill`) znamená 1× — díky tomu nikdy nevrátí hodnotu zděděnou z prototypu
+ * objektu (`constructor`, `toString`), která by z postupu úkolu udělala NaN.
+ *
+ * @param member - Jednotka, jejíž nastavení se čte
+ * @param role   - Skill jednotky
+ * @returns 1 (bez AI), 2 nebo 5
+ */
+export function getSkillAi(member: Member, role: Role): AiMultiplier {
+  const v = member.aiBySkill?.[role]
+  return v === 2 || v === 5 ? v : 1
+}
+
+/**
+ * Zapíše AI skillu do NOVÉHO objektu `aiBySkill` (starý se nemutuje, viz `setMemberAiMultiplier`).
+ * Hodnota 1 klíč smaže a prázdný objekt se nahradí `undefined`. Je to jediné místo, které tvar
+ * `aiBySkill` udržuje; volají ho `setMemberAiMultiplier` i `clearMemberSkillAi`.
+ *
+ * @param member - Jednotka (mutována in-place)
+ * @param role   - Skill jednotky
+ * @param value  - Nový multiplikátor; 1 = smazat nastavení
+ */
+function writeSkillAi(member: Member, role: Role, value: AiMultiplier): void {
+  const next = { ...member.aiBySkill }
+  if (value === 1) delete next[role]
+  else next[role] = value
+  member.aiBySkill = Object.keys(next).length > 0 ? next : undefined
+}
+
+/**
+ * Zapomene nastavení AI jednoho skillu jednotky (feat-019). Volá se při odebrání skillu jednotce
+ * (křížek na chipu v Advanced i Cash Flow, smazání skillu ze seznamu skillů), aby se po opětovném
+ * přidání skillu začínalo na 1×. Vytvoří nový objekt `aiBySkill`, stejně jako `setMemberAiMultiplier`.
+ *
+ * @param member - Jednotka, které se skill odebírá (mutována in-place)
+ * @param role   - Odebíraný skill
+ */
+export function clearMemberSkillAi(member: Member, role: Role): void {
+  if (getSkillAi(member, role) === 1) return
+  writeSkillAi(member, role, 1)
+}
+
+/**
+ * Odebere skill jednotce a zapomene jeho AI (feat-019). Je to jediné místo, které zajišťuje, že odebraný
+ * skill nenechá v `aiBySkill` osiřelý klíč; volá ho `deleteRole` i oba handlery křížku na chipu
+ * (Advanced, Cash Flow). Uvolnění rozpracovaného úkolu zůstává na volajícím, protože se mezi módy liší.
+ *
+ * @param member - Jednotka, které se skill odebírá (mutována in-place)
+ * @param role   - Odebíraný skill
+ */
+export function removeMemberSkill(member: Member, role: Role): void {
+  member.roles = member.roles.filter(r => r !== role)
+  clearMemberSkillAi(member, role)
 }
 
 /**

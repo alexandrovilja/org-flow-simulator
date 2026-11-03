@@ -1,0 +1,5 @@
+/* Ikona blesku (feat-019): blokový prvek, který se v řádku nezmenšuje a nedědí mezeru z řádkování textu */
+.icon {
+  display: block;
+  flex-shrink: 0;
+}

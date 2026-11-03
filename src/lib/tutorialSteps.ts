@@ -229,9 +229,11 @@ export const TUTORIAL_STEPS: Record<TutorialMode, TutorialStep[]> = {
       chapter: 'ORGANIZATION',
       title: 'AI speed-up',
       description:
-        'Click AI to make this unit work faster: 1× → 2× → 5× → off. Only this unit speeds up; everything else ' +
-        'stays the same.',
+        'Click AI on a skill chip to make that skill work faster: 1× → 2× → 5× → off. Only that skill of this ' +
+        'unit speeds up; everything else stays the same.',
       targetId: 'experiment-first-unit-ai',
+      // Jednotka bez chipu nemá tlačítko AI — krok pak zvýrazní kartu jednotky (feat-019)
+      fallbackTargetId: 'experiment-first-unit',
       parentTargetId: 'experiment-first-unit',
     },
     {

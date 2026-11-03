@@ -43,6 +43,8 @@
   --accent: #7a3bf0;
   --accent-soft: #f3f1ff;
   --on-accent: #ffffff;
+  /* Blesk v bílém odznaku AI na chipu skillu (feat-019): fialová jako accent */
+  --ai-bolt: #7a3bf0;
   --highlight: #ffe14d;
   --highlight-ink: #7a6400;
   --focus: #7a3bf0;
@@ -120,6 +122,8 @@
   --accent: #c0a3fa;
   --accent-soft: #2e2849;
   --on-accent: #0f0f0f;
+  /* Blesk v bílém odznaku AI (feat-019): tmavý, protože světle fialový --accent by na bílém splynul */
+  --ai-bolt: #121212;
   --highlight: #ffe14d;
   --highlight-ink: #ffe14d;
   --focus: #c0a3fa;

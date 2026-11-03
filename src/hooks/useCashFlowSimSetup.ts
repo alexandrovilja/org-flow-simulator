@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import {
   MEMBER_NAMES, TEAM_NAMES, PRESETS, mulberry32,
   makeInitialState, regenerate, applyPreset, resetTaskProgress, cloneFeatureFresh, setRevenueProfile,
-  setMemberAiMultiplier,
+  setMemberAiMultiplier, removeMemberSkill,
 } from '@/simulation/engine'
 import { addRole, deleteRole } from '@/simulation/roleManagement'
 import { parseXlsFile, formatImportSummary, type ImportResult } from '@/lib/xlsImport'
@@ -68,7 +68,7 @@ export interface CashFlowSimSetup {
   handleConfirmPreset: () => void
   handleRenameMember: (memberId: number, name: string) => void
   /** Nastaví jednotce AI multiplikátor (feat-019); 1 = vypnout AI. Platí okamžitě, i za běhu. */
-  handleSetAiMultiplier: (memberId: number, value: AiMultiplier) => void
+  handleSetAiMultiplier: (memberId: number, role: Role, value: AiMultiplier) => void
   handleRemoveMember: (memberId: number) => void
   handleAddMember: () => void
   handleRoleChange: (roleId: string, updates: Partial<RoleMeta>) => void
@@ -168,7 +168,8 @@ export function useCashFlowSimSetup(
     if (!s) return
     const m = s.team.find(m => m.id === memberId)
     if (!m) return
-    m.roles = m.roles.filter(r => r !== role)
+    // Odebrání skillu zapomene i jeho nastavení AI (feat-019)
+    removeMemberSkill(m, role)
     if (m.currentTask) {
       const f = s.inProgress.find(f => f.id === m.currentTask!.featureId)
       if (f) {
@@ -266,11 +267,11 @@ export function useCashFlowSimSetup(
     forceUpdate()
   }, [markCustom, forceUpdate])
 
-  // AI multiplikátor (feat-019): zápis dělá sdílený setMemberAiMultiplier (stejně jako Advanced).
+  // AI multiplikátor po skillech (feat-019): zápis dělá sdílený setMemberAiMultiplier (stejně jako Advanced).
   // Skutečná změna je ruční úprava týmu, proto markCustom; beze změny hodnoty se nic neděje.
-  const handleSetAiMultiplier = useCallback((memberId: number, value: AiMultiplier) => {
+  const handleSetAiMultiplier = useCallback((memberId: number, role: Role, value: AiMultiplier) => {
     const s = stateRef.current
-    if (!s || !setMemberAiMultiplier(s, memberId, value)) return
+    if (!s || !setMemberAiMultiplier(s, memberId, role, value)) return
     markCustom()
     forceUpdate()
   }, [markCustom, forceUpdate])

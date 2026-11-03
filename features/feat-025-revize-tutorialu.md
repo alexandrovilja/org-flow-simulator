@@ -5,6 +5,8 @@ done
 
 *Hotovo 2026-10-21 v PR #34 (e3b5217), včetně code review (6 nálezů opraveno). Smoke test produkce prošel (15/15 E2E proti produkci: smoke, feat-025, feat-023 Př. 7 a 11; úvodní karta ověřena v prohlížeči). Obsah prohlídek prošel s uživatelem krok po kroku; spec, UI návrh i testy schváleny 2026-10-21.*
 
+*Změna 2026-11-03 (revize feat-019, AI po skillech): krok 4 prohlídky Advanced („AI speed-up“) mění text a cíl — AI se zapíná na chipu skillu, ne na kartě jednotky. Upraveno v tabulce kroků a v Technical Notes (cíl `experiment-first-unit-ai`); testy `feat-025-tutorial-steps.test.ts` a `feat-025-simulator-integration.test.tsx` je třeba upravit při implementaci feat-019.*
+
 *Změna 2026-10-22 (patička o autorovi s odkazem na LinkedIn, Příklady 18–19): hotovo v PR #35 (e2caf7e), review bez blokujících nálezů. Smoke test produkce prošel (16/16 E2E proti produkci: smoke, feat-025 včetně Příkladů 18 a 19, feat-023 Př. 7 a 11; patička ověřena v prohlížeči).*
 
 ## Problem
@@ -84,7 +86,7 @@ Spouští se automaticky při prvním přepnutí do Advanced a přes „?“ v A
 | 1 | INTRO | záložka Advanced | Your organization | Here you build and tune one organization. Left: backlog and settings. Middle: work in progress and your units. Right: results. |
 | 2 | ORGANIZATION | mřížka Units | Units | Each card is one unit — a team or a person. Its colored chips are its skills and mandates: a unit can only work on segments in matching colors. |
 | 3 | ORGANIZATION | první karta jednotky | Shape your units | + adds a skill, × on a chip removes it. Click the name to rename the unit, × in its corner removes it. The button under the grid adds a new unit. |
-| 4 | ORGANIZATION | tlačítko AI na první kartě jednotky | AI speed-up | Click AI to make this unit work faster: 1× → 2× → 5× → off. Only this unit speeds up; everything else stays the same. |
+| 4 | ORGANIZATION | tlačítko AI na prvním chipu první jednotky (záloha: karta první jednotky) | AI speed-up | Click AI on a skill chip to make that skill work faster: 1× → 2× → 5× → off. Only that skill of this unit speeds up; everything else stays the same. |
 | 5 | ORGANIZATION | přepínač Unit preset (Teams / People) | Starting point | Pick a ready-made setup: Teams — six component teams (Payments, CRM, …); People — six individual specialists. Switching replaces your units and skills. |
 | 6 | BACKLOG & RULES | seznam Backlog | Backlog | Features waiting for work, most important at the top. A free unit picks the most important work matching its skills, following the rule set under Team. |
 | 7 | BACKLOG & RULES | hlavička sekce Backlog | Backlog settings | Open it to generate a new backlog or import your own from Excel (↓ Template shows the format). Sliders set size and variability; they apply on Generate new backlog. |
@@ -241,7 +243,7 @@ Popisek nad výsledkem se mění z „Result · avg lead time“ na **„Result 
   - výpočet pozice karty dnes počítá s pevnou výškou `CARD_H = 240`. S nadpisem a delšími texty by měl použít skutečnou výšku karty (změřenou přes ref), jinak hrozí oříznutí (Příklad 15).
 - **Nové cíle `data-tutorial-target`:**
   - `ComparePanel`: sloupce `${prefix}-todo`, `${prefix}-in-progress`, `${prefix}-done` (prop pro `KanbanColumn`) a první karta To Do `${prefix}-first-feature`;
-  - `InProgressTeamPanel` / `MemberCard`: první jednotka `${prefix}-first-unit` a její tlačítko AI `${prefix}-first-unit-ai`;
+  - `InProgressTeamPanel` / `MemberCard`: první jednotka `${prefix}-first-unit` a tlačítko AI na jejím prvním chipu `${prefix}-first-unit-ai` (od revize feat-019 z 2026-11-03 AI patří chipu skillu, ne kartě; krok „AI speed-up“ má `fallbackTargetId: 'experiment-first-unit'` pro jednotku bez chipu);
   - `BacklogSettingsPanel`: přepínač presetu `${prefix}-unit-preset` a hlavičky sekcí `${prefix}-backlog-accordion`, `${prefix}-specializations-accordion`, `${prefix}-team-accordion`;
   - Cash Flow: `tutorialTargets` pro `ResultsAside` v `CashFlowPanel` (`cashflow-results`, `cashflow-done`), dlaždice výnosu `cashflow-revenue` a obal ovládání `cashflow-controls` v `Simulator.tsx`.
   - Cíle, které po revizi nic nepoužívá (např. `compare-team-a-kanban`, dílčí cíle týmu B, `experiment-settings`, `experiment-chart`), se mohou odstranit.

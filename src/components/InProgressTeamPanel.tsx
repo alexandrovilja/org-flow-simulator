@@ -16,8 +16,8 @@ interface InProgressTeamPanelProps {
   handleAssignRole: (memberId: number, role: Role) => void
   handleRemoveRole: (memberId: number, role: Role) => void
   handleRenameMember: (memberId: number, name: string) => void
-  /** Nastaví jednotce AI multiplikátor (feat-019) — každý mód předává handler nad svým týmem. */
-  handleSetAiMultiplier: (memberId: number, value: AiMultiplier) => void
+  /** Nastaví jednotce AI multiplikátor u jednoho jejího skillu (feat-019) — každý mód předává handler nad svým týmem. */
+  handleSetAiMultiplier: (memberId: number, role: Role, value: AiMultiplier) => void
   handleRemoveMember: (memberId: number) => void
   handleAddMember: () => void
   /** Prefix pro data-tutorial-target atributy — odlišuje Advanced od Cash Flow v DOM. */

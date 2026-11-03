@@ -11,6 +11,8 @@ import type { TutorialMode } from '@/types/tutorial'
 //  - Kroky 6–11 Compare mají rodiče `compare-team-a-panel` (dvojí ztmavení). V Advanced má krok 3
 //    rodiče `experiment-team-composition` a krok 4 rodiče `experiment-first-unit` (schválená maketa).
 //  - Krok 8 Compare má záložní cíl `compare-team-a-todo` pro prázdné To Do (Příklad 7).
+//  - Krok 4 Advanced („AI speed-up“) míří na AI prvního chipu první jednotky (revize feat-019, 2026-11-03:
+//    AI patří chipu skillu, ne kartě) a má záložní cíl `experiment-first-unit` pro jednotku bez chipu.
 //  - Jediný krok bez cíle je úvodní karta Compare; jako jediný má odrážky (`bullets`).
 //  - Odkazy jsou v textu ve tvaru `[popisek](https://…)` (vykreslí je overlay, viz feat-025-tutorial-text).
 //  - Krok se zpětnou vazbou je krok 5 prohlídky Compare; Advanced ani Cash Flow ho nemají (Příklad 6).
@@ -68,7 +70,7 @@ const EXPERIMENT: ExpectedStep[] = [
   { chapter: 'INTRO', title: 'Your organization', targetId: 'mode-tab-advanced', description: 'Here you build and tune one organization. Left: backlog and settings. Middle: work in progress and your units. Right: results.' },
   { chapter: 'ORGANIZATION', title: 'Units', targetId: 'experiment-team-composition', description: 'Each card is one unit — a team or a person. Its colored chips are its skills and mandates: a unit can only work on segments in matching colors.' },
   { chapter: 'ORGANIZATION', title: 'Shape your units', targetId: 'experiment-first-unit', parentTargetId: 'experiment-team-composition', description: '+ adds a skill, × on a chip removes it. Click the name to rename the unit, × in its corner removes it. The button under the grid adds a new unit.' },
-  { chapter: 'ORGANIZATION', title: 'AI speed-up', targetId: 'experiment-first-unit-ai', parentTargetId: 'experiment-first-unit', description: 'Click AI to make this unit work faster: 1× → 2× → 5× → off. Only this unit speeds up; everything else stays the same.' },
+  { chapter: 'ORGANIZATION', title: 'AI speed-up', targetId: 'experiment-first-unit-ai', fallbackTargetId: 'experiment-first-unit', parentTargetId: 'experiment-first-unit', description: 'Click AI on a skill chip to make that skill work faster: 1× → 2× → 5× → off. Only that skill of this unit speeds up; everything else stays the same.' },
   { chapter: 'ORGANIZATION', title: 'Starting point', targetId: 'experiment-unit-preset', description: 'Pick a ready-made setup: Teams — six component teams (Payments, CRM, …); People — six individual specialists. Switching replaces your units and skills.' },
   { chapter: 'BACKLOG & RULES', title: 'Backlog', targetId: 'experiment-backlog-list', description: 'Features waiting for work, most important at the top. A free unit picks the most important work matching its skills, following the rule set under Team.' },
   { chapter: 'BACKLOG & RULES', title: 'Backlog settings', targetId: 'experiment-backlog-accordion', description: 'Open it to generate a new backlog or import your own from Excel (↓ Template shows the format). Sliders set size and variability; they apply on Generate new backlog.' },

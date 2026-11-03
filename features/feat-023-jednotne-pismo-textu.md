@@ -122,4 +122,4 @@ Rozhodnutí uživatele (2026-10-20): **JetBrains Mono všude, Archivo se přesta
 - **feat-021-prevod-design-system-org-flow:** zavedla písma a typovou škálu; tady se Archivo ruší a Příklad 10 (písma) se mění; spec feat-021 dostal poznámku o změně.
 - **feat-022-sjednoceni-designu:** sjednotila titulky, emoji a inline styly; tato feature dokončuje sjednocení písma; spec feat-022 dostal poznámku o změně.
 - **feat-013-zprehledneni-aplikace:** tutoriál a `HelpIcon` přecházejí na mono.
-- **feat-007-sprava-specializaci, feat-019-ai-multiplikator-vykonu:** vstupy specializací a jména jednotek.
+- **feat-007-sprava-specializaci, feat-019-ai-multiplikator-vykonu:** vstupy specializací a jména jednotek. Revize feat-019 (2026-11-03) přidává na chip skillu tlačítko AI mezi název a ×; chip se přestaví na flex a ref pro tooltip při zkrácení (`useIsTruncated`) se přesune na prvek s názvem, výpustka a rozměry × zůstávají.

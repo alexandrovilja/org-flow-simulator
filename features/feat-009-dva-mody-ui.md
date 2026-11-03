@@ -175,7 +175,7 @@ All UI text is in **English** only.
   Cash Flow has no "?" restart button or first-visit tutorial. Tutorial integration for
   Cash Flow is an open item for a future iteration, not part of feat-015's approved scope.
   *Řeší feat-025-revize-tutorialu (draft): Cash Flow dostane vlastní prohlídku, automaticky při první návštěvě i přes „?“.*
-- **feat-019-ai-multiplikator-vykonu** — AI multiplikátor jednotek (2× / 5×) je dostupný jen
+- **feat-019-ai-multiplikator-vykonu** — AI multiplikátor skillů jednotek (2× / 5×) je dostupný jen
   v Experimentování a Cash Flow. Režim Srovnání se nemění: nemá tlačítko AI ani odznak a jeho
   týmy pracují vždy 1×.
 - **feat-021-prevod-design-system-org-flow:** záložky ztrácí emoji (⚖️ 🔬) a winner banner se mění na rám výsledku (písmeno týmu, titulek, věta proč, poznámka kouče; bez emoji a bez barev týmů); logika zůstává.
