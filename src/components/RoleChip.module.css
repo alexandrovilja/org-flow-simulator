@@ -1,12 +1,11 @@
-/* Čip specializace (feat-021): plná výplň v barvě role (--role inline), bílý text, hranatý. */
+/* Čip specializace (feat-021): plná výplň v barvě role (--role inline), bílý text, hranatý.
+   Od feat-019 je to řádek (flex): název s výpustkou + tlačítko AI + odebírací ×. */
 .chip {
-  /* Odebírací ×: velikost, odsazení od pravého okraje a mezera od textu; z nich se počítá místo vpravo
-     i poloha tlačítka, takže se změna na jednom místě nerozjede s druhým */
+  /* Velikost odebíracího ×; sdílí ji všechna místa v čipu, které s ní počítají */
   --remove-size: 12px;
-  --remove-offset: var(--space-6);
-  --remove-gap: var(--space-4);
-  position: relative;
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-4);
   max-width: 100%;
   height: var(--size-control-sm);
   padding: 0 var(--space-6);
@@ -15,26 +14,25 @@
   color: var(--ink-inverse);
   font-family: var(--font-mono);
   font-size: 11px;
-  /* Řádkování = výška čipu: text je svisle uprostřed, i když se zkrátí výpustkou */
-  line-height: var(--size-control-sm);
+  /* Text je svisle uprostřed díky align-items; řádkování 1 brání zbytečnému místu nad a pod písmem */
+  line-height: 1;
   font-weight: 600;
   letter-spacing: 0.2px;
   white-space: nowrap;
+  /* Bez overflow: hidden — fokusový prstenec tlačítka AI přesahuje čip a nesmí se ořezat */
+}
+
+/* Název specializace: v úzké kartě se zkrátí výpustkou, místo aby přetekl (feat-023; plný název je v title).
+   AI a × se nezkracují (flex-shrink: 0), takže zůstanou vidět i u dlouhého názvu. */
+.label {
+  min-width: 0;
   overflow: hidden;
-  /* Dlouhý název se v úzké kartě zkrátí výpustkou, místo aby přetekl (feat-023; plný název je v title) */
   text-overflow: ellipsis;
 }
 
-/* Čip s odebíracím × má vpravo místo pro tlačítko: mezera + tlačítko + odsazení od okraje */
-.removable {
-  padding-right: calc(var(--remove-gap) + var(--remove-size) + var(--remove-offset));
-}
-
-/* Odebírací × — 12px čtverec s průsvitnou bílou na výplni role; leží nad pravým okrajem čipu, aby ho výpustka neořízla */
+/* Odebírací × — 12px čtverec s průsvitnou bílou na výplni role */
 .remove {
-  position: absolute;
-  top: calc((var(--size-control-sm) - var(--remove-size)) / 2);
-  right: var(--remove-offset);
+  flex-shrink: 0;
   width: var(--remove-size);
   height: var(--remove-size);
   padding: 0;
@@ -49,4 +47,46 @@
   font-size: 10px;
   line-height: 1;
   cursor: pointer;
+}
+
+/* Tlačítko AI na čipu skillu (feat-019). Bez AI průhledné „AI“ s tenkým světlým rámečkem.
+   Text je plná bílá (ne průsvitná), aby držel kontrast na každé barvě role. */
+.aiButton {
+  flex-shrink: 0;
+  height: 14px;
+  min-width: 18px;
+  padding: 0 3px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  background: transparent;
+  border: var(--border-hair) solid color-mix(in srgb, var(--ink-inverse) 65%, transparent);
+  border-radius: var(--radius-xs);
+  color: var(--ink-inverse);
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+}
+
+/* Fokus z klávesnice: standardní prstenec design systému (bílý + accent proužek). Obrys by na bílém
+   odznaku nebyl vidět. */
+.aiButton:focus-visible {
+  outline: none;
+  box-shadow: var(--shadow-focus);
+}
+
+/* Zapnuté AI (2× / 5×): bílý odznak s tmavým textem; musí být za .aiButton, aby ho přebil.
+   Bílá je čitelná na každé z osmi barev rolí, včetně fialové. */
+.aiButtonOn {
+  background: var(--ink-inverse);
+  border-color: var(--ink-inverse);
+  color: var(--surface-bar);
+}
+
+/* Blesk v odznaku má vlastní token, protože v tmavém tématu je --accent světle fialový a na bílém by splynul */
+.aiButtonOn svg {
+  color: var(--ai-bolt);
 }

@@ -134,8 +134,8 @@ export interface Feature {
   pendingDivergence: number[]
 }
 
-/** AI multiplikátor výkonu jednotky (feat-019): kolik sekund práce jednotka odvede za jednu
- *  sekundu simulačního času. 1 = bez AI (výchozí), 2 a 5 = jednotka pracuje s AI 2× / 5× rychleji.
+/** AI multiplikátor výkonu skillu jednotky (feat-019): kolik sekund práce jednotka odvede za jednu
+ *  sekundu simulačního času na úkolu daného skillu. 1 = bez AI (výchozí), 2 a 5 = skill s AI 2× / 5× rychleji.
  *  Pevné hodnoty — workshop porovnává jen tyto tři úrovně, žádný vlastní multiplikátor. */
 export type AiMultiplier = 1 | 2 | 5
 
@@ -156,10 +156,13 @@ export interface Member {
    * Člen bez rolí idle čas neakumuluje — nemůže pracovat ze strukturálních důvodů.
    */
   idleSec: number
-  /** AI multiplikátor výkonu (feat-019) — násobí rychlost, jakou jednotka postupuje na svém úkolu.
-   *  Chybějící hodnota = 1× (bez AI), takže presety, XLS import i starší kód fungují beze změny.
-   *  Patří k týmu, ne ke stavu běhu: Reset ho zachová, nový tým z presetu ho nemá. */
-  aiMultiplier?: AiMultiplier
+  /** AI multiplikátor výkonu po skillech (feat-019) — násobí rychlost, jakou jednotka postupuje na úkolu
+   *  daného skillu. Nastavení patří dvojici jednotka + skill: stejný skill u jiné jednotky může mít AI jinak.
+   *  Chybějící klíč = 1× (bez AI), takže presety, XLS import i starší kód fungují beze změny. Ukládají se
+   *  jen hodnoty 2× a 5× a prázdný objekt se nahrazuje `undefined` (viz `setMemberAiMultiplier`), aby šlo
+   *  v ticku levně zjistit, zda má někdo AI. Patří k týmu, ne ke stavu běhu: Reset ho zachová, nový tým
+   *  z presetu ho nemá a odebráním skillu se jeho nastavení zapomene. */
+  aiBySkill?: Partial<Record<Role, AiMultiplier>>
 }
 
 /** Jeden záznam o Cycle Time dokončené feature.

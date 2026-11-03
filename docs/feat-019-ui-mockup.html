@@ -1,218 +1,223 @@
 <!DOCTYPE html>
-<html lang="cs">
+<html lang="cs" data-theme="light">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>feat-019 UI mockup</title>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<title>feat-019 UI mockup – AI po skillech</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
-  /* Tokens 1:1 z src/app/globals.css */
+  /* Tokeny 1:1 ze src/app/globals.css (výřez: jen to, co mockup používá) */
   :root {
-    --bg: #f6f5f2; --panel: #ffffff; --ink: #16161a; --ink-2: #4a4a52; --ink-3: #8a8a92;
-    --line: #e6e4de; --line-2: #d8d6cf;
-    --accent: oklch(58% 0.13 240); --warn: oklch(70% 0.13 60);
+    color-scheme: light;
+    --surface-page: #f3f3f3; --surface-panel: #ffffff; --surface-subtle: #f9f9f9; --surface-bar: #121212;
+    --ink: #121212; --ink-2: #484848; --ink-3: #696969; --ink-4: #989898; --ink-inverse: #ffffff;
+    --line: #dbdbdb; --line-2: #e8e8e8; --line-control: #898989; --track: #1212120f;
+    --accent: #7a3bf0; --on-accent: #ffffff; --focus: #7a3bf0;
+    --wait: #8d672b; --wait-soft: #fcf1d2;
+    --role-rose: #bf406e; --role-blue: #1075ac; --role-brick: #a14a1c; --role-green: #097f43;
+    --role-ochre: #8d672b; --role-teal: #0b7a75; --role-violet: #815ea9; --role-slate: #4f5a6b;
+    --shadow-pop: 0 12px 32px -8px #12121240, 0 2px 6px #1212121f;
+    --shadow-focus: 0 0 0 2px #ffffff, 0 0 0 4px #7a3bf0;
+    --space-2: 2px; --space-4: 4px; --space-6: 6px; --space-8: 8px; --space-12: 12px; --space-16: 16px;
+    --radius-xs: 2px; --radius-sm: 4px; --radius-md: 8px; --radius-lg: 12px; --radius-pill: 999px;
+    --border-hair: 1px; --border-active: 2px;
+    --size-control-sm: 18px; --size-avatar: 20px;
+    --font-mono: 'JetBrains Mono', ui-monospace, Menlo, monospace;
   }
-  * { box-sizing: border-box; }
-  body { margin: 0; background: var(--bg); color: var(--ink); font-family: 'Inter', system-ui, sans-serif; font-size: 14px; line-height: 1.5; -webkit-font-smoothing: antialiased; }
-  .mono { font-family: 'JetBrains Mono', ui-monospace, Menlo, monospace; font-variant-numeric: tabular-nums; }
-  button { font-family: inherit; cursor: pointer; }
-  :focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+  [data-theme="dark"] {
+    color-scheme: dark;
+    --surface-page: #0f0f0f; --surface-panel: #191919; --surface-subtle: #141414; --surface-bar: #060606;
+    --ink: #eeeeee; --ink-2: #cacaca; --ink-3: #9e9e9e; --ink-4: #696969;
+    --line: #333333; --line-2: #262626; --line-control: #696969; --track: #ffffff14;
+    --accent: #c0a3fa; --on-accent: #0f0f0f; --focus: #c0a3fa;
+    --wait: #ddc97b; --wait-soft: #352f1d;
+    --shadow-pop: 0 18px 40px #00000080;
+    --shadow-focus: 0 0 0 2px #191919, 0 0 0 4px #c0a3fa;
+  }
+  * { box-sizing: border-box; font-variant-ligatures: none; }
+  body { margin: 0; background: var(--surface-page); color: var(--ink); font-family: var(--font-mono); font-size: 14px; line-height: 1.5; -webkit-font-smoothing: antialiased; }
+  button { font-family: inherit; font-size: inherit; cursor: pointer; }
 
-  /* ---- mockup chrome (není součást návrhu) ---- */
-  .doc { max-width: 980px; margin: 0 auto; padding: 24px 16px 48px; }
-  .doc h1 { font-size: 18px; margin: 0 0 4px; }
-  .sub { color: var(--ink-2); font-size: 12px; margin: 0 0 12px; max-width: 72ch; }
-  .ctrl { display: flex; flex-wrap: wrap; gap: 6px 8px; align-items: center; margin-bottom: 10px; font-size: 12px; }
-  .ctrl button { font-size: 11px; padding: 5px 10px; border-radius: 5px; border: 1px solid var(--line-2); background: var(--panel); }
-  .ctrl button.on { background: var(--ink); color: #fff; border-color: var(--ink); }
-  .show-new .new { outline: 2px dashed oklch(70% 0.13 240 / .6); outline-offset: 2px; }
-  .doc h2 { font-size: 13px; margin: 28px 0 4px; }
-  .doc h2 + .sub { margin-bottom: 10px; }
-  .frame { border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: var(--panel); max-width: 600px; }
-  .states { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
-  @media (max-width: 760px) { .states { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-  .state figcaption { font-size: 11px; color: var(--ink-2); margin-top: 6px; }
-  .state figure { margin: 0; }
-  .note { font-size: 11px; color: var(--ink-2); margin: 8px 0 0; max-width: 72ch; }
+  /* ---- chrome mockupu (není součást návrhu) ---- */
+  .doc { max-width: 920px; margin: 0 auto; padding: 24px 16px 56px; }
+  .doc h1 { font-size: 16px; margin: 0 0 4px; }
+  .doc h2 { font-size: 13px; margin: 32px 0 4px; }
+  .sub { color: var(--ink-2); font-size: 12px; margin: 0 0 10px; max-width: 78ch; }
+  .ctrl { display: flex; flex-wrap: wrap; gap: 6px 16px; align-items: center; font-size: 11px; color: var(--ink-3); margin: 12px 0 4px; }
+  .ctrl .grp { display: inline-flex; gap: 4px; align-items: center; }
+  .ctrl button { font-size: 11px; padding: 4px 9px; border-radius: var(--radius-sm); border: 1px solid var(--line-control); background: var(--surface-panel); color: var(--ink); }
+  .ctrl button[aria-pressed="true"] { background: var(--ink); color: var(--surface-page); border-color: var(--ink); }
+  .frame { border: 1px solid var(--line); border-radius: var(--radius-lg); background: var(--surface-panel); padding: 12px 16px 16px; }
+  .note { font-size: 11px; color: var(--ink-2); margin: 8px 0 0; max-width: 78ch; }
+  .cap { font-size: 10px; color: var(--ink-3); margin-top: 4px; }
 
-  /* ---- Units panel (1:1 InProgressTeamPanel, blok team-composition) ---- */
-  .units { padding: 10px 16px 12px; display: flex; flex-direction: column; gap: 6px; }
-  .units-h { display: flex; align-items: center; gap: 8px; }
-  .units-h h3 { margin: 0; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .5px; color: var(--ink-2); }
-  .units-h small { margin-left: auto; font-size: 11px; color: var(--ink-3); }
-  .ugrid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); grid-auto-rows: min-content; gap: 6px; align-content: start; }
-  @media (max-width: 520px) { .ugrid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-  .add { margin-top: 2px; width: 100%; padding: 5px 0; font-size: 11px; border: 1px dashed var(--line-2); border-radius: 4px; background: transparent; color: var(--ink-3); font-weight: 500; letter-spacing: .3px; }
+  /* ---- karta jednotky (MemberCard.module.css) ---- */
+  .ugrid { display: grid; grid-template-columns: repeat(auto-fill, var(--cw, 175px)); gap: var(--space-6); align-items: start; }
+  .card { display: flex; flex-direction: column; gap: var(--space-6); min-height: 0; overflow: hidden; padding: var(--space-8) 10px; background: var(--surface-panel); border: var(--border-hair) solid var(--line); border-radius: var(--radius-md); }
+  .top { display: flex; align-items: center; gap: var(--space-6); }
+  .avatar { width: var(--size-avatar); height: var(--size-avatar); flex-shrink: 0; border-radius: var(--radius-pill); display: flex; align-items: center; justify-content: center; background: var(--ink); color: var(--surface-panel); font-size: 10px; font-weight: 700; }
+  .name { flex: 1; min-width: 0; font-size: 11px; line-height: 16px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .mini { flex-shrink: 0; width: var(--size-control-sm); height: var(--size-control-sm); padding: 0; display: flex; align-items: center; justify-content: center; background: transparent; border: var(--border-hair) solid var(--line-control); border-radius: var(--radius-xs); color: var(--ink-3); font-size: 11px; line-height: 1; }
+  .roles { display: flex; align-items: center; gap: var(--space-4); flex-wrap: wrap; }
+  .addRole { height: var(--size-control-sm); min-width: var(--size-control-sm); padding: 0 var(--space-4); background: transparent; border: var(--border-hair) dashed var(--line-control); border-radius: var(--radius-xs); color: var(--ink-3); font-size: 10px; font-weight: 600; line-height: 1; }
 
-  /* ---- MemberCard (1:1 src/components/MemberCard.tsx) ---- */
-  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 6px 8px; display: flex; flex-direction: column; gap: 4px; min-height: 0; overflow: hidden; }
-  .r1 { display: flex; align-items: center; gap: 6px; }
-  .av { width: 18px; height: 18px; border-radius: 50%; background: var(--ink); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 600; flex-shrink: 0; }
-  .nm { flex: 1; min-width: 0; font-size: 12px; font-weight: 600; font-family: inherit; background: transparent; border: none; outline: none; color: var(--ink); padding: 0; }
-  .x { flex-shrink: 0; width: 16px; height: 16px; display: flex; align-items: center; justify-content: center; background: transparent; border: 1px solid var(--line); border-radius: 3px; color: var(--ink-3); font-size: 11px; line-height: 1; padding: 0; }
-  .r2 { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
-  .chip { display: inline-flex; align-items: center; gap: 4px; color: #fff; font-size: 10px; font-weight: 600; padding: 2px 6px; border-radius: 3px; letter-spacing: .3px; }
-  .chip b { background: rgba(255,255,255,.25); width: 12px; height: 12px; border-radius: 2px; font-size: 10px; font-weight: 400; display: inline-flex; align-items: center; justify-content: center; line-height: 1; }
-  .plus { background: transparent; border: 1px dashed var(--line-2); color: var(--ink-3); font-size: 10px; padding: 1px 5px; border-radius: 3px; font-weight: 500; line-height: 1.2; }
-  .r3 { min-height: 36px; display: flex; flex-direction: column; gap: 2px; }
-  .task { font-size: 10px; color: var(--ink-2); display: flex; align-items: center; gap: 4px; white-space: nowrap; overflow: hidden; }
-  .task i { width: 6px; height: 6px; border-radius: 2px; flex-shrink: 0; }
-  .task .f { overflow: hidden; text-overflow: ellipsis; flex: 1; }
-  .task .rl { font-size: 9px; font-weight: 600; flex-shrink: 0; }
-  .bar { height: 22px; background: var(--line); border-radius: 4px; overflow: hidden; }
-  .bar div { height: 100%; width: 0; }
+  /* ---- NOVÉ: chip skillu s tlačítkem AI (RoleChip.module.css) ---- */
+  /* Chip je flex: název (zkrátí se výpustkou) + AI + ×. AI a × se nikdy nezkracují. */
+  .chip { --role: var(--role-blue); display: inline-flex; align-items: center; gap: var(--space-4); max-width: 100%; height: var(--size-control-sm); padding: 0 var(--space-6); border-radius: var(--radius-xs); background: var(--role); color: var(--ink-inverse); font-size: 11px; font-weight: 600; letter-spacing: 0.2px; line-height: 1; white-space: nowrap; }
+  .chipLabel { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+  .remove { flex-shrink: 0; width: 12px; height: 12px; padding: 0; border: 0; border-radius: var(--radius-xs); display: inline-flex; align-items: center; justify-content: center; background: color-mix(in srgb, var(--ink-inverse) 25%, transparent); color: var(--ink-inverse); font-size: 10px; line-height: 1; }
+  /* Klid: průhledné „AI“ s tenkým světlým rámečkem. Plný text (ne průsvitný), aby držel kontrast na barvě role. */
+  .ai { flex-shrink: 0; height: var(--ai-h, 14px); min-width: calc(var(--ai-h, 14px) + 4px); padding: 0 3px; display: inline-flex; align-items: center; justify-content: center; gap: var(--space-2); background: transparent; border: var(--border-hair) solid color-mix(in srgb, var(--ink-inverse) 65%, transparent); border-radius: var(--radius-xs); color: var(--ink-inverse); font-size: 9px; font-weight: 700; letter-spacing: 0; line-height: 1; }
+  /* Fokus: standardní prstenec design systému (bílý + accent proužek), viditelný na každé barvě role i na bílém odznaku */
+  .ai:focus-visible { outline: none; box-shadow: var(--shadow-focus); }
+  .bolt { display: block; flex-shrink: 0; }
+  /* Zapnuto, varianta A: bílý odznak, tmavý text, blesk v accent (v tmavém tématu v barvě textu, jinak by bílá a světlá lila splynuly) */
+  [data-badge="white"] .ai.on { background: var(--ink-inverse); border-color: var(--ink-inverse); color: var(--surface-bar); }
+  [data-badge="white"] .ai.on .bolt { color: var(--accent); }
+  [data-theme="dark"] [data-badge="white"] .ai.on .bolt { color: currentColor; }
+  /* Zapnuto, varianta B: odznak v accent jako dnes, s tenkým bílým lemem, aby se neztratil na fialové roli */
+  [data-badge="accent"] .ai.on { background: var(--accent); border-color: var(--ink-inverse); color: var(--on-accent); }
 
-  /* ---- NOVÉ: tlačítko AI, menu, odznak (feat-019) ---- */
-  /* Klidový stav: stejná velikost a rámeček jako křížek (16 × 16 px) */
-  .ai { flex-shrink: 0; height: 16px; min-width: 16px; padding: 0; display: inline-flex; align-items: center; justify-content: center; gap: 2px; background: transparent; border: 1px solid var(--line); border-radius: 3px; color: var(--ink-3); font-size: 8.5px; font-weight: 600; letter-spacing: -.2px; line-height: 1; }
-  .ai svg { display: none; }
-  /* Vybraný stav: plně modrý odznak, bílý blesk + hodnota; stejná výška, jen širší */
-  .ai.on { background: var(--accent); border-color: var(--accent); color: #fff; padding: 0 4px 0 3px; font-size: 9px; letter-spacing: 0; }
-  .ai.on svg { display: block; }
-  /* Menu vložené do karty pod horní řádek, zarovnané doprava (stejný princip jako picker specializací) */
-  .aimenu { display: flex; justify-content: flex-end; gap: 4px; }
-  .opt { height: 16px; min-width: 16px; padding: 0 3px; display: inline-flex; align-items: center; justify-content: center; background: transparent; border: 1px solid var(--line-2); border-radius: 3px; color: var(--ink-2); font-size: 9px; font-weight: 600; line-height: 1; }
-  .opt.on { background: var(--accent); border-color: var(--accent); color: #fff; }
-  .opt.off { padding: 0 4px; font-weight: 500; color: var(--ink-3); }
+  /* ---- řádek práce (MemberCard.module.css) ---- */
+  .task { min-height: 40px; display: flex; flex-direction: column; gap: var(--space-2); }
+  .taskLine { display: flex; align-items: center; gap: var(--space-4); white-space: nowrap; overflow: hidden; }
+  .swatch { width: 8px; height: 8px; flex-shrink: 0; border-radius: var(--radius-xs); background: oklch(68% 0.13 var(--hue)); }
+  .taskName { flex: 1 1 0; min-width: 6ch; overflow: hidden; text-overflow: ellipsis; font-size: 11px; line-height: 16px; color: var(--ink-2); }
+  /* ZMĚNA: název skillu se při nedostatku místa zkrátí výpustkou (dnes je flex-shrink: 0 a dlouhý název přeteče) */
+  .taskRole { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; font-size: 10px; line-height: 12px; font-weight: 600; color: var(--ink-3); }
+  /* NOVÉ: značka AI u rozpracovaného úkolu; nikdy se nezkracuje, výška řádku se nemění */
+  .taskAi { flex-shrink: 0; height: 12px; padding: 0 3px; display: inline-flex; align-items: center; gap: var(--space-2); background: var(--accent); border-radius: var(--radius-xs); color: var(--on-accent); font-size: 9px; font-weight: 700; line-height: 1; }
+  .taskAi[hidden] { display: none; }
+  .progress { height: 22px; border-radius: var(--radius-xs); overflow: hidden; background: var(--track); }
+  .progressFill { height: 100%; background: var(--role); }
+  .state { display: flex; align-items: center; gap: var(--space-4); font-size: 10px; line-height: 12px; font-weight: 600; letter-spacing: 0.8px; text-transform: uppercase; color: var(--ink-3); }
+  .dot { width: 6px; height: 6px; border-radius: var(--radius-pill); background: var(--ink-4); }
 
-  /* ---- Tooltip StatTile (1:1 HelpIcon/StatTile tooltip) ---- */
-  .tipbox { background: var(--ink); color: #fff; font-size: 10.5px; line-height: 1.45; padding: 6px 8px; border-radius: 5px; max-width: 300px; box-shadow: 0 4px 14px rgba(20,20,30,.2); }
-  .tipbox span { display: inline; }
+  /* ---- ukázky ---- */
+  .row8 { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px 8px; }
+  .row8 .it { display: flex; flex-direction: column; gap: 4px; align-items: flex-start; }
+  .texts { display: grid; grid-template-columns: max-content 1fr; gap: 6px 14px; font-size: 11px; align-items: baseline; }
+  .texts code { color: var(--ink-2); }
+  .tipbox { background: var(--surface-bar); color: #fff; font-size: 11px; line-height: 1.5; padding: 8px 10px; border-radius: var(--radius-sm); max-width: 360px; box-shadow: var(--shadow-pop); }
+  .new { outline: 2px dashed color-mix(in srgb, var(--accent) 60%, transparent); outline-offset: 2px; }
+  .hl-off .new { outline: none; }
 </style>
 </head>
 <body>
-<div class="doc show-new" id="doc">
-  <h1>feat-019 AI multiplikátor výkonu – UI mockup</h1>
-  <p class="sub">Schválený návrh ze specu, tokeny 1:1 z <span class="mono">globals.css</span>, karty 1:1 z <span class="mono">MemberCard.tsx</span>. Čárkovaný obrys označuje nový prvek. Klikni na „AI“ u libovolné jednotky a zvol 2× nebo 5× – její progress bar se úměrně zrychlí.</p>
+<div class="doc" id="doc" data-badge="white">
+  <h1>feat-019 AI po skillech · UI mockup</h1>
+  <p class="sub">Karty a chipy podle <span style="color:var(--ink)">MemberCard</span> a <span style="color:var(--ink)">RoleChip</span> s tokeny z <span style="color:var(--ink)">globals.css</span>. Klikni na „AI“ na libovolném chipu (nebo ho vyber tabulátorem a stiskni Enter / mezerník): hodnota se točí 1× → 2× → 5× → 1×. Čárkovaný obrys označuje nový prvek.</p>
 
   <div class="ctrl">
-    <button id="run" class="on" type="button">Pause</button>
-    <button id="hl" class="on" type="button">Zvýraznit nové prvky</button>
-    <button id="clear" type="button">Vrátit všem 1×</button>
+    <span class="grp">Téma <button type="button" data-set="theme" data-v="light" aria-pressed="true">Light</button><button type="button" data-set="theme" data-v="dark" aria-pressed="false">Dark</button></span>
+    <span class="grp">Odznak <button type="button" data-set="badge" data-v="white" aria-pressed="true">A · bílý</button><button type="button" data-set="badge" data-v="accent" aria-pressed="false">B · accent</button></span>
+    <span class="grp">Šířka karty <button type="button" data-set="cw" data-v="145px" aria-pressed="false">145 px</button><button type="button" data-set="cw" data-v="175px" aria-pressed="true">175 px</button><button type="button" data-set="cw" data-v="240px" aria-pressed="false">240 px</button></span>
+    <span class="grp">Výška AI <button type="button" data-set="aih" data-v="12px" aria-pressed="false">12 px</button><button type="button" data-set="aih" data-v="14px" aria-pressed="true">14 px</button></span>
+    <span class="grp"><button type="button" data-set="hl" data-v="toggle" aria-pressed="true">Zvýraznit nové prvky</button></span>
   </div>
 
-  <h2>Team panel (Experimentování i Cash Flow)</h2>
-  <p class="sub">Spodní blok středního sloupce. Preset People, Ben (Backend) má AI 5×, Ada (Frontend) 2×. Režim Srovnání tlačítko AI nemá.</p>
+  <h2>1 · Karty jednotek (Team panel v Experimentování i Cash Flow)</h2>
+  <p class="sub">Anna má AI jen u Development, Petr pracuje na Code Review bez AI (řádek úkolu bez značky). Poslední karta je zátěžový test: dlouhé názvy skillu a featury.</p>
+  <div class="frame"><div class="ugrid" id="grid"></div></div>
+  <p class="note">V horním řádku karty zůstal jen avatar, jméno a křížek jednotky. Tlačítko AI je na každém chipu mezi názvem a křížkem skillu. Značka „⚡ N×“ u rozpracovaného úkolu se ukáže jen tehdy, když skill úkolu má AI.</p>
+
+  <h2>2 · Odznak na všech osmi barvách rolí</h2>
+  <p class="sub">Slouží k výběru varianty A (bílý) nebo B (accent s bílým lemem) a k ověření v obou tématech. Vlevo AI vypnuto, vpravo 2× a 5×.</p>
+  <div class="frame"><div class="row8" id="swatches"></div></div>
+
+  <h2>3 · Texty</h2>
   <div class="frame">
-    <div class="units">
-      <div class="units-h"><h3>Units <span class="mono" style="color:var(--ink-3);font-weight:500">6</span></h3><small>Click <span class="mono" style="color:var(--ink-2)">+</span> to add a specialty</small></div>
-      <div class="ugrid" id="grid"></div>
-      <button class="add" type="button">+ Add member</button>
+    <div class="texts">
+      <span class="cap">Přístupný název</span><span><code>AI speed-up for Development</code> · <code>AI speed-up for Development: 2×</code> · <code>AI speed-up for Development: 5×</code></span>
+      <span class="cap">Tooltip (title)</span><span><code>AI speed-up for Development – click for 2×</code><br><code>AI speed-up for Development: 2× – click for 5×</code><br><code>AI speed-up for Development: 5× – click to turn off</code></span>
+      <span class="cap">Značka u úkolu</span><span><code>⚡ 5×</code> (title: <code>AI speed-up: 5×</code>), blesk je dekorativní</span>
     </div>
   </div>
 
-  <h2>Stavy tlačítka</h2>
-  <p class="sub">Statické ukázky pro TDD fázi. Menu se zavře po výběru volby nebo dalším kliknutím na tlačítko; „off“ se nabízí jen při zapnutém AI.</p>
-  <div class="states" id="states"></div>
-
-  <h2>Tooltip dlaždice Coordination overhead (jen Cash Flow)</h2>
+  <h2>4 · Tooltip dlaždice Coordination overhead (jen Cash Flow)</h2>
   <p class="sub">Výpočet se nemění (varianta A). Na konec stávajícího tooltipu přibude jedna věta.</p>
-  <div class="tipbox">Extra work caused by coordination, relative to feature cycle time: handoff tax (extra work each additional unit pays when it joins a feature) plus rework (progress lost when units understood the feature differently). It is counted in work-seconds across all units, so highly parallel teams can show high values. <span class="new">Units using AI process this extra work faster, so the share can be higher than the time it actually took.</span></div>
+  <div class="tipbox">Extra work caused by coordination, relative to feature cycle time: handoff tax (extra work each additional unit pays when it joins a feature) plus rework (progress lost when units understood the feature differently). It is counted in work-seconds across all units, so highly parallel teams can show high values. <span class="new">Skills using AI process this extra work faster, so the share can be higher than the time it actually took.</span></div>
+
+  <h2>5 · Zjištění pro fázi 4–5</h2>
+  <p class="sub">Název skillu v řádku úkolu je dnes <span style="color:var(--ink)">flex-shrink: 0</span>, takže jméno typu „Infrastructure Engineering“ v úzké kartě přeteče a vytlačí název featury. Mockup to řeší výpustkou u názvu skillu (karta Platform). Je to drobná změna mimo AI, ale značka AI se bez ní nevejde.</p>
 </div>
 
 <script>
-  // Role People presetu (ROLE_META v engine.ts)
-  const ROLES = {
-    FE:   { label: 'Frontend', color: 'oklch(70% 0.14 250)' },
-    BE:   { label: 'Backend',  color: 'oklch(66% 0.14 285)' },
-    DSGN: { label: 'Design',   color: 'oklch(72% 0.13 25)'  },
-    QA:   { label: 'Testing',  color: 'oklch(68% 0.13 145)' },
-    OPS:  { label: 'DevOps',   color: 'oklch(68% 0.13 75)'  },
-    DATA: { label: 'Data',     color: 'oklch(64% 0.14 320)' },
-  };
-  const BOLT = '<svg width="6" height="9" viewBox="0 0 6 9" aria-hidden="true"><path d="M3.6 0 0 5h2.3L1.7 9 6 3.6H3.7L4.4 0z" fill="currentColor"/></svg>';
-
-  const units = [
-    { name: 'Ada',  role: 'FE',   ai: 2, feat: 'F-004 Search',   hue: 200, p: 30 },
-    { name: 'Ben',  role: 'BE',   ai: 5, feat: 'F-002 Checkout', hue: 40,  p: 10 },
-    { name: 'Chen', role: 'DSGN', ai: 1, feat: 'F-007 Profile',  hue: 300, p: 60 },
-    { name: 'Dani', role: 'QA',   ai: 1, feat: null,             hue: 0,   p: 0  },
-    { name: 'Eli',  role: 'OPS',  ai: 1, feat: 'F-002 Checkout', hue: 40,  p: 45 },
-    { name: 'Fae',  role: 'DATA', ai: 1, feat: 'F-005 Reports',  hue: 120, p: 20 },
+  var NEXT = { 1: 2, 2: 5, 5: 1 };
+  var BOLT = '<svg class="bolt" width="8" height="8" viewBox="0 0 10 10" aria-hidden="true"><path d="M6 0 1 6h3l-1 4 5-6H5z" fill="currentColor"/></svg>';
+  // Skilly: [název, barva role, AI]
+  var UNITS = [
+    { n: 'Anna', skills: [['Development', 'blue', 5], ['Code Review', 'green', 1], ['UAT', 'ochre', 1]], work: { f: 'Checkout flow', hue: 250, s: 'Development', pct: 62 } },
+    { n: 'Team B', skills: [['Development', 'blue', 2], ['Testing', 'teal', 1]], state: 'idle' },
+    { n: 'Petr', skills: [['Code Review', 'green', 1], ['UAT', 'ochre', 1]], work: { f: 'Search filters', hue: 150, s: 'Code Review', pct: 35 } },
+    { n: 'Platform', skills: [['Infrastructure Engineering', 'slate', 5], ['Security Review and Compliance', 'violet', 1]], work: { f: 'Single sign-on rollout for partners', hue: 30, s: 'Infrastructure Engineering', pct: 48 } }
   ];
+  var ROLES = ['rose', 'blue', 'brick', 'green', 'ochre', 'teal', 'violet', 'slate'];
 
-  /** HTML tlačítka AI: klidový stav „AI“, vybraný stav modrý odznak s bleskem a hodnotou. */
-  function aiButton(ai, open) {
-    const on = ai > 1;
-    return `<button type="button" class="ai new${on ? ' on' : ''}" data-act="toggle" title="AI speed-up"
-      aria-haspopup="true" aria-expanded="${open}" aria-label="${on ? 'AI speed-up ' + ai + '×' : 'AI speed-up'}">${BOLT}${on ? ai + '×' : 'AI'}</button>`;
+  function label(skill, v) { return 'AI speed-up for ' + skill + (v > 1 ? ': ' + v + '×' : ''); }
+  function tip(skill, v) { var n = NEXT[v]; return label(skill, v) + ' – ' + (n === 1 ? 'click to turn off' : 'click for ' + n + '×'); }
+
+  function chip(skill, role, v) {
+    return '<span class="chip" style="--role:var(--role-' + role + ')"><span class="chipLabel">' + skill + '</span>' +
+      '<button type="button" class="ai new" data-skill="' + skill + '" data-v="' + v + '"></button>' +
+      '<span class="remove" title="Remove skill">×</span></span>';
   }
 
-  /** HTML inline menu voleb 2× / 5× (+ off, když je AI zapnuté). */
-  function aiMenu(ai) {
-    const opt = v => `<button type="button" class="opt${ai === v ? ' on' : ''}" data-act="set" data-v="${v}" role="menuitemradio" aria-checked="${ai === v}">${v}×</button>`;
-    const off = ai > 1 ? `<button type="button" class="opt off" data-act="set" data-v="1" role="menuitemradio" aria-checked="false">off</button>` : '';
-    return `<div class="aimenu new" role="menu" aria-label="AI speed-up">${opt(2)}${opt(5)}${off}</div>`;
+  function card(u) {
+    var chips = u.skills.map(function (s) { return chip(s[0], s[1], s[2]); }).join('');
+    var rolecolor = u.work ? u.skills.filter(function (s) { return s[0] === u.work.s; })[0][1] : 'blue';
+    var task = u.work
+      ? '<div class="taskLine"><span class="swatch" style="--hue:' + u.work.hue + '"></span><span class="taskName">' + u.work.f + '</span><span class="taskRole">' + u.work.s + '</span><span class="taskAi new" hidden></span></div>' +
+        '<div class="progress" style="--role:var(--role-' + rolecolor + ')"><div class="progressFill" style="width:' + u.work.pct + '%"></div></div>'
+      : '<div class="state"><span class="dot"></span>idle</div>';
+    return '<div class="card" data-working="' + (u.work ? u.work.s : '') + '">' +
+      '<div class="top"><div class="avatar">' + u.n.charAt(0) + '</div><div class="name">' + u.n + '</div><span class="mini" title="Remove unit">×</span></div>' +
+      '<div class="roles">' + chips + '<span class="addRole">+</span></div>' +
+      '<div class="task">' + task + '</div></div>';
   }
 
-  /** HTML celé karty jednotky — struktura a styly 1:1 s MemberCard.tsx. */
-  function cardHtml(u, i) {
-    const r = ROLES[u.role];
-    const task = u.feat
-      ? `<div class="task"><i style="background:oklch(70% 0.14 ${u.hue})"></i><span class="mono f">${u.feat}</span><span class="mono rl" style="color:${r.color}">${r.label}</span></div>
-         <div class="bar"><div data-bar="${i}" style="background:${r.color};width:${u.p}%"></div></div>`
-      : `<div class="task" style="color:var(--ink-3);font-style:italic"><i style="width:5px;height:5px;border-radius:50%;background:var(--line-2)"></i>idle</div>`;
-    return `<div class="card" data-i="${i}">
-      <div class="r1"><div class="av">${u.name[0]}</div><input class="nm" value="${u.name}" aria-label="Unit name">${aiButton(u.ai, !!u.open)}<button type="button" class="x" title="Remove unit">×</button></div>
-      ${u.open ? aiMenu(u.ai) : ''}
-      <div class="r2"><span class="chip" style="background:${r.color}">${r.label}<b>×</b></span><button type="button" class="plus">+</button></div>
-      <div class="r3">${task}</div>
-    </div>`;
+  // Vykreslí text, názvy a tooltip tlačítka AI a značku u úkolu podle aktuální hodnoty
+  function paint(btn) {
+    var v = +btn.dataset.v, s = btn.dataset.skill;
+    btn.classList.toggle('on', v > 1);
+    btn.innerHTML = v > 1 ? BOLT + v + '×' : 'AI';
+    btn.setAttribute('aria-label', label(s, v));
+    btn.title = tip(s, v);
+    var c = btn.closest('.card');
+    if (c && c.dataset.working === s) {
+      var mark = c.querySelector('.taskAi');
+      mark.hidden = v === 1;
+      mark.innerHTML = v > 1 ? BOLT + v + '×' : '';
+      mark.title = 'AI speed-up: ' + v + '×';
+    }
   }
 
-  const grid = document.getElementById('grid');
-  function render() { grid.innerHTML = units.map(cardHtml).join(''); }
-  render();
+  function step(btn) { btn.dataset.v = NEXT[+btn.dataset.v]; paint(btn); }
 
-  grid.addEventListener('click', e => {
-    const b = e.target.closest('[data-act]');
-    if (!b) return;
-    const u = units[+b.closest('.card').dataset.i];
-    if (b.dataset.act === 'toggle') u.open = !u.open;
-    else { u.ai = +b.dataset.v; u.open = false; }
-    render();
-    // Po zavření menu vrátit fokus na tlačítko AI (klávesnice)
-    grid.querySelector(`.card[data-i="${units.indexOf(u)}"] .ai`)?.focus();
-  });
-  document.addEventListener('keydown', e => {
-    if (e.key === 'Escape' && units.some(u => u.open)) { units.forEach(u => u.open = false); render(); }
+  document.getElementById('grid').innerHTML = UNITS.map(card).join('');
+  document.getElementById('swatches').innerHTML = ROLES.map(function (r) {
+    return '<div class="it"><span class="cap">role-' + r + '</span><div style="display:flex;gap:6px;flex-wrap:wrap">' +
+      chip('Skill', r, 1) + chip('Skill', r, 2) + chip('Skill', r, 5) + '</div></div>';
+  }).join('');
+
+  document.querySelectorAll('.ai').forEach(function (b) {
+    paint(b);
+    b.addEventListener('click', function () { step(b); });
   });
 
-  // Statické stavy pro TDD fázi
-  const states = [
-    { cap: 'Výchozí stav (1×)', u: { name: 'Ben', role: 'BE', ai: 1, feat: 'F-002 Checkout', hue: 40, p: 40 } },
-    { cap: 'Menu otevřené (1×)', u: { name: 'Ben', role: 'BE', ai: 1, feat: 'F-002 Checkout', hue: 40, p: 40, open: true } },
-    { cap: 'AI 5× vybráno', u: { name: 'Ben', role: 'BE', ai: 5, feat: 'F-002 Checkout', hue: 40, p: 40 } },
-    { cap: 'AI 5× a menu (s volbou off)', u: { name: 'Ben', role: 'BE', ai: 5, feat: 'F-002 Checkout', hue: 40, p: 40, open: true } },
-  ];
-  document.getElementById('states').innerHTML = states.map(s =>
-    `<figure class="state">${cardHtml(s.u, -1).replace('data-bar="-1"', '')}<figcaption>${s.cap}</figcaption></figure>`).join('');
-
-  // Animace postupu práce: rychlost = multiplikátor jednotky
-  const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  let running = !reduce, last = performance.now();
-  const runBtn = document.getElementById('run');
-  function syncRun() { runBtn.textContent = running ? 'Pause' : 'Run'; runBtn.classList.toggle('on', running); }
-  syncRun();
-  runBtn.onclick = () => { running = !running; last = performance.now(); syncRun(); };
-  function loop(t) {
-    const dt = (t - last) / 1000; last = t;
-    if (running) units.forEach((u, i) => {
-      if (!u.feat) return;
-      u.p += dt * 8 * u.ai;
-      if (u.p >= 100) u.p = 0;
-      const el = grid.querySelector(`[data-bar="${i}"]`);
-      if (el) el.style.width = u.p.toFixed(1) + '%';
+  // Ovládání chrome mockupu: téma, varianta odznaku, šířka karty, výška AI, zvýraznění nových prvků
+  var root = document.documentElement, doc = document.getElementById('doc');
+  document.querySelectorAll('.ctrl button').forEach(function (b) {
+    b.addEventListener('click', function () {
+      var k = b.dataset.set, v = b.dataset.v;
+      if (k === 'theme') root.dataset.theme = v;
+      if (k === 'badge') doc.dataset.badge = v;
+      if (k === 'cw') document.getElementById('grid').style.setProperty('--cw', v);
+      if (k === 'aih') doc.style.setProperty('--ai-h', v);
+      if (k === 'hl') { var off = doc.classList.toggle('hl-off'); b.setAttribute('aria-pressed', String(!off)); return; }
+      b.parentNode.querySelectorAll('button').forEach(function (o) { o.setAttribute('aria-pressed', String(o === b)); });
     });
-    requestAnimationFrame(loop);
-  }
-  requestAnimationFrame(loop);
-
-  document.getElementById('hl').onclick = e => {
-    const on = document.getElementById('doc').classList.toggle('show-new');
-    e.currentTarget.classList.toggle('on', on);
-  };
-  document.getElementById('clear').onclick = () => { units.forEach(u => { u.ai = 1; u.open = false; }); render(); };
+  });
 </script>
 </body>
 </html>

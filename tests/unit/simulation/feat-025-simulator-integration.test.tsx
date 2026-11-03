@@ -239,7 +239,7 @@ describe('feat-025 Příklad 5: každý cíl kroku existuje v DOM svého módu',
     }
   })
 
-  it('Advanced: první jednotka, její tlačítko AI a přepínač výchozí sestavy', () => {
+  it('Advanced: první jednotka, tlačítko AI na jejím prvním chipu a přepínač výchozí sestavy', () => {
     seen('compare', 'experiment', 'cashflow')
     render(<Simulator />)
     openMode('Advanced')
@@ -248,7 +248,9 @@ describe('feat-025 Příklad 5: každý cíl kroku existuje v DOM svého módu',
     expect(target('experiment-team-composition')).toContainElement(unit)
     expect(unit).toContainElement(ai)
     expect(ai.tagName).toBe('BUTTON')
-    expect(ai.getAttribute('aria-label')).toMatch(/^AI speed-up/)
+    // Od revize feat-019 (2026-11-03) je AI na chipu skillu: název obsahuje skill a je to první chip první jednotky
+    expect(ai.getAttribute('aria-label')).toMatch(/^AI speed-up for /)
+    expect(within(unit).getAllByRole('button', { name: /^AI speed-up for / })[0]).toBe(ai)
     const preset = target('experiment-unit-preset')
     expect(within(preset).getByRole('button', { name: 'Teams' })).toBeInTheDocument()
     expect(within(preset).getByRole('button', { name: 'People' })).toBeInTheDocument()

@@ -48,7 +48,7 @@ Jako agilní kouč chci přidávat a odebírat členy týmu a měnit jejich spec
 - Then: Karta člena zobrazuje status "no roles"; člen nepřebírá žádné úkoly
 
 ## Out of Scope
-- Nastavení capacity nebo WIP limitu pro jednotlivce (rychlost práce jednotky přes AI multiplikátor 2× / 5× řeší feat-019)
+- Nastavení capacity nebo WIP limitu pro jednotlivce (rychlost práce u jednotlivých skillů jednotky přes AI multiplikátor 2× / 5× řeší feat-019)
 - Přiřazení úkolu ručně (assignment je automatický)
 - Perzistence týmové konfigurace (localStorage nebo server)
 
@@ -64,5 +64,5 @@ Jako agilní kouč chci přidávat a odebírat členy týmu a měnit jejich spec
 —
 
 ## Related Features
-- **feat-019-ai-multiplikator-vykonu:** `MemberCard` dostává v horním řádku vedle křížku malé tlačítko „AI“ s menu 2× / 5× / off a jednotka novou vlastnost `aiMultiplier` (chybějící = 1×). Jednotka s AI odvede za 1 s simulace 2 nebo 5 s práce.
+- **feat-019-ai-multiplikator-vykonu:** chipy skillů na `MemberCard` dostávají malé tlačítko „AI“, které přepíná hodnoty 1× → 2× → 5× → 1× kliknutím (revize 2026-11-03: dříve jedno tlačítko v horním řádku karty pro celou jednotku). Jednotka má novou vlastnost `aiBySkill` (chybějící klíč = 1×). Za 1 s simulace odvede jednotka 2 nebo 5 s práce na úkolu skillu, který má AI.
 - **feat-021-prevod-design-system-org-flow:** barvy rolí se mění na role tokeny design systému podle slotů (Design `role-rose`, Frontend `role-blue`, QA `role-green`…); názvy barev v tabulce výše jsou historické.

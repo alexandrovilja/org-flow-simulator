@@ -1,4 +1,4 @@
-/* Karta člena nebo týmu (feat-021): avatar, jméno, AI a ×, role čipy a právě zpracovávaný task. */
+/* Karta člena nebo týmu (feat-021): avatar, jméno a ×, čipy skillů (s tlačítkem AI, feat-019) a právě zpracovávaný task. */
 .card {
   display: flex;
   flex-direction: column;
@@ -78,44 +78,6 @@
   font-size: 11px;
   line-height: 1;
   cursor: pointer;
-}
-
-/* Tlačítko AI na kartě jednotky (feat-019).
-   Bez AI průhledný čtverec stejné velikosti a rámečku jako křížek pro odebrání jednotky. */
-.aiButton {
-  flex-shrink: 0;
-  width: var(--size-control-sm);
-  height: var(--size-control-sm);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--space-2);
-  padding: 0;
-  background: transparent;
-  border: var(--border-hair) solid var(--line-control);
-  border-radius: var(--radius-xs);
-  color: var(--ink-3);
-  font-family: var(--font-mono);
-  font-size: 10px;
-  font-weight: 600;
-  line-height: 1;
-  cursor: pointer;
-}
-
-/* Zapnuté AI (2× / 5×): plný odznak v barvě accent s bleskem a hodnotou.
-   Stejná výška jako v klidu, šířka podle obsahu. Musí být za .aiButton, aby ji přebila. */
-.aiButtonOn {
-  width: auto;
-  padding: 0 var(--space-4) 0 3px;
-  background: var(--accent);
-  border-color: var(--accent);
-  color: var(--on-accent);
-}
-
-/* Ikona blesku v odznaku — barvu bere z textu tlačítka (currentColor) */
-.boltIcon {
-  display: block;
-  flex-shrink: 0;
 }
 
 .roles {
@@ -203,9 +165,10 @@
   background: oklch(68% 0.13 var(--hue));
 }
 
-/* Styl „code“ */
+/* Styl „code“. Minimální šířka 6 znaků (feat-019): dlouhý název skillu nesmí název featury vytlačit úplně. */
 .taskName {
-  flex: 1;
+  flex: 1 1 0;
+  min-width: 6ch;
   overflow: hidden;
   text-overflow: ellipsis;
   font-family: var(--font-mono);
@@ -214,14 +177,36 @@
   color: var(--ink-2);
 }
 
-/* Styl „micro“ — název role v ink-3 */
+/* Styl „micro“ — název role v ink-3. V úzké kartě se zkrátí výpustkou (feat-019), aby se vedle něj vešla
+   značka AI a zůstal vidět název featury. */
 .taskRole {
-  flex-shrink: 0;
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
   font-family: var(--font-mono);
   font-size: 10px;
   line-height: 12px;
   font-weight: 600;
   color: var(--ink-3);
+}
+
+/* Značka AI u rozpracovaného úkolu (feat-019): jen informace, odznak v barvě accent s bleskem a hodnotou.
+   Nezmenšuje se, výška řádku úkolu zůstává (12 px je menší než řádek 16 px). */
+.taskAi {
+  flex-shrink: 0;
+  height: 12px;
+  padding: 0 3px;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  border-radius: var(--radius-xs);
+  background: var(--accent);
+  color: var(--on-accent);
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 1;
 }
 
 /* Progress bar úkolu — výška je inline (viz MemberCard.tsx), výplň v barvě role (--role) */
