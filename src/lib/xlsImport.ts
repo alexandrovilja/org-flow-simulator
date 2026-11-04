@@ -104,7 +104,8 @@ export function parseRows(rawRows: Record<string, unknown>[]): ImportResult {
     if (seen.has(dedupKey)) continue
     seen.add(dedupKey)
 
-    // Validace velikosti (sloupec Size): kladné číslo nejvýš 999
+    // Validace velikosti (sloupec Size = práce v man-days, feat-027; mapuje se 1:1 na `work` úkolu):
+    // kladné číslo nejvýš 999, desetinná čísla jsou povolená (0.5 = půl dne)
     const size = Number(sizeRaw)
     if (!Number.isFinite(size) || size <= 0 || size > 999) {
       skippedCount++

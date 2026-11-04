@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="cs" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>feat-027 UI mockup – čas v pracovních dnech</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  /* Tokeny 1:1 ze src/app/globals.css (výřez: jen to, co mockup používá) */
+  :root {
+    color-scheme: light;
+    --surface-page: #f3f3f3; --surface-panel: #ffffff; --surface-subtle: #f9f9f9; --surface-bar: #121212;
+    --ink: #121212; --ink-2: #484848; --ink-3: #696969; --ink-4: #989898; --ink-inverse: #ffffff; --ink-on-bar: #dedede;
+    --line: #dbdbdb; --line-2: #e8e8e8; --line-control: #898989; --line-ink: #121212; --line-on-bar: #ffffff2e; --track: #1212120f;
+    --accent: #7a3bf0; --on-accent: #ffffff; --focus: #7a3bf0; --focus-on-bar: #ffe14d;
+    --done: #097f43; --done-soft: #ebf6e6; --on-done: #ffffff;
+    --rework: #b3261e; --rework-soft: #fceceb;
+    --shadow-pop: 0 12px 32px -8px #12121240, 0 2px 6px #1212121f;
+    --space-2: 2px; --space-4: 4px; --space-6: 6px; --space-8: 8px; --space-12: 12px; --space-16: 16px;
+    --radius-none: 0px; --radius-xs: 2px; --radius-sm: 4px; --radius-md: 8px; --radius-lg: 12px; --radius-pill: 999px;
+    --border-hair: 1px; --border-active: 2px;
+    --font-mono: 'JetBrains Mono', ui-monospace, Menlo, monospace;
+  }
+  [data-theme="dark"] {
+    color-scheme: dark;
+    --surface-page: #0f0f0f; --surface-panel: #191919; --surface-subtle: #141414; --surface-bar: #060606;
+    --ink: #eeeeee; --ink-2: #cacaca; --ink-3: #9e9e9e; --ink-4: #696969;
+    --line: #333333; --line-2: #262626; --line-control: #696969; --line-ink: #eeeeee; --track: #ffffff14;
+    --accent: #c0a3fa; --on-accent: #0f0f0f; --focus: #c0a3fa;
+    --done: #5cc48a; --done-soft: #163626; --on-done: #0f0f0f;
+    --rework: #f08a80; --rework-soft: #3a1f24;
+    --shadow-pop: 0 18px 40px #00000080;
+  }
+  * { box-sizing: border-box; font-variant-ligatures: none; }
+  body { margin: 0; background: var(--surface-page); color: var(--ink); font-family: var(--font-mono); font-size: 14px; line-height: 1.5; -webkit-font-smoothing: antialiased; }
+  button { font-family: inherit; font-size: inherit; cursor: pointer; }
+  code { color: var(--ink-2); }
+
+  /* ---- chrome mockupu (není součást návrhu) ---- */
+  .doc { max-width: 960px; margin: 0 auto; padding: 24px 16px 64px; }
+  .doc h1 { font-size: 16px; margin: 0 0 4px; }
+  .doc h2 { font-size: 13px; margin: 36px 0 4px; }
+  .sub { color: var(--ink-2); font-size: 12px; margin: 0 0 10px; max-width: 80ch; }
+  .ctrl { display: flex; flex-wrap: wrap; gap: 8px 18px; align-items: center; font-size: 11px; color: var(--ink-3); margin: 12px 0 4px; }
+  .ctrl .grp { display: inline-flex; gap: 4px; align-items: center; flex-wrap: wrap; }
+  .ctrl button { font-size: 11px; padding: 4px 9px; border-radius: var(--radius-sm); border: 1px solid var(--line-control); background: var(--surface-panel); color: var(--ink); }
+  .ctrl button[aria-pressed="true"] { background: var(--ink); color: var(--surface-page); border-color: var(--ink); }
+  .ctrl input[type=range] { width: 200px; }
+  .frame { border: 1px solid var(--line); border-radius: var(--radius-lg); background: var(--surface-panel); padding: 12px 16px 16px; }
+  .note { font-size: 11px; color: var(--ink-2); margin: 8px 0 0; max-width: 80ch; }
+  .cap { font-size: 10px; color: var(--ink-3); margin: 4px 0 2px; }
+  .cap.bad { color: var(--rework); font-weight: 600; }
+  .cap.ok { color: var(--done); font-weight: 600; }
+  .new { outline: 2px dashed color-mix(in srgb, var(--accent) 60%, transparent); outline-offset: 2px; }
+  .hl-off .new { outline: none; }
+  .over { outline: 2px solid var(--rework); outline-offset: 1px; }
+  .wrap { display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-start; }
+
+  /* ---- StatTile (StatTile.module.css) a dlaždice Compare (ComparePanel.module.css .metric) ---- */
+  .tile { display: flex; flex-direction: column; gap: var(--space-4); min-width: 0; padding: var(--space-8) 10px; background: var(--surface-panel); border: var(--border-hair) solid var(--line); border-radius: var(--radius-md); cursor: help; }
+  .tile.timer { padding: 10px var(--space-12); }
+  .tile.finished { background: var(--done-soft); border-color: var(--done); }
+  .head { display: flex; align-items: center; justify-content: space-between; gap: var(--space-6); }
+  .label { display: inline-flex; align-items: center; gap: var(--space-4); font-size: 10px; line-height: 12px; font-weight: 600; letter-spacing: 0.8px; text-transform: uppercase; color: var(--ink-3); }
+  .complete { font-size: 10px; line-height: 12px; font-weight: 600; letter-spacing: 0.8px; text-transform: uppercase; color: var(--done); }
+  .live { width: 6px; height: 6px; display: inline-block; border-radius: var(--radius-pill); background: var(--accent); animation: pulse 1.2s ease-in-out infinite; }
+  @keyframes pulse { 0%, 100% { opacity: 1 } 50% { opacity: .3 } }
+  @media (prefers-reduced-motion: reduce) { .live { animation: none; } }
+  .val { display: block; font-size: 20px; line-height: 24px; font-weight: 600; font-variant-numeric: tabular-nums; color: var(--ink); }
+  .timer .val { font-size: 28px; line-height: 30px; letter-spacing: -0.6px; }
+  .finished .val { color: var(--done); }
+  /* NOVÉ: číslo velké, jednotka malá — stávající vzor StatTile (.unit), jen s vlastním mezerníkem mezi týdny a dny */
+  .tv { display: inline-flex; align-items: baseline; gap: var(--space-6); white-space: nowrap; }
+  .part { display: inline-flex; align-items: baseline; }
+  .unit { margin-left: var(--space-4); font-size: 11px; line-height: 16px; font-weight: 400; letter-spacing: 0; color: var(--ink-3); }
+  .unit.tight { margin-left: var(--space-2); }
+  .hint { font-size: 11px; line-height: 16px; color: var(--ink-3); }
+  .delta { font-size: 10px; line-height: 12px; font-weight: 600; color: var(--done); }
+  .delta em { font-style: normal; font-weight: 400; color: var(--ink-3); }
+  .dbtn { align-self: flex-start; padding: 0; border: 0; background: none; color: var(--ink-3); font-size: 11px; line-height: 16px; text-decoration: underline; text-underline-offset: 2px; }
+  .details { display: flex; flex-direction: column; gap: var(--space-2); font-size: 11px; line-height: 16px; color: var(--ink-2); }
+
+  /* ---- pravý sloupec Advanced a Cash Flow (ResultsAside.module.css) ---- */
+  .aside { width: 280px; border-left: 1px solid var(--line); background: var(--surface-panel); border-radius: var(--radius-md); border: 1px solid var(--line); }
+  .ph { display: flex; justify-content: space-between; align-items: baseline; padding: 12px 16px 8px; font-size: 11px; font-weight: 700; }
+  .ph span { font-weight: 400; color: var(--ink-3); }
+  .tiles { display: grid; gap: var(--space-6); padding: 0 16px 16px; }
+  .cm { display: grid; gap: var(--space-8); }
+
+  /* ---- Done řádky, karty, odznaky (přibližně; předmětem návrhu je text) ---- */
+  .drow { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--surface-subtle); }
+  .drow .bar { width: 4px; align-self: stretch; border-radius: 2px; }
+  .drow .nm { flex: 1; min-width: 0; font-size: 11px; color: var(--ink-2); font-weight: 600; }
+  .drow .sub2 { font-size: 10px; color: var(--ink-3); font-weight: 400; }
+  .drow .tot { font-size: 12px; font-weight: 700; color: var(--done); }
+  .fc { border: 1px solid var(--line); border-radius: var(--radius-md); padding: 6px 8px; display: flex; flex-direction: column; gap: 6px; background: var(--surface-panel); }
+  .fc-head { display: flex; justify-content: space-between; align-items: center; gap: 6px; font-size: 11px; font-weight: 600; color: var(--ink-2); }
+  .badge { font-size: 10px; color: var(--done); font-weight: 700; }
+  .trk { height: 6px; background: var(--track); border-radius: 3px; display: flex; gap: 2px; overflow: hidden; }
+  .trk i { display: block; background: var(--line-control); opacity: .5; }
+  .lead { font-size: 10px; color: var(--ink-3); padding: 2px 8px 0; }
+  .col { width: 190px; background: var(--surface-subtle); border: 1px solid var(--line-2); padding: 8px; display: flex; flex-direction: column; gap: 6px; }
+  .colh { font-size: 10px; font-weight: 600; letter-spacing: .8px; text-transform: uppercase; color: var(--done); }
+
+  /* ---- sidebar s importem (BacklogSettingsPanel) ---- */
+  .sidebar { width: 320px; border: 1px solid var(--line); background: var(--surface-panel); border-radius: var(--radius-md); }
+  .acc { padding: 10px 16px; font-size: 11px; font-weight: 700; border-bottom: 1px solid var(--line); }
+  .accb { padding: 12px 16px 16px; display: flex; flex-direction: column; gap: 8px; }
+  .row { display: flex; gap: 6px; }
+  .btn { flex: 1; height: 28px; border: 1px solid var(--line-ink); background: var(--surface-panel); color: var(--ink); font-weight: 600; font-size: 11px; border-radius: var(--radius-none); }
+  .btn.ghost { border-color: var(--line-control); font-weight: 400; }
+  .btn.strong { background: var(--ink); color: var(--surface-panel); }
+  .msg { font-size: 11px; line-height: 16px; color: var(--done); }
+
+  /* ---- horní lišta s rychlostí (SegmentedControl, tone bar) ---- */
+  .topbar { position: relative; height: 56px; background: var(--surface-bar); display: flex; align-items: center; justify-content: flex-end; gap: 8px; padding: 0 16px; border-radius: var(--radius-md); margin-bottom: 64px; }
+  .segw { position: relative; }
+  .seg { display: inline-flex; border: 1px solid var(--line-on-bar); }
+  .seg button { height: 28px; padding: 0 10px; border: 0; background: transparent; color: var(--ink-on-bar); font-weight: 600; font-size: 10px; letter-spacing: .8px; }
+  .seg button[aria-pressed="true"] { background: var(--ink-on-bar); color: var(--surface-bar); }
+  .run { height: 36px; padding: 0 16px; border: 0; background: #2b59ff; color: #fff; font-weight: 700; font-size: 11px; }
+  .shint { display: none; position: absolute; top: calc(100% + 6px); left: 0; width: max-content; max-width: 260px; padding: 6px 10px; border-radius: var(--radius-sm); background: var(--surface-bar); color: var(--ink-on-bar); font-size: 11px; line-height: 16px; box-shadow: var(--shadow-pop); border: 1px solid var(--line-on-bar); z-index: 5; }
+  .shint::before { content: ''; position: absolute; top: -4px; left: 12px; width: 8px; height: 8px; background: var(--surface-bar); transform: rotate(45deg); border-left: 1px solid var(--line-on-bar); border-top: 1px solid var(--line-on-bar); }
+  .segw:hover .shint, .segw.pin .shint { display: block; }
+
+  /* ---- tabulka textů ---- */
+  table { border-collapse: collapse; width: 100%; font-size: 11px; }
+  th, td { text-align: left; vertical-align: top; padding: 6px 8px; border-bottom: 1px solid var(--line-2); }
+  th { color: var(--ink-3); font-weight: 600; }
+  td:first-child { white-space: nowrap; color: var(--ink-3); }
+  td.now { color: var(--ink-3); }
+</style>
+</head>
+<body>
+<div class="doc" id="doc">
+  <h1>feat-027 · UI mockup · čas v pracovních dnech</h1>
+  <p class="sub" style="color:var(--done)"><b>Schváleno 2026-11-04:</b> zápis D (plná slova, zkratka w a d jen když se nevejdou), řada metrik v Compare beze změny sloupců. Řady „Návrh: 1.5fr“ níže jsou jen k porovnání a do implementace nejdou.</p>
+  <p class="sub">Dlaždice, řádky a ovládání podle <span style="color:var(--ink)">StatTile</span>, <span style="color:var(--ink)">ComparePanel</span>, <span style="color:var(--ink)">ResultsAside</span> a <span style="color:var(--ink)">SegmentedControl</span> s tokeny z <span style="color:var(--ink)">globals.css</span>. Nový vizuální jazyk nevzniká: mění se jen texty, jednotky a v jednom místě poměr sloupců. Čárkovaný obrys označuje nové nebo změněné prvky, červený plný obrys prvek, který se nevejde. Šířky dostupného místa jsou naměřené v běžící aplikaci (1024 / 1280 / 1440 px), vzhled tlačítek a Done řádků je přibližný.</p>
+
+  <div class="ctrl">
+    <span class="grp">Téma <button type="button" data-set="theme" data-v="light" aria-pressed="true">Light</button><button type="button" data-set="theme" data-v="dark" aria-pressed="false">Dark</button></span>
+    <span class="grp">Stav běhu <button type="button" data-set="run" data-v="idle" aria-pressed="false">Před startem</button><button type="button" data-set="run" data-v="running" aria-pressed="true">Běží</button><button type="button" data-set="run" data-v="finished" aria-pressed="false">Doběhlo</button></span>
+    <span class="grp">Zápis Total Time <button type="button" data-set="style" data-v="A" aria-pressed="false">A · číslo + jednotka</button><button type="button" data-set="style" data-v="B" aria-pressed="false">B · plný řádek</button><button type="button" data-set="style" data-v="C" aria-pressed="false">C · jen zkratka</button><button type="button" data-set="style" data-v="D" aria-pressed="true">D · A, zkratka w/d jen když se nevejde</button></span>
+    <span class="grp"><button type="button" data-set="hl" data-v="toggle" aria-pressed="true">Zvýraznit změny</button></span>
+  </div>
+  <div class="ctrl">
+    <span class="grp">Čas v pracovních dnech <input type="range" id="days" min="0" max="600" step="0.1" value="187.9"> <b id="daysv" style="color:var(--ink)">187.9</b></span>
+    <span class="grp">Předvolby
+      <button type="button" data-days="4.3" aria-pressed="false">4.3</button>
+      <button type="button" data-days="14.3" aria-pressed="false">14.3</button>
+      <button type="button" data-days="49.9" aria-pressed="false">49.9</button>
+      <button type="button" data-days="187.9" aria-pressed="true">187.9</button>
+      <button type="button" data-days="520.4" aria-pressed="false">520.4</button>
+    </span>
+  </div>
+
+  <h2>1 · Total Time v Compare: tři dlaždice v řadě, tři šířky okna</h2>
+  <p class="sub">Největší problém návrhu. Plný text <code>37 weeks 2.9 days</code> ve velikosti hodnoty 20 px potřebuje přes 200 px, dlaždice ale mívá 125 px (okno 1024 px). Nahoře stávající poměr sloupců, dole <code>1.5fr 1fr 1fr</code>, který dá Total Time víc místa na úkor ostatních dvou dlaždic. Pod každou řadou je změřeno, kolik místa text potřebuje a kolik má. Zápis D (výchozí) píše plná slova a na <code>w</code> a <code>d</code> přejde jen u dlaždice, kde se nevejdou.</p>
+  <div class="frame" id="compare"></div>
+
+  <h2>2 · Panel Metrics v Advanced a Cash Flow (pravý sloupec 280 px)</h2>
+  <p class="sub">Total Time je tu široká dlaždice s hodnotou 28 px a dostupným místem 221 px. Total Wait má jednotku <code>man-days</code>, Revenue (time-matched) v rozbaleném detailu ukazuje časy ve stejném zápisu (příklad 12 specu: předchozí běh 187.9 dne, aktuální 164.9 dne).</p>
+  <div class="wrap" id="asides"></div>
+
+  <h2>3 · Done řádky, lead time a odznak výnosu</h2>
+  <p class="sub">Lead time featury je v prostých dnech. Odznak výnosu se mění z <code>/tick</code> na <code>/week</code> (stejná délka textu, žádný dopad na layout). J-curve ukazuje ustálený výnos 2× základ.</p>
+  <div class="wrap" id="done"></div>
+
+  <h2>4 · Náhled křivky výnosu (Cash Flow, Backlog → Revenue curve)</h2>
+  <p class="sub">Tvar křivky se nemění, jen popisek a osa: jednotkou je týden.</p>
+  <div class="frame" style="width:320px" id="curve"></div>
+
+  <h2>5 · Import XLS: nápověda ke sloupci Size</h2>
+  <p class="sub">Jeden řádek 11 px pod tlačítky, ve stylu hintu dlaždic. Při 288 px použitelné šířky sidebaru se vejde na jeden řádek. Zůstane viditelná i po importu, hláška o výsledku se zobrazí pod ní.</p>
+  <div class="wrap" id="import"></div>
+
+  <h2>6 · Přepínač rychlosti: popisek</h2>
+  <p class="sub">Používá stávající plovoucí hint <code>SegmentedControl</code> (prop <code>hint</code>), tedy stejný vzhled jako u přepínače typu týmu. Zobrazí se při najetí na kteroukoli volbu; v mockupu je připnutý.</p>
+  <div class="topbar"><span class="segw pin" id="segw"><span class="seg"><button type="button" aria-pressed="false">0.5×</button><button type="button" aria-pressed="true">1×</button><button type="button" aria-pressed="false">10×</button></span><span class="shint new">1× = 1 working day per second</span></span><button class="run" type="button">▶ RUN</button></div>
+
+  <h2>7 · Texty: dnes a nově</h2>
+  <div class="frame">
+    <table id="texts"></table>
+  </div>
+  <p class="note">Texty tutoriálu jsou návrh. Konečné znění potvrdí fáze 4 spolu s testy tutoriálu (feat-025). Čísla řádků v <code>tutorialSteps.ts</code> jsou k dnešnímu stavu.</p>
+
+  <h2>8 · Zjištění z návrhu pro fáze 4–5</h2>
+  <div class="frame">
+    <p class="note" style="margin-top:0">• <b>Text hodnoty</b> musí zůstat jedním řetězcem <code>37 weeks 2.9 days</code> (mezery uvnitř textu, ne jen jako mezera mezi prvky), aby ho četly čtečky obrazovky a testy (<code>textContent</code>). Vizuální mezeru mezi týdny a dny dělá <code>gap</code>.</p>
+    <p class="note">• <b>Zápis D (zkratka jen při nedostatku místa):</b> komponenta změří, jestli se plná slova vejdou do dlaždice, a když ne, ukáže <code>37w 2.9d</code>. Text je pak <code>37w 2.9d</code>, přístupný název (<code>aria-label</code>) zůstává <code>37 weeks 2.9 days</code>. Rozhodnutí se přepočítá při změně velikosti dlaždice i hodnoty. V testech (jsdom nemá rozměry) se vždy ukážou plná slova.</p>
+    <p class="note">• <b>Compare:</b> dlaždice (<code>MetricTile</code>) nyní skládá hodnotu z jednoho řetězce, takže potřebuje vzor číslo + jednotka jako <code>StatTile</code>. Změna sloupců <code>1.5fr 1fr 1fr</code> v <code>.metrics</code> (<code>ComparePanel.module.css</code>) je s D jen volitelná: odsune zkracování, při 1024 px by se plná slova vešla i pro 3místné týdny.</p>
+    <p class="note">• <b>Nezalamovat:</b> hodnota má <code>white-space: nowrap</code>. Zalomení by při přechodu přes 10 dní (<code>2 weeks 0.0 days</code>) změnilo výšku řady a skočil by layout.</p>
+    <p class="note">• <b>Před startem</b> je Compare <code>—</code>, Advanced a Cash Flow <code>0.0 days</code> (zápis A: <code>0.0</code> + <code>days</code>).</p>
+    <p class="note">• <b>Pod 1024 px</b> jsem šířky neměřil; aplikace se dnes testuje od 1024 px.</p>
+  </div>
+</div>
+
+<script>
+  var S = { theme: 'light', run: 'running', style: 'D', days: 187.9 };
+  var $ = function (id) { return document.getElementById(id); };
+
+  // --- formátování podle specu: dny zkrácené na desetinu, týden = 5 pracovních dnů ---
+  // +1e-6 chrání před chybou plovoucí čárky (jinak by 14.3 mohlo vyjít jako 14.299999 a zobrazit 4.2)
+  function parts(d) { var t = Math.floor(d * 10 + 1e-6); return { w: Math.floor(t / 50), d: (t % 50) / 10 }; }
+  function text(d) { var p = parts(d); return (p.w > 0 ? p.w + (p.w === 1 ? ' week ' : ' weeks ') : '') + p.d.toFixed(1) + ' days'; }
+  function short(d) { var p = parts(d); return (p.w > 0 ? p.w + 'w ' : '') + p.d.toFixed(1) + 'd'; }
+  function unitVal(num, unit) { return '<span class="tv"><span class="part"><span class="num">' + num + '</span><span class="unit"> ' + unit + '</span></span></span>'; }
+  function timeHTML(d) {
+    if (S.style === 'B') return '<span class="tv"><span class="num">' + text(d) + '</span></span>';
+    if (S.style === 'C') return '<span class="tv"><span class="num">' + short(d) + '</span></span>';
+    var p = parts(d);
+    return '<span class="tv">' + (p.w > 0 ? '<span class="part"><span class="num">' + p.w + '</span><span class="unit"> ' + (p.w === 1 ? 'week' : 'weeks') + '</span></span> ' : '') +
+      '<span class="part"><span class="num">' + p.d.toFixed(1) + '</span><span class="unit"> days</span></span></span>';
+  }
+
+  // Zkrácený zápis (zápis D): týdny a dny jako malé w a d, např. 37w 2.9d; použije se jen při nedostatku místa
+  function compactHTML(d) {
+    var p = parts(d);
+    return '<span class="tv">' + (p.w > 0 ? '<span class="part"><span class="num">' + p.w + '</span><span class="unit tight">w</span></span> ' : '') +
+      '<span class="part"><span class="num">' + p.d.toFixed(1) + '</span><span class="unit tight">d</span></span></span>';
+  }
+
+  // Dlaždice; o.timer = Total Time, o.compare = hodnota "—" před startem
+  function tile(o) {
+    var fin = o.timer && S.run === 'finished';
+    var head = '<div class="head"><span class="label">' + o.label + '</span>' +
+      (o.timer ? (fin ? '<span class="complete">✓ Complete</span>' : '<span class="live"></span>') : '') + '</div>';
+    return '<div class="tile' + (o.timer ? ' timer' : '') + (fin ? ' finished' : '') + (o.cls ? ' ' + o.cls : '') + '" title="' + (o.tip || '') + '"' + (o.id ? ' data-measure="' + o.id + '"' : '') + '>' +
+      head + '<span class="val">' + o.value + '</span>' + (o.hint ? '<span class="hint">' + o.hint + '</span>' : '') +
+      (o.delta ? '<span class="delta">' + o.delta + ' <em>vs prev run</em></span>' : '') + (o.extra || '') + '</div>';
+  }
+  function totalTimeValue(compare) {
+    if (S.run === 'idle') return compare ? '<span class="tv"><span class="num">—</span></span>' : ((S.style === 'A' || S.style === 'D') ? unitVal('0.0', 'days') : '<span class="tv"><span class="num">' + (S.style === 'C' ? '0.0d' : '0.0 days') + '</span></span>');
+    return timeHTML(S.days);
+  }
+
+  var COLS = { equal: '1fr 1fr 1fr', wide: '1.5fr 1fr 1fr' };
+  // Šířka vnitřku řady metrik v Compare (3 dlaždice + 2 mezery) naměřená v aplikaci při šířce okna
+  var WIDTHS = [[1024, 457], [1280, 583], [1440, 664]];
+
+  function render() {
+    // 1 · Compare
+    var h = '';
+    ['equal', 'wide'].forEach(function (k) {
+      WIDTHS.forEach(function (w) {
+        h += '<div class="cap">' + (k === 'equal' ? 'Dnes: 1fr 1fr 1fr' : 'Návrh: 1.5fr 1fr 1fr') + ' · okno ' + w[0] + ' px</div>' +
+          '<div class="cm" style="width:' + w[1] + 'px;grid-template-columns:' + COLS[k] + '"' + ' data-w="' + w[0] + '" data-k="' + k + '">' +
+          tile({ label: 'Total Time', value: totalTimeValue(true), id: 'tt', cls: k === 'wide' ? 'new' : '', tip: 'Elapsed working time (1 week = 5 working days). Stops when the last backlog item is done.' }) +
+          tile({ label: 'Avg Cycle Time', value: S.run === 'idle' ? '<span class="tv"><span class="num">—</span></span>' : unitVal('24.1', 'days'), tip: 'Mean working days from work start to completion (excludes backlog wait).' }) +
+          tile({ label: 'Avg WIP', value: S.run === 'idle' ? '<span class="tv"><span class="num">—</span></span>' : '<span class="tv"><span class="num">4.2</span></span>' }) +
+          '</div><div class="cap" data-report="' + w[0] + k + '"></div>';
+      });
+    });
+    $('compare').innerHTML = h;
+
+    // 2 · asides
+    var tt = tile({ label: 'Total Time', value: totalTimeValue(false), timer: true, wide: true, id: 'tt', cls: 'new', tip: 'Elapsed working time. 1 week = 5 working days.' });
+    var idle = S.run === 'idle';
+    var adv = '<div class="aside"><div class="ph">Metrics <span>' + (idle ? '0' : '100') + ' features sampled</span></div><div class="tiles">' + tt +
+      tile({ label: 'Avg Cycle Time', value: idle ? '<span class="tv"><span class="num">—</span></span>' : unitVal('9.1', 'days'), cls: 'new', tip: 'Mean working days from work start to delivery.' }) +
+      tile({ label: 'Avg WIP', value: idle ? '—' : '4.2' }) +
+      tile({ label: 'Total Wait', value: idle ? '—' : unitVal('117.3', 'man-days'), cls: 'new', tip: 'Total idle time across all units with skills, in man-days: one unit waiting one working day counts as 1. It can exceed Total Time.' }) +
+      tile({ label: 'Avg Handoffs', value: idle ? '—' : '1.4' }) + '</div></div>';
+    var cf = '<div class="aside"><div class="ph">Metrics <span>' + (idle ? '0' : '100') + ' features sampled</span></div><div class="tiles">' + tt +
+      tile({ label: 'Avg Cycle Time', value: idle ? '—' : unitVal('9.1', 'days'), cls: 'new' }) +
+      tile({ label: 'Avg WIP', value: idle ? '—' : '4.2' }) +
+      tile({ label: 'Revenue (time-matched)', value: '<span class="tv"><span class="num">€9.5k</span></span>', hint: '@ ' + text(164.9), delta: '↑ 12%', cls: 'new',
+        extra: '<button class="dbtn" type="button">Details ▴</button><div class="details new"><div>Total €9.5k in ' + text(164.9) + '</div><div>Previous run @ ' + text(164.9) + ': €8.5k</div><div>Previous total €10.1k in ' + text(187.9) + '</div></div>' }) + '</div></div>';
+    $('asides').innerHTML = '<div><div class="cap">Advanced</div>' + adv + '</div><div><div class="cap">Cash Flow</div>' + cf + '</div>';
+
+    // 3 · Done
+    $('done').innerHTML =
+      '<div><div class="cap">Compare · sloupec Done</div><div class="col"><div class="colh">Done · 3</div>' +
+        ['F-001 Login flow', 'F-002 Search filters'].map(function (n, i) { return '<div><div class="fc"><div class="fc-head"><span>' + n + '</span></div><div class="trk"><i style="width:30%"></i><i style="width:40%"></i><i style="width:30%"></i></div></div><div class="lead new">' + ['12.4', '9.8'][i] + ' days</div></div>'; }).join('') + '</div></div>' +
+      '<div><div class="cap">Advanced · řádek Done</div><div style="width:248px;display:flex;flex-direction:column;gap:6px">' +
+        '<div class="drow"><span class="bar" style="background:oklch(60% 0.14 250)"></span><div class="nm">F-001 Login flow<div class="sub2">3 tasks</div></div><span class="tot new">12.4 days</span></div>' +
+        '<div class="drow"><span class="bar" style="background:oklch(60% 0.14 150)"></span><div class="nm">F-002 Search filters<div class="sub2">4 tasks</div></div><span class="tot new">9.8 days</span></div></div></div>' +
+      '<div><div class="cap">Cash Flow · Backlog karta a Done řádek</div><div style="width:248px;display:flex;flex-direction:column;gap:6px">' +
+        '<div class="fc"><div class="fc-head"><span>F-014 Dark mode</span><span class="badge new">€400/week</span></div><div class="trk"><i style="width:40%"></i><i style="width:60%"></i></div></div>' +
+        '<div class="fc"><div class="fc-head"><span>F-015 Billing portal (J-curve)</span><span class="badge new">€800/week</span></div><div class="trk"><i style="width:50%"></i><i style="width:50%"></i></div></div>' +
+        '<div class="drow"><span class="bar" style="background:oklch(60% 0.14 300)"></span><div class="nm">F-003 Export CSV<div class="sub2 new">€400/week</div></div><span class="tot">€1.2k</span></div></div></div>';
+
+    // 4 · křivka (J-curve z engine.ts: start 0.2, plató 2, střed 6.5, strmost 0.9; osa X = týdny)
+    var pts = [], i;
+    for (i = 0; i <= 16; i++) { var m = 0.2 + 1.8 / (1 + Math.exp(-0.9 * (i - 6.5))); pts.push((i / 16 * 250).toFixed(1) + ',' + (42 - m / 2.2 * 38).toFixed(1)); }
+    $('curve').innerHTML = '<svg viewBox="0 0 250 46" width="100%" style="display:block;overflow:visible"><line x1="0" x2="250" y1="' + (42 - 1 / 2.2 * 38).toFixed(1) + '" y2="' + (42 - 1 / 2.2 * 38).toFixed(1) + '" stroke="var(--ink-3)" stroke-width=".7" stroke-dasharray="2 2"/><polyline points="' + pts.join(' ') + '" fill="none" stroke="var(--done)" stroke-width="1.8"/><text x="2" y="' + (40 - 1 / 2.2 * 38).toFixed(1) + '" font-size="8" fill="var(--ink-3)" font-family="var(--font-mono)">Flat level</text></svg>' +
+      '<div class="cap new" style="font-size:10px;margin-top:2px;display:inline-block">Revenue per week after delivery · 0–16 weeks · plateau 2× Flat</div>';
+
+    // 5 · import
+    function imp(withMsg) {
+      return '<div><div class="cap">' + (withMsg ? 'Po importu' : 'Výchozí stav') + '</div><div class="sidebar"><div class="acc">Backlog ▾</div><div class="accb"><div class="row"><button class="btn" type="button">↑ Import XLS</button><button class="btn ghost" type="button">↓ Template</button></div>' +
+        '<div class="hint new" data-measure="hint">Size = effort in working days (man-days)</div>' + (withMsg ? '<div class="msg">✓ Imported 8 features, 18 tasks, 2 units.</div>' : '') +
+        '<button class="btn strong" type="button">Generate new backlog</button></div></div></div>';
+    }
+    $('import').innerHTML = imp(false) + imp(true);
+
+    // 7 · texty
+    var rows = [
+      ['Total Time (Compare)', 'Elapsed simulation time. Stops when the last backlog item is done.', 'Elapsed working time (1 week = 5 working days). Stops when the last backlog item is done.'],
+      ['Total Time (Advanced, Cash Flow)', 'Elapsed simulation time.', 'Elapsed working time. 1 week = 5 working days.'],
+      ['Avg Cycle Time', 'Mean time from work start to completion (excludes backlog wait).', 'Mean working days from work start to completion (excludes backlog wait).'],
+      ['Total Wait', 'Total idle time across all units with roles.', 'Total idle time across all units with skills, in man-days: one unit waiting one working day counts as 1. It can exceed Total Time.'],
+      ['Coordination overhead', '… counted in work-seconds across all units …', '… counted in man-days of work across all units …'],
+      ['Rychlost (hint)', '—', '1× = 1 working day per second'],
+      ['Import XLS (nápověda)', '—', 'Size = effort in working days (man-days)'],
+      ['Total Time (zkrácený zápis)', '—', 'Vidět 37w 2.9d; čtečky obrazovky (aria-label) a testy dostanou plná slova: 37 weeks 2.9 days'],
+      ['Tutoriál · výsledky (řádek 162)', 'Total Time: until the last feature is done.', 'Total Time: working time until the last feature is done, in weeks and days.'],
+      ['Tutoriál · Done (řádky 153, 310)', 'The number under each one is its lead time: from entering the backlog to done.', 'The number under each one is its lead time in working days: from entering the backlog to done.'],
+      ['Tutoriál · výnos (řádek 351)', '… what it earns per tick — every 3 s of simulation time — once delivered.', '… what it earns per week — every 5 working days — once delivered.'],
+      ['Tutoriál · rychlost (řádky 36, 182)', 'Change the speed (0.5×, 1×, 10×) at any time.', 'Change the speed (0.5×, 1×, 10×) at any time. 1× is one working day per second.']
+    ];
+    $('texts').innerHTML = '<tr><th>Kde</th><th>Dnes</th><th>Nově</th></tr>' + rows.map(function (r) { return '<tr><td>' + r[0] + '</td><td class="now">' + r[1] + '</td><td>' + r[2] + '</td></tr>'; }).join('');
+
+    measure();
+  }
+
+  // Změří, jestli se hodnota vejde: .tv má přirozenou šířku, .val je dostupné místo dlaždice
+  function measure() {
+    document.querySelectorAll('[data-measure]').forEach(function (t) {
+      var v = t.querySelector('.val'), tv = t.querySelector('.tv'), need, have;
+      t.dataset.compact = ''; t.dataset.full = '';
+      if (t.dataset.measure === 'hint') { need = t.scrollWidth; have = t.clientWidth; }
+      else {
+        need = tv.getBoundingClientRect().width; have = v.clientWidth;
+        // Zápis D: když se plná slova nevejdou, hodnota se zkrátí na w a d; čtečky dál dostanou plný text
+        if (S.style === 'D' && t.dataset.measure === 'tt' && S.run !== 'idle' && need > have + 0.5) {
+          t.dataset.full = Math.round(need);
+          v.innerHTML = compactHTML(S.days); v.setAttribute('aria-label', text(S.days)); t.dataset.compact = '1';
+          need = v.querySelector('.tv').getBoundingClientRect().width;
+        }
+      }
+      var over = need > have + 0.5;
+      t.classList.toggle('over', over);
+      t.dataset.need = Math.round(need); t.dataset.have = Math.round(have);
+    });
+    document.querySelectorAll('.cm').forEach(function (cm) {
+      var t = cm.querySelector('[data-measure="tt"]'), cap = cm.nextElementSibling;
+      var over = t.classList.contains('over'), diff = +t.dataset.need - +t.dataset.have;
+      cap.className = 'cap ' + (over ? 'bad' : 'ok');
+      cap.textContent = t.dataset.compact
+        ? 'Total Time: plná slova by potřebovala ' + t.dataset.full + ' px, k dispozici ' + t.dataset.have + ' px → zkráceno na w a d (' + t.dataset.need + ' px)'
+        : 'Total Time: potřeba ' + t.dataset.need + ' px, k dispozici ' + t.dataset.have + ' px · ' + (over ? 'přetéká o ' + diff + ' px' : 'vejde se (rezerva ' + (-diff) + ' px)');
+    });
+    var a = document.querySelector('.aside [data-measure="tt"]');
+    if (a) a.title = 'potřeba ' + a.dataset.need + ' px, k dispozici ' + a.dataset.have + ' px';
+  }
+
+  // --- ovládání chrome mockupu ---
+  var root = document.documentElement, doc = $('doc');
+  document.querySelectorAll('.ctrl button[data-set]').forEach(function (b) {
+    b.addEventListener('click', function () {
+      var k = b.dataset.set, v = b.dataset.v;
+      if (k === 'hl') { var off = doc.classList.toggle('hl-off'); b.setAttribute('aria-pressed', String(!off)); return; }
+      if (k === 'theme') { S.theme = v; root.dataset.theme = v; } else { S[k] = v; }
+      b.parentNode.querySelectorAll('button').forEach(function (o) { o.setAttribute('aria-pressed', String(o === b)); });
+      render();
+    });
+  });
+  function setDays(v) {
+    S.days = +v; $('days').value = v; $('daysv').textContent = (+v).toFixed(1) + ' = ' + text(+v);
+    document.querySelectorAll('[data-days]').forEach(function (o) { o.setAttribute('aria-pressed', String(+o.dataset.days === +v)); });
+    render();
+  }
+  $('days').addEventListener('input', function () { setDays(this.value); });
+  document.querySelectorAll('[data-days]').forEach(function (b) { b.addEventListener('click', function () { setDays(b.dataset.days); }); });
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(measure);
+  setDays(187.9);
+</script>
+</body>
+</html>

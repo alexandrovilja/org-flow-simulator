@@ -146,9 +146,14 @@ let nextTaskId = 1
  *  Priorita se nemění po celou dobu simulace, i když feature přejde do inProgress. */
 let nextPriority = 1
 
-/** Interval mezi revenue ticky v simulačních sekundách (Cash Flow mód, feat-015).
+/** Počet pracovních dnů v jednom pracovním týdnu (feat-027). Simulační čas se čte v pracovních dnech
+ *  (1 simulační sekunda = 1 pracovní den), proto týden = 5 dnů; nastavitelný není. */
+export const WORKING_DAYS_PER_WEEK = 5
+
+/** Interval mezi revenue ticky v pracovních dnech (Cash Flow mód, feat-015): jeden pracovní týden (feat-027,
+ *  dřív 3 s). Název s „SEC“ zůstává, interní názvy se nepřejmenovávají (feat-010).
  *  Použit v `tick()` pro periodické připočítávání výnosu k Done features. */
-export const REVENUE_TICK_INTERVAL_SEC = 3
+export const REVENUE_TICK_INTERVAL_SEC = WORKING_DAYS_PER_WEEK
 
 // Parametry Gaussova rozdělení pro generování revenuePerTick — viz feat-015 Příklad 2.
 const REVENUE_MEAN = 140
@@ -158,7 +163,7 @@ const REVENUE_MIN = 15
 // --- Tvar výnosu v čase (feat-017) ---
 // Konstanty jsou ILUSTRATIVNÍ (tvar křivek vychází z literatury, parametry z ní kalibrované nejsou —
 // viz sekce Research Basis ve features/feat-017-rozlozeni-vynosu-v-case.md). Časová osa je v ticích
-// (1 tik = REVENUE_TICK_INTERVAL_SEC), tedy zhuštěná tak, aby se tvar projevil v běhu dlouhém desítky sekund.
+// (1 tik = REVENUE_TICK_INTERVAL_SEC = 1 pracovní týden), takže se tvar projeví v běhu dlouhém desítky týdnů.
 
 /** Bassův koeficient inovace p: podíl „inovátorů“, kteří featuru začnou používat sami od sebe. */
 const BASS_P = 0.05
@@ -401,7 +406,7 @@ function makeFeature(
     .map((role, i) => ({ role, count: counts[i], level: roleConfig[role].level }))
     .sort((a, b) => a.level - b.level)
 
-  // Vytvoříme jednotlivé úkoly s náhodnou pracností 0.8–2.2 simulačních sekund
+  // Vytvoříme jednotlivé úkoly s náhodnou pracností 0.8–2.2 man-days
   const tasks: Task[] = []
   for (const { role, count } of sortedRoles) {
     for (let i = 0; i < count; i++) {
@@ -842,7 +847,7 @@ export function resetTaskProgress(f: Feature, t: Task): void {
  * jednotky na featuru (tax a kostka rozporu — viz applyCoordinationOverhead).
  *
  * @param state      - Aktuální stav simulace (mutován in-place)
- * @param dtSim      - Délka tohoto ticku v simulačních sekundách
+ * @param dtSim      - Délka tohoto ticku v pracovních dnech (1 simulační sekunda = 1 pracovní den)
  * @param settings   - Konfigurace simulace
  * @param rng        - Seeded RNG pro případné doplnění backlogu (coordination overhead ho nepoužívá)
  * @param roleConfig - Konfigurace specializací (level, required); výchozí = ROLE_META

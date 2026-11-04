@@ -27,11 +27,14 @@ describe('feat-022: LeadTimeChart', () => {
 
   it('s daty vykreslí popisky os a referenční čáry avg a p85', () => {
     render(<LeadTimeChart leadTimes={leadTimes} stats={stats()} />)
-    expect(screen.getByText('0s')).toBeInTheDocument()
+    // feat-027: čas v pracovních dnech — osa „d“ (úzké místo), referenční čáry a body celým „days“
+    expect(screen.getByText('0d')).toBeInTheDocument()
     expect(screen.getByText('oldest')).toBeInTheDocument()
     expect(screen.getByText('newest')).toBeInTheDocument()
-    expect(screen.getByText('avg 4.0s')).toBeInTheDocument()
-    expect(screen.getByText('p85 5.5s')).toBeInTheDocument()
+    expect(screen.getByText('avg 4.0 days')).toBeInTheDocument()
+    expect(screen.getByText('p85 5.5 days')).toBeInTheDocument()
+    expect(screen.getByTitle(/· 2\.0 days$/)).toBeInTheDocument()
+    expect(screen.queryByText(/\d s$|\ds$/)).toBeNull()
   })
 
   it('okraje grafu předává jako CSS proměnné, ne jako inline padding', () => {

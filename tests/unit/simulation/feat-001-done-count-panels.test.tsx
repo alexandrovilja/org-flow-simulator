@@ -57,7 +57,7 @@ describe('feat-001 Příklad 6: hlavička Done v panelech', () => {
       <CashFlowPanel
         state={state}
         stats={computeStats(state.leadTimes)}
-        totalTimeDisplay="00:00.0"
+        totalTimeDisplay="0.0 days"
         avgWip={null}
         revenueComparison={{ value: 0, currentTotal: { revenue: 0, time: state.simTime } }}
       />,

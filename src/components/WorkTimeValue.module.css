@@ -1,0 +1,16 @@
+/* Čas v pracovních týdnech a dnech (feat-027): číslo velké (písmo dědí z dlaždice), jednotka malá. */
+
+/* Blokový prvek přes celou šířku dlaždice: podle jeho přetečení se rozhoduje o zkratce „w“ / „d“.
+   Zalamování je zakázané, hodnota je vždy na jednom řádku. */
+.root {
+  display: block;
+  min-width: 0;
+  white-space: nowrap;
+}
+
+/* Týdny a dny vedle sebe, na společné účaří; mezera mezi nimi jako u hodnoty s jednotkou ve StatTile */
+.parts {
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--space-6);
+}

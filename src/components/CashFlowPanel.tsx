@@ -5,7 +5,7 @@ import { ResultsAside } from '@/components/ResultsAside'
 import { CoordinationChips } from '@/components/CoordinationChips'
 import { DoneRow } from '@/components/DoneRow'
 import { formatEuro } from '@/lib/formatCurrency'
-import { formatTime } from '@/lib/formatTime'
+import { formatDaysValue, formatTime } from '@/lib/formatTime'
 import { formatPercent } from '@/lib/formatPercent'
 import type { RevenueComparison } from '@/lib/revenueComparison'
 import styles from './CashFlowPanel.module.css'
@@ -17,8 +17,8 @@ interface CashFlowPanelProps {
   state: SimState
   /** Předpočítané statistiky z leadTimes (memoizované v Simulator.tsx). */
   stats: SimStats
-  /** Naformátovaný Total Time text (formatTime nebo "00:00.0"). */
-  totalTimeDisplay: string
+  /** Hodnota dlaždice Total Time: `WorkTimeValue` s časem v pracovních týdnech a dnech (feat-027). */
+  totalTimeDisplay: React.ReactNode
   /** Průměrný WIP (Little's Law) — null dokud simulace neběžela dost dlouho. */
   avgWip: number | null
   /** Delty vs. poslední přirozeně dokončený běh (stejný mechanismus jako Advanced mód). */
@@ -42,7 +42,7 @@ interface CashFlowPanelProps {
  *
  * @param state - Aktuální SimState Cash Flow simulace
  * @param stats - Statistiky cyklu (počítané v Simulator.tsx přes computeStats)
- * @param totalTimeDisplay - Naformátovaný celkový čas
+ * @param totalTimeDisplay - Hodnota dlaždice Total Time (čas v týdnech a dnech)
  * @param avgWip - Průměrný WIP
  * @param timeDelta - % rozdíl Total Time vs. předchozí dokončený běh
  * @param ltDelta - % rozdíl Avg Cycle Time vs. předchozí dokončený běh
@@ -85,8 +85,8 @@ export function CashFlowPanel({
       // Cíle kroků prohlídky Cash Flow (feat-025)
       tutorialTargets={{ metrics: 'cashflow-results', done: 'cashflow-done' }}
       tiles={<>
-        <StatTile label="Total Time" value={totalTimeDisplay} variant="timer" finished={state.finished} wide tooltip="Elapsed simulation time." delta={timeDelta} />
-        <StatTile label="Avg Cycle Time" value={stats.count ? stats.avg.toFixed(1) : '—'} unit={stats.count ? 's' : undefined} tooltip="Mean cycle time across all completed features (from work start to delivery)." delta={ltDelta} />
+        <StatTile label="Total Time" value={totalTimeDisplay} variant="timer" finished={state.finished} wide tooltip="Elapsed time in working days (5 working days = 1 week)." delta={timeDelta} />
+        <StatTile label="Avg Cycle Time" value={stats.count ? formatDaysValue(stats.avg) : '—'} unit={stats.count ? 'days' : undefined} tooltip="Mean cycle time in working days across all completed features (from work start to delivery)." delta={ltDelta} />
         <StatTile label="Avg WIP" value={avgWip !== null ? avgWip.toFixed(1) : '—'} tooltip="Average Work In Progress — lower usually means lower cycle time (Little's Law)." delta={wipDelta} />
         <StatTile
           key={runEpoch}
@@ -114,7 +114,7 @@ export function CashFlowPanel({
             label="Coordination overhead"
             value={stats.count ? formatPercent(stats.coordinationPct) : '—'}
             unit={stats.count ? '% of cycle time' : undefined}
-            tooltip="Extra work caused by coordination, relative to feature cycle time: handoff tax (extra work each additional unit pays when it joins a feature) plus rework (progress lost when units understood the feature differently). It is counted in work-seconds across all units, so highly parallel teams can show high values. Skills using AI process this extra work faster, so the share can be higher than the time it actually took."
+            tooltip="Extra work caused by coordination, relative to feature cycle time: handoff tax (extra work each additional unit pays when it joins a feature) plus rework (progress lost when units understood the feature differently). It is counted in man-days of work across all units, so highly parallel teams can show high values. Skills using AI process this extra work faster, so the share can be higher than the time it actually took."
             delta={coordinationDelta}
           >
             {stats.count > 0 && (
@@ -143,8 +143,8 @@ export function CashFlowPanel({
           hue={f.hue}
           name={f.name}
           detail={<>
-            {/* Ustálený výnos (feat-017) — stejné číslo jako badge v Backlogu; pulse vpravo ukazuje skutečný přírůstek ticku */}
-            {formatEuro(plateauRevenuePerTick(f))}/tick
+            {/* Ustálený výnos za týden (feat-017, feat-027) — stejné číslo jako badge v Backlogu; pulse vpravo ukazuje skutečný přírůstek ticku */}
+            {formatEuro(plateauRevenuePerTick(f))}/week
             {/* Čipy coordination overhead (feat-016) — v Done listu bez pulse, událost už nevzniká */}
             {showCoordination && <CoordinationChips joins={f.joinCount} reworks={f.reworkCount} />}
           </>}

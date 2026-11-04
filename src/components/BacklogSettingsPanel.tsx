@@ -186,6 +186,9 @@ export function BacklogSettingsPanel({
                 </Button>
               </div>
 
+              {/* Jednotka sloupce Size (feat-027): jeho název zůstává, aby se nerozbily existující soubory */}
+              <div className={styles.importHint}>Size = effort in working days (man-days)</div>
+
               {importMsg && (
                 <div className={`${styles.importMsg} ${importMsg.ok ? styles.importOk : styles.importError}`}>
                   {importMsg.ok ? '✓' : '×'} {importMsg.text}

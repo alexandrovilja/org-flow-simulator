@@ -324,13 +324,16 @@ describe('feat-016 regrese: stávající backlogy a WIP režimy se nemění', ()
     return state
   }
 
-  // Reduce WIP: referenční hodnoty spočítal původní engine (main, před revizí 2) i nový — shodují se
+  // Reduce WIP: referenční hodnoty spočítal původní engine (main, před revizí 2) i nový — shodují se.
+  // feat-027: tik výnosu 3 → 5 dní mění jen součty výnosů (3. sloupec); simTime a otisk lead timů
+  // zůstaly stejné, protože tik výnosu časování práce neovlivňuje. Dřívější součty (tik 3):
+  // 10600, 20580, 5980, 19480.
   it.each([
-    ['reduce-wip', 'silo', '18.1500', '10600.00', 'fa3edff7'],
-    ['reduce-wip', 3, '30.2000', '20580.00', '6627465f'],
+    ['reduce-wip', 'silo', '18.1500', '5180.00', 'fa3edff7'],
+    ['reduce-wip', 3, '30.2000', '11440.00', '6627465f'],
     // Min units vznikl až v revizi 2 — otisky níže jsou snímek aktuálního enginu (ochrana proti nechtěné změně řazení)
-    ['min-units', 'silo', '18.1500', '5980.00', 'd93f97bd'],
-    ['min-units', 3, '30.2000', '19480.00', '4a158625'],
+    ['min-units', 'silo', '18.1500', '2990.00', 'd93f97bd'],
+    ['min-units', 3, '30.2000', '10560.00', '4a158625'],
   ] as const)('%s, tým %s: běh bez overheadu je shodný s referencí před revizí', (wipMode, units, simTime, revenue, leadTimes) => {
     const state = runManual(wipMode, units)
     expect(state.simTime.toFixed(4)).toBe(simTime)

@@ -78,3 +78,4 @@ Jako agilní kouč chci spustit animovanou simulaci průtoku backlogu týmem, ab
 
 ## Related Features
 - **feat-024-zpetna-vazba-uzivatelu (rozpracováno):** otevření dialogu zpětné vazby pozastaví běžící simulaci stejně jako „❙❙ Pause“ (tlačítko ukáže „▶ Run“, simulace pak pokračuje od stejného bodu); chování tlačítka běhu se nemění.
+- **feat-027-cas-simulace-pracovni-dny:** simulační čas se čte jako pracovní čas (1 s = 1 pracovní den, 5 dní = týden); přepínač rychlosti 0.5× / 1× / 10× dostane popisek „1× = 1 working day per second“, jinak beze změny.

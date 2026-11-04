@@ -20,7 +20,8 @@ import { BacklogSettingsPanel } from '@/components/BacklogSettingsPanel'
 import { InProgressTeamPanel } from '@/components/InProgressTeamPanel'
 import { useCashFlowSimSetup } from '@/hooks/useCashFlowSimSetup'
 import { useSimSpeed } from '@/hooks/useSimSpeed'
-import { formatTime } from '@/lib/formatTime'
+import { formatDays, formatDaysValue } from '@/lib/formatTime'
+import { WorkTimeValue } from '@/components/WorkTimeValue'
 import { formatEuro } from '@/lib/formatCurrency'
 import { computeRevenueComparison } from '@/lib/revenueComparison'
 import { featureMaxWork } from '@/lib/featureSize'
@@ -640,7 +641,9 @@ export function Simulator() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [s.leadTimes.length, s.leadTimes[s.leadTimes.length - 1]?.id],
   )
-  const totalTimeDisplay = s.simTime > 0 || s.finished ? formatTime(s.simTime) : '00:00.0'
+  // Total Time v pracovních týdnech a dnech (feat-027); před spuštěním je simTime 0, takže ukáže „0.0 days“
+  const totalTimeDisplay = <WorkTimeValue days={s.simTime} />
+  // Průměrné WIP se počítá až od půl pracovního dne běhu, dřív by hodnota příliš kolísala
   const avgWip           = s.simTime > 0.5 ? s.wipIntegral / s.simTime : null
 
   const calcDelta = (current: number | null, previous: number): number | undefined => {
@@ -662,7 +665,7 @@ export function Simulator() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [cfState.leadTimes.length, cfState.leadTimes[cfState.leadTimes.length - 1]?.id],
   )
-  const cfTotalTimeDisplay = cfState.simTime > 0 || cfState.finished ? formatTime(cfState.simTime) : '00:00.0'
+  const cfTotalTimeDisplay = <WorkTimeValue days={cfState.simTime} />
   const cfAvgWip = cfState.simTime > 0.5 ? cfState.wipIntegral / cfState.simTime : null
   const cfLtDelta = cashFlowPrevStats && cfStats.count > 0 ? calcDelta(cfStats.avg, cashFlowPrevStats.avgLt) : undefined
   const cfWipDelta = cashFlowPrevStats && cfAvgWip !== null ? calcDelta(cfAvgWip, cashFlowPrevStats.avgWip) : undefined
@@ -1017,8 +1020,8 @@ export function Simulator() {
           handleAddRole={cf.handleAddRole}
           handleDeleteRole={cf.handleDeleteRole}
           tutorialTargetPrefix="cashflow"
-          // Badge ukazuje ustálený výnos (feat-017), ke kterému zvolená křivka dospěje
-          getRevenueBadge={f => `${formatEuro(plateauRevenuePerTick(f))}/tick`}
+          // Badge ukazuje ustálený výnos za týden (feat-017, feat-027), ke kterému zvolená křivka dospěje
+          getRevenueBadge={f => `${formatEuro(plateauRevenuePerTick(f))}/week`}
           coordinationOverhead={cf.coordinationOverhead}
           setCoordinationOverhead={cf.setCoordinationOverhead}
           coordinationOverheadLocked={cashFlowHasStarted}
@@ -1120,10 +1123,10 @@ export function Simulator() {
         isEmpty={s.done.length === 0}
         tutorialTargets={{ aside: 'experiment-chart', metrics: 'experiment-results', done: 'experiment-done' }}
         tiles={<>
-          <StatTile label="Total Time" value={totalTimeDisplay} variant="timer" finished={s.finished} wide tooltip="Elapsed simulation time." delta={timeDelta} />
-          <StatTile label="Avg Cycle Time" value={stats.count ? stats.avg.toFixed(1) : '—'} unit={stats.count ? 's' : undefined} tooltip="Mean cycle time across all completed features (from work start to delivery)." delta={ltDelta} />
+          <StatTile label="Total Time" value={totalTimeDisplay} variant="timer" finished={s.finished} wide tooltip="Elapsed time in working days (5 working days = 1 week)." delta={timeDelta} />
+          <StatTile label="Avg Cycle Time" value={stats.count ? formatDaysValue(stats.avg) : '—'} unit={stats.count ? 'days' : undefined} tooltip="Mean cycle time in working days across all completed features (from work start to delivery)." delta={ltDelta} />
           <StatTile label="Avg WIP" value={avgWip !== null ? avgWip.toFixed(1) : '—'} tooltip="Average Work In Progress — lower usually means lower cycle time (Little's Law)." delta={wipDelta} />
-          <StatTile label="Total Wait" value={totalWait > 0 ? totalWait.toFixed(1) : '—'} unit={totalWait > 0 ? 's' : undefined} tooltip="Total idle time across all units with roles." delta={waitDelta} />
+          <StatTile label="Total Wait" value={totalWait > 0 ? formatDaysValue(totalWait) : '—'} unit={totalWait > 0 ? 'man-days' : undefined} tooltip="Total idle time summed over all units with roles, in man-days: one unit waiting one working day is 1 man-day, so it can exceed Total Time." delta={waitDelta} />
           <StatTile label="Avg Handoffs" value={stats.count > 0 ? stats.avgHandoffs.toFixed(1) : '—'} tooltip="Average number of handoffs per feature." delta={handoffsDelta} />
         </>}
       >
@@ -1135,7 +1138,7 @@ export function Simulator() {
               hue={f.hue}
               name={f.name}
               detail={`${f.tasks.length} task${f.tasks.length > 1 ? 's' : ''}`}
-              value={`${lt.toFixed(1)}s`}
+              value={formatDays(lt)}
             />
           )
         })}

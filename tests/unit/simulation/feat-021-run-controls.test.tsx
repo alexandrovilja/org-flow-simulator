@@ -6,6 +6,7 @@ import { SpeedControl } from '@/components/SpeedControl'
 import { TUTORIAL_STEPS } from '@/lib/tutorialSteps'
 import { markTutorialCompleted, markModeSeen, resetTutorial } from '@/lib/storage'
 import { barControls, controlNames, namesIn } from './topBarControls'
+import { simDays, workTimeValues } from './workTime'
 
 // feat-021, změna 2026-10-20: ovládání běhu v horní liště je ve všech třech módech stejné jako v Compare.
 //
@@ -45,8 +46,12 @@ const RUN_CONTROLS = ['↺ Reset', '0.5×', '1×', '10×', '▶ Run']
 /** Tooltip tlačítka Reset v Advanced a Cash Flow (v Compare Reset tooltip nemá). */
 const RESET_TOOLTIP = 'Restore the initial backlog and clear in-progress / done'
 
-/** Časový limit (reálný čas) testů, které posouvají falešný čas o desítky sekund simulace. */
-const SIM_RUN_TIMEOUT_MS = 20_000
+/**
+ * Časový limit (reálný čas) testů, které posouvají falešný čas o desítky sekund simulace.
+ * Test rychlosti v Compare trvá lokálně kolem 3 s, ale na CI runneru 17 s (zelený běh feat-019) až 20,5 s
+ * (PR feat-027 s víc souběžnými testy) — limit 20 s byl na hraně, proto 40 s.
+ */
+const SIM_RUN_TIMEOUT_MS = 40_000
 
 /** Názvy tří módů tak, jak je mají záložky v liště. */
 type ModeName = 'Compare' | 'Advanced' | 'Cash Flow'
@@ -76,13 +81,13 @@ function groupsWith(buttonName: string): HTMLElement[] {
 }
 
 /**
- * Simulační čas z prvního čítače „MM:SS.d“ na obrazovce (v Compare Total Time týmu A, jinde Total Time).
+ * Simulační čas z prvního čítače Total Time na obrazovce (v Compare Total Time týmu A, jinde Total Time).
+ * Od feat-027 se čas čte v pracovních dnech („2 weeks 4.3 days“); číselně platí 1 s reálného času při 1× = 1 den.
  *
- * @returns Čas v sekundách
+ * @returns Čas v pracovních dnech
  */
 function simSeconds(): number {
-  const [minutes, rest] = screen.getAllByText(/^\d\d:\d\d\.\d$/)[0].textContent!.split(':')
-  return Number(minutes) * 60 + Number(rest)
+  return simDays()
 }
 
 // ── SpeedControl jako samostatná komponenta ──────────────────────────────────
@@ -266,7 +271,8 @@ describe('feat-021 Příklad 14: stejné ovládání běhu ve všech třech mód
     fireEvent.click(screen.getByRole('button', { name: '↺ Reset' }))
     expect(within(teamA).getByRole('button', { name: 'Single' })).toHaveAttribute('aria-pressed', 'true')
     expect(within(teamB).getByRole('button', { name: 'Double' })).toHaveAttribute('aria-pressed', 'true')
-    expect(screen.queryAllByText(/^\d\d:\d\d\.\d$/)).toHaveLength(0)
+    // Compare před spuštěním ukazuje u Total Time „—“, takže žádný čítač času na obrazovce není
+    expect(workTimeValues()).toHaveLength(0)
     expect(/pulse/.test(runButton().className)).toBe(true)
   })
 })
@@ -401,10 +407,10 @@ describe('feat-021 Příklad 17: tutoriál popisuje a zvýrazňuje nové ovlád�
     const description = (mode: 'compare' | 'experiment' | 'cashflow', targetId: string) =>
       TUTORIAL_STEPS[mode].find(s => s.targetId === targetId)?.description
     expect(description('compare', 'compare-controls')).toBe(
-      'Change the speed (0.5×, 1×, 10×) at any time, even mid-run. ↺ Reset starts over with the default Single vs Double teams. ? brings this tour back.',
+      'Change the speed (0.5×, 1×, 10×) at any time, even mid-run; 1× is one working day per second. ↺ Reset starts over with the default Single vs Double teams. ? brings this tour back.',
     )
     expect(description('experiment', 'experiment-controls')).toBe(
-      'Change the speed (0.5×, 1×, 10×) at any time. ↺ Reset puts the same backlog back to the start and keeps your units. ? brings this tour back.',
+      'Change the speed (0.5×, 1×, 10×) at any time; 1× is one working day per second. ↺ Reset puts the same backlog back to the start and keeps your units. ? brings this tour back.',
     )
     expect(description('experiment', 'experiment-run-button')).toBe(
       'Click ▶ Run. When the run finishes, change one thing — a unit, a skill or a rule — press ↺ Reset and run again. Each tile then shows the change against the previous run.',

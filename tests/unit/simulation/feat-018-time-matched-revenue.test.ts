@@ -26,20 +26,23 @@ import { computeRevenueAsOf } from '@/simulation/engine'
 // Výpočet výnosu ke společnému času využívá stávající `computeRevenueAsOf` (engine se nemění).
 // Když je společný čas konec vlastního běhu, `value` je skutečně nasbíraný `totalRevenue`.
 
-/** Pomocná featura: Flat profil, pevný výnos 100 €/tik, dokončená v čase `finishedAt`. */
+/** Pomocná featura: Flat profil, pevný výnos 100 €/tik, dokončená v čase `finishedAt` (pracovní dny). */
 const flat = (finishedAt: number) => ({ finishedAt, revenuePerTick: 100, revenueProfile: 'flat' as const })
 
-// Pomalejší běh A: featury hotové v 6, 12, 24 s (Total Time 24 s).
-//  výnos v 24 s: 100·⌊18/3⌋ + 100·⌊12/3⌋ + 0 = 600 + 400 = 1000
-//  výnos ve 12 s: 100·⌊6/3⌋ + 0 (feature hotová přesně ve 12 s ještě neměla tik) = 200
-const RUN_A_FEATURES = [flat(6), flat(12), flat(24)]
-const RUN_A_TOTAL_TIME = 24
+// feat-027: tik výnosu je 1 pracovní týden (5 pracovních dnů), dřív 3 s. Scénáře jsou proto
+// přeškálované (časy × 5/3), takže výnosy i delty zůstaly stejné jako dřív.
+//
+// Pomalejší běh A: featury hotové ve dnech 10, 20, 40 (Total Time 40 dní).
+//  výnos ve dni 40: 100·⌊30/5⌋ + 100·⌊20/5⌋ + 0 = 600 + 400 = 1000
+//  výnos ve dni 20: 100·⌊10/5⌋ + 0 (feature hotová přesně ve dni 20 ještě neměla tik) = 200
+const RUN_A_FEATURES = [flat(10), flat(20), flat(40)]
+const RUN_A_TOTAL_TIME = 40
 const RUN_A_TOTAL_REVENUE = 1000
 
-// Rychlejší běh B: featury hotové ve 3, 6, 12 s (Total Time 12 s).
-//  výnos ve 12 s: 100·⌊9/3⌋ + 100·⌊6/3⌋ + 0 = 300 + 200 = 500
-const RUN_B_FEATURES = [flat(3), flat(6), flat(12)]
-const RUN_B_TOTAL_TIME = 12
+// Rychlejší běh B: featury hotové ve dnech 5, 10, 20 (Total Time 20 dní).
+//  výnos ve dni 20: 100·⌊15/5⌋ + 100·⌊10/5⌋ + 0 = 300 + 200 = 500
+const RUN_B_FEATURES = [flat(5), flat(10), flat(20)]
+const RUN_B_TOTAL_TIME = 20
 const RUN_B_TOTAL_REVENUE = 500
 
 const runAAsCurrent: CurrentRunRevenue = {
@@ -82,7 +85,7 @@ describe('feat-018: computeRevenueComparison', () => {
 
     it('předchozí běh existuje, ale aktuální ještě neběží do konce: ukáže živý kumulativní výnos, bez delty', () => {
       const result = computeRevenueComparison(
-        { finished: false, simTime: 6, totalRevenue: 100, features: [flat(3)] },
+        { finished: false, simTime: 10, totalRevenue: 100, features: [flat(5)] },
         runAAsPrevious,
       )
       expect(result.value).toBe(100)
@@ -91,18 +94,18 @@ describe('feat-018: computeRevenueComparison', () => {
   })
 
   describe('Příklad 2: aktuální běh je kratší než předchozí', () => {
-    // aktuální = rychlejší B (12 s), předchozí = pomalejší A (24 s)
+    // aktuální = rychlejší B (20 dní), předchozí = pomalejší A (40 dní)
     const result = computeRevenueComparison(runBAsCurrent, runAAsPrevious)
 
     it('společný čas je kratší z obou časů', () => {
-      expect(result.comparison?.compareTime).toBe(12)
+      expect(result.comparison?.compareTime).toBe(20)
     })
 
     it('velké číslo je výnos aktuálního běhu ve společném čase', () => {
       expect(result.value).toBeCloseTo(500, 6)
     })
 
-    it('delta je +150 % (500 vs. 200 ve společném čase 12 s)', () => {
+    it('delta je +150 % (500 vs. 200 ve společném čase 20 dní)', () => {
       expect(result.comparison?.delta).toBeCloseTo(150, 6)
     })
 
@@ -115,11 +118,11 @@ describe('feat-018: computeRevenueComparison', () => {
   })
 
   describe('Příklad 3: aktuální běh je delší než předchozí', () => {
-    // aktuální = pomalejší A (24 s), předchozí = rychlejší B (12 s)
+    // aktuální = pomalejší A (40 dní), předchozí = rychlejší B (20 dní)
     const result = computeRevenueComparison(runAAsCurrent, runBAsPrevious)
 
     it('společný čas je kratší z obou časů', () => {
-      expect(result.comparison?.compareTime).toBe(12)
+      expect(result.comparison?.compareTime).toBe(20)
     })
 
     it('velké číslo je výnos dopočtený k společnému času (200), ne celkových 1000', () => {
@@ -127,7 +130,7 @@ describe('feat-018: computeRevenueComparison', () => {
       expect(result.value).not.toBeCloseTo(RUN_A_TOTAL_REVENUE, 0)
     })
 
-    it('delta je −60 % (200 vs. 500 ve společném čase 12 s)', () => {
+    it('delta je −60 % (200 vs. 500 ve společném čase 20 dní)', () => {
       expect(result.comparison?.delta).toBeCloseTo(-60, 6)
     })
 
@@ -140,8 +143,8 @@ describe('feat-018: computeRevenueComparison', () => {
   })
 
   describe('Příklad 4: předchozí běh nevydělal nic ve společném čase', () => {
-    // předchozí běh má jedinou featuru hotovou ve 20 s → ve 12 s je jeho výnos 0
-    const previousZero: PreviousRunRevenue = { totalTime: 24, totalRevenue: 100, doneFeatures: [flat(20)] }
+    // předchozí běh má jedinou featuru hotovou ve dni 30 → ve společném čase (den 20) je jeho výnos 0
+    const previousZero: PreviousRunRevenue = { totalTime: 40, totalRevenue: 100, doneFeatures: [flat(30)] }
     const result = computeRevenueComparison(runBAsCurrent, previousZero)
 
     it('velké číslo se zobrazí (výnos aktuálního běhu ve společném čase)', () => {
@@ -201,8 +204,8 @@ describe('feat-018: computeRevenueComparison', () => {
 
     it('featura bez revenueProfile se počítá jako Flat (starší snapshoty)', () => {
       const legacy: PreviousRunRevenue = {
-        totalTime: 12, totalRevenue: 500,
-        doneFeatures: [{ finishedAt: 3, revenuePerTick: 100 }, { finishedAt: 6, revenuePerTick: 100 }],
+        totalTime: 20, totalRevenue: 500,
+        doneFeatures: [{ finishedAt: 5, revenuePerTick: 100 }, { finishedAt: 10, revenuePerTick: 100 }],
       }
       const result = computeRevenueComparison(runAAsCurrent, legacy)
       expect(result.comparison?.previous.revenueAtCompare).toBeCloseTo(500, 6)

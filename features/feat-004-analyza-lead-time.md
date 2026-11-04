@@ -69,3 +69,6 @@ Jako agilní kouč chci vidět živý čítač celkové doby zpracování backlo
 
 ## Open Questions
 —
+
+## Related Features
+- **feat-027-cas-simulace-pracovni-dny:** Total Time už není `MM:SS.d`, ale týdny a dny (`2 weeks 4.3 days`); Avg Cycle Time a lead time v Done jsou v `days`, Total Wait v `man-days`; `formatTime` mění výstup a přibývá `formatDays`. Příklady výše (`01:23.4`, `04:17.8`, „8.4 s“) jsou v původních jednotkách (sekundy).

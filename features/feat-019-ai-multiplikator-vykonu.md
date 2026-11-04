@@ -206,3 +206,4 @@ Změna se týká jen karty jednotky (`MemberCard`) a chipů skillů na ní, v re
 - **feat-021-prevod-design-system-org-flow:** blesk v odznaku AI zůstává v barvě `--accent` (nově fialová `#7a3bf0`); odznak je nově bílý na chipu skillu a v barvě `--accent` s textem `on-accent` v řádku úkolu.
 - **feat-023-jednotne-pismo-textu:** chip skillu s AI a × se zkracuje výpustkou stejně jako dnes (plný název v `title` jen u zkráceného textu).
 - **feat-025-revize-tutorialu:** krok „AI speed-up“ míří na AI prvního chipu první jednotky a vysvětluje, že AI se zapíná u skillů.
+- **feat-027-cas-simulace-pracovni-dny:** rychlost práce se čte „za 1 pracovní den jednotka odvede 2 nebo 5 dnů práce“ (dříve sekund); matematika beze změny. Tooltip Coordination overhead: „work-seconds“ → „man-days of work“.

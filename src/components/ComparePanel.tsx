@@ -3,7 +3,9 @@
 import { ROLE_META, doneCount } from '@/simulation/engine'
 import { calcCompareDelta } from '@/simulation/compareMode'
 import type { TeamType } from '@/simulation/compareMode'
-import { formatTime } from '@/lib/formatTime'
+import { formatDays, formatDaysValue } from '@/lib/formatTime'
+import { WorkTimeValue } from '@/components/WorkTimeValue'
+import { ValueUnit } from '@/components/ValueUnit'
 import { FeatureCard } from '@/components/FeatureCard'
 import { SegmentedControl } from '@/components/SegmentedControl'
 import { EmptyNote } from '@/components/EmptyNote'
@@ -62,6 +64,7 @@ export function ComparePanel({
   state, stats, opponentStats, opponentState, opponentLabel,
   tutorialTargetPrefix,
 }: ComparePanelProps) {
+  // Průměrné WIP se počítá až od půl pracovního dne běhu, dřív by hodnota příliš kolísala
   const avgWip         = state.simTime > 0.5 ? state.wipIntegral / state.simTime : null
   const opponentAvgWip = opponentState.simTime > 0.5 ? opponentState.wipIntegral / opponentState.simTime : null
 
@@ -157,7 +160,7 @@ export function ComparePanel({
             return (
               <div key={f.id}>
                 <FeatureCard feature={f} compact maxWork={maxWork} />
-                <div className={styles.leadTime}>{lt.toFixed(1)}s</div>
+                <div className={styles.leadTime}>{formatDays(lt)}</div>
               </div>
             )
           })}
@@ -173,18 +176,19 @@ export function ComparePanel({
       >
           <MetricTile
             label="Total Time"
-            value={state.simTime > 0 || state.finished ? formatTime(state.simTime) : '—'}
+            value={state.simTime > 0 || state.finished ? <WorkTimeValue days={state.simTime} /> : '—'}
             delta={timeDelta} vsLabel={vsLabel}
             deltaLabel={{ better: 'faster', worse: 'slower' }}
-            tooltip="Elapsed simulation time. Stops when the last backlog item is done."
+            tooltip="Elapsed time in working days (5 per week). Stops when the last backlog item is done."
             bothFinished={bothFinished}
           />
           <MetricTile
             label="Avg Cycle Time"
-            value={stats.count > 0 ? `${stats.avg.toFixed(1)}s` : '—'}
+            value={stats.count > 0 ? formatDaysValue(stats.avg) : '—'}
+            unit={stats.count > 0 ? 'days' : undefined}
             delta={ltDelta} vsLabel={vsLabel}
             deltaLabel={{ better: 'faster', worse: 'slower' }}
-            tooltip="Mean time from work start to completion (excludes backlog wait)."
+            tooltip="Mean time in working days from work start to completion (excludes backlog wait)."
             bothFinished={bothFinished}
           />
           <MetricTile
@@ -267,7 +271,10 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
 
 interface MetricTileProps {
   label: string
-  value: string
+  /** Hodnota dlaždice: text, nebo komponenta (Total Time je `WorkTimeValue`, feat-027). */
+  value: React.ReactNode
+  /** Volitelná jednotka za hodnotou, kreslená malým písmem jako ve `StatTile` („days“, feat-027). */
+  unit?: string
   delta?: number
   vsLabel: string
   tooltip: string
@@ -282,7 +289,7 @@ interface MetricTileProps {
  * After both simulations finish: green background + value when this team wins,
  * neutral background when this team loses.
  */
-function MetricTile({ label, value, delta, vsLabel, tooltip, deltaLabel, bothFinished }: MetricTileProps) {
+function MetricTile({ label, value, unit, delta, vsLabel, tooltip, deltaLabel, bothFinished }: MetricTileProps) {
   const dl = deltaLabel ?? { better: 'faster', worse: 'slower' }
 
   const isBetter = bothFinished && delta !== undefined && delta < 0
@@ -290,7 +297,11 @@ function MetricTile({ label, value, delta, vsLabel, tooltip, deltaLabel, bothFin
   return (
     <div title={tooltip} className={[styles.metric, isBetter && styles.metricBetter].filter(Boolean).join(' ')}>
       <div className={styles.metricLabel}>{label}</div>
-      <div className={styles.metricValue}>{value}</div>
+      <div className={styles.metricValue}>
+        {value}
+        {/* Mezera je v textu jednotky (kopírování, čtečky: „24.1 days“), vzhled řeší ValueUnit */}
+        {unit && <ValueUnit tight>{` ${unit}`}</ValueUnit>}
+      </div>
       {delta !== undefined && (
         <div className={[styles.metricDelta, delta < 0 && styles.metricDeltaBetter].filter(Boolean).join(' ')}>
           {delta < 0

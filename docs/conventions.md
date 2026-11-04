@@ -50,7 +50,7 @@ interface Feature { ... }
  * we mutate state in place instead of creating a new object each tick.
  *
  * @param state   - The current simulation state (mutated in place)
- * @param dtSim   - How many simulated seconds have passed since the last frame
+ * @param dtSim   - How many simulated working days have passed since the last frame (1 simulated second = 1 working day)
  * @param settings - Configuration values (WIP limit, backlog size, etc.)
  * @param rng     - Seeded random number generator for deterministic results
  */

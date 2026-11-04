@@ -159,3 +159,4 @@ _Žádné — všechna rozhodnutí uzavřena._
 
 ## Related Features
 - **feat-021-prevod-design-system-org-flow:** role z importu dostanou barvy slotů 1–8 (`role-rose` … `role-slate`) v pořadí výskytu a pak znovu od 1, místo `ROLE_HUES`.
+- **feat-027-cas-simulace-pracovni-dny:** `Size` znamená man-days: `Size = 3` je úkol o 3 pracovních dnech (mapování 1:1 zůstává, dříve „sim-sekundy“). U importu přibude nápověda `Size = effort in working days (man-days)`; logika parsování se nemění.

@@ -1,0 +1,15 @@
+/* Jednotka za číslem dlaždice (feat-027): číslo velké, jednotka malá. Jediné místo s tímto stylem —
+   používá ho StatTile, dlaždice v Compare i WorkTimeValue. */
+.unit {
+  margin-left: var(--space-4);
+  font-size: 11px;
+  line-height: 16px;
+  font-weight: 400;
+  letter-spacing: 0;
+  color: var(--ink-3);
+}
+
+/* Těsnější odsazení: jednotka hned za číslem (StatTile, zkratky „w“ a „d“) */
+.tight {
+  margin-left: var(--space-2);
+}

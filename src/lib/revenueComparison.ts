@@ -11,7 +11,7 @@ export type RunFeatureRevenue = Pick<Feature, 'finishedAt' | 'revenuePerTick'> &
 export interface CurrentRunRevenue {
   /** true = běh doběhl do konce (celý backlog zpracován); jen pak lze srovnávat. */
   finished: boolean
-  /** Aktuální simulační čas běhu v sekundách. */
+  /** Aktuální simulační čas běhu v pracovních dnech. */
   simTime: number
   /** Kumulativní výnos běhu k aktuálnímu času. */
   totalRevenue: number
@@ -21,7 +21,7 @@ export interface CurrentRunRevenue {
 
 /** Uložený výnosový snapshot předchozího doběhnutého běhu (podmnožina `CashFlowRunSnapshot`). */
 export interface PreviousRunRevenue {
-  /** Celkový čas předchozího běhu v sekundách. */
+  /** Celkový čas předchozího běhu v pracovních dnech. */
   totalTime: number
   /** Celkový výnos předchozího běhu za celý jeho čas. */
   totalRevenue: number
@@ -34,7 +34,7 @@ export interface PreviousRunRevenue {
  * a když je s čím srovnávat — proto je celý objekt v `RevenueComparison` nepovinný.
  */
 export interface RevenueTimeMatch {
-  /** Společný čas `min(časy obou běhů)` v sekundách. */
+  /** Společný čas `min(časy obou běhů)` v pracovních dnech. */
   compareTime: number
   /** % změna oproti předchozímu běhu ve společném čase; undefined = bez delty (dělení nulou). */
   delta?: number

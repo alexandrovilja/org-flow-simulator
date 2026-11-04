@@ -49,7 +49,7 @@ export interface Task {
   id: number
   /** Role, kterou musí mít člen týmu, aby mohl tento úkol zpracovat. */
   role: Role
-  /** Celkové množství práce potřebné k dokončení úkolu (v simulačních sekundách). */
+  /** Celkové množství práce potřebné k dokončení úkolu (v pracovních dnech jedné jednotky: 1 simulační sekunda = 1 pracovní den, feat-027). */
   work: number
   /** Kolik práce již bylo odvedeno. Úkol je hotov, když progress >= work. */
   progress: number
@@ -86,7 +86,7 @@ export interface Feature {
    *  Nižší číslo = vyšší priorita (1 = nejdůležitější).
    *  Členové týmu vždy pracují na nejvíce prioritní feature, na které mohou přispět. */
   priority: number
-  /** Výnos generovaný za jeden revenue tick (viz REVENUE_TICK_INTERVAL_SEC v engine.ts),
+  /** Výnos generovaný za jeden revenue tick = jeden pracovní týden (viz REVENUE_TICK_INTERVAL_SEC v engine.ts),
    *  pokud je feature ve stavu Done. Přiřazen jednou při vytvoření Gaussovým vzorkováním —
    *  vyšší priorita = vyšší revenue (Cash Flow mód, feat-015). */
   revenuePerTick: number
@@ -97,7 +97,7 @@ export interface Feature {
   lastTickRevenue: number | null
   /** Simulační čas posledního revenue ticku TÉTO featury — nastaví se na `finishedAt`
    *  v okamžiku dokončení, pak se posouvá o REVENUE_TICK_INTERVAL_SEC při každém dalším
-   *  ticku. Každá feature má vlastní nezávislý 3s cyklus od svého dokončení (Cash Flow
+   *  ticku. Každá feature má vlastní nezávislý týdenní cyklus (5 pracovních dnů) od svého dokončení (Cash Flow
    *  mód, feat-015) — používá se i pro výpočet progress baru odpočtu v UI. */
   lastRevenueTickAt: number
   /** Tvar výnosu této featury po dodání (feat-017). Zafixuje se při generování backlogu
@@ -115,9 +115,9 @@ export interface Feature {
   joinCount: number
   /** Počet reworků (feat-016): kolikrát se kvůli rozporu vrátil hotový task zpět do `todo`. */
   reworkCount: number
-  /** Práce navíc z taxu za připojení v simulačních sekundách (feat-016) — součet přirážek k `work`. */
+  /** Práce navíc z taxu za připojení v man-days (feat-016, feat-027) — součet přirážek k `work`. */
   joinTaxSec: number
-  /** Ztracený progres z reworku v simulačních sekundách (feat-016). */
+  /** Ztracený progres z reworku v man-days (feat-016, feat-027). */
   reworkSec: number
   /** ID jednotek, které na featuře kdy pracovaly (feat-016). Samostatná historie je nutná,
    *  protože rework vrací task do `todo` bez assignee — bez ní by se vracející jednotka
@@ -134,8 +134,8 @@ export interface Feature {
   pendingDivergence: number[]
 }
 
-/** AI multiplikátor výkonu skillu jednotky (feat-019): kolik sekund práce jednotka odvede za jednu
- *  sekundu simulačního času na úkolu daného skillu. 1 = bez AI (výchozí), 2 a 5 = skill s AI 2× / 5× rychleji.
+/** AI multiplikátor výkonu skillu jednotky (feat-019): kolik pracovních dnů práce jednotka odvede za jeden
+ *  pracovní den simulačního času na úkolu daného skillu. 1 = bez AI (výchozí), 2 a 5 = skill s AI 2× / 5× rychleji.
  *  Pevné hodnoty — workshop porovnává jen tyto tři úrovně, žádný vlastní multiplikátor. */
 export type AiMultiplier = 1 | 2 | 5
 
@@ -151,7 +151,7 @@ export interface Member {
   /** Odkaz na úkol, který člen právě zpracovává. Null pokud je idle. */
   currentTask: { featureId: number; taskId: number } | null
   /**
-   * Kumulovaný idle čas v simulačních sekundách.
+   * Kumulovaný idle čas v man-days (pracovních dnech jednotky, feat-027).
    * Narůstá každý tick, kdy má člen alespoň jednu roli ale žádný úkol.
    * Člen bez rolí idle čas neakumuluje — nemůže pracovat ze strukturálních důvodů.
    */
@@ -170,7 +170,7 @@ export interface Member {
 export interface LeadTimeEntry {
   /** ID dokončené feature. */
   id: number
-  /** Cycle Time v simulačních sekundách (finishedAt − startedAt).
+  /** Cycle Time v pracovních dnech (finishedAt − startedAt; 1 simulační sekunda = 1 pracovní den, feat-027).
    *  Měří pouze dobu aktivní práce — bez čekání feature v backlogu. */
   ms: number
   /** Simulační čas, kdy byla feature dokončena — slouží pro výpočet throughput. */
@@ -213,7 +213,7 @@ export interface SimState {
   team: Member[]
   /** Historie Cycle Time pro výpočet statistik. Ukládáme max. 200 záznamů. */
   leadTimes: LeadTimeEntry[]
-  /** Uplynulý simulační čas v sekundách od spuštění. */
+  /** Uplynulý simulační čas v pracovních dnech od spuštění (1 simulační sekunda = 1 pracovní den, feat-027). */
   simTime: number
   /** Průběžný součet WIP × čas — slouží k výpočtu průměrného WIP (Little's Law).
    *  Každý tick přičteme: počet features v inProgress × délka ticku. */
@@ -284,7 +284,7 @@ export interface SimStats {
   p85: number
   /** Histogram hodnot Cycle Time rozdělený do buckets pro zobrazení v grafu. */
   buckets: number[]
-  /** Šířka jednoho bucketu v grafu (v simulačních sekundách). */
+  /** Šířka jednoho bucketu v grafu (v pracovních dnech). */
   bucketSize: number
   /** Maximální hodnota osy Y histogramu. */
   maxBucket: number
@@ -292,7 +292,7 @@ export interface SimStats {
    *  Odráží míru koordinační zátěže — nižší = efektivnější tok práce. */
   avgHandoffs: number
   /** Podíl taxu za připojení na celkovém Cycle Time v % (0–100): Σ joinTaxSec / Σ cycle time (feat-016).
-   *  Čitatel jsou sekundy práce sečtené přes všechny jednotky, jmenovatel wall-clock Cycle Time featur —
+   *  Čitatel jsou man-days práce sečtené přes všechny jednotky, jmenovatel wall-clock Cycle Time featur —
    *  vysoce paralelní týmy proto mohou ukazovat vysoké hodnoty. */
   joinTaxPct: number
   /** Podíl ztraceného progresu z reworku na celkovém Cycle Time v % (feat-016). */

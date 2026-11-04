@@ -33,7 +33,7 @@ function sandboxControlsStep(id: string, targetId: string): TutorialStep {
     chapter: 'CONTROLS',
     title: 'Controls',
     description:
-      'Change the speed (0.5×, 1×, 10×) at any time. ↺ Reset puts the same backlog back to the start ' +
+      'Change the speed (0.5×, 1×, 10×) at any time; 1× is one working day per second. ↺ Reset puts the same backlog back to the start ' +
       'and keeps your units. ? brings this tour back.',
     targetId,
   }
@@ -150,7 +150,7 @@ export const TUTORIAL_STEPS: Record<TutorialMode, TutorialStep[]> = {
       chapter: 'COMPARE',
       title: 'Done',
       description:
-        'Finished features land here. The number under each one is its lead time: from entering the backlog to done.',
+        'Finished features land here. The number under each one is its lead time in working days: from entering the backlog to done.',
       targetId: 'compare-team-a-done',
       parentTargetId: TEAM_A_PANEL,
     },
@@ -159,7 +159,7 @@ export const TUTORIAL_STEPS: Record<TutorialMode, TutorialStep[]> = {
       chapter: 'COMPARE',
       title: 'Results',
       description:
-        'Total Time: until the last feature is done. Avg Cycle Time: from work start to done. Avg WIP: features ' +
+        'Total Time: working weeks and days until the last feature is done. Avg Cycle Time: working days from work start to done. Avg WIP: features ' +
         'in progress at once. Lower is better — each tile shows the gap to the other team.',
       targetId: 'compare-team-a-results',
       parentTargetId: TEAM_A_PANEL,
@@ -179,7 +179,7 @@ export const TUTORIAL_STEPS: Record<TutorialMode, TutorialStep[]> = {
       chapter: 'COMPARE',
       title: 'Controls',
       description:
-        'Change the speed (0.5×, 1×, 10×) at any time, even mid-run. ↺ Reset starts over with the default ' +
+        'Change the speed (0.5×, 1×, 10×) at any time, even mid-run; 1× is one working day per second. ↺ Reset starts over with the default ' +
         'Single vs Double teams. ? brings this tour back.',
       targetId: 'compare-controls',
     },
@@ -307,7 +307,7 @@ export const TUTORIAL_STEPS: Record<TutorialMode, TutorialStep[]> = {
       chapter: 'RUN & RESULTS',
       title: 'Done',
       description:
-        'Finished features, with the number of tasks and the lead time of each: from entering the backlog to done.',
+        'Finished features, with the number of tasks and the lead time of each in working days: from entering the backlog to done.',
       targetId: 'experiment-done',
     },
     {
@@ -348,7 +348,7 @@ export const TUTORIAL_STEPS: Record<TutorialMode, TutorialStep[]> = {
       chapter: 'REVENUE',
       title: 'Value per feature',
       description:
-        'Each feature shows what it earns per tick — every 3 s of simulation time — once delivered. The most ' +
+        'Each feature shows what it earns per week — every 5 working days (1 week) — once delivered. The most ' +
         'valuable features sit at the top, as the highest priority.',
       targetId: 'cashflow-backlog-list',
     },
@@ -366,7 +366,7 @@ export const TUTORIAL_STEPS: Record<TutorialMode, TutorialStep[]> = {
       chapter: 'REVENUE',
       title: 'Earnings',
       description:
-        'Each delivered feature earns every tick. The big number is its total so far, +€ flashes on each payment ' +
+        'Each delivered feature earns every week. The big number is its total so far, +€ flashes on each payment ' +
         'and the bar counts down to the next one.',
       targetId: 'cashflow-done',
     },

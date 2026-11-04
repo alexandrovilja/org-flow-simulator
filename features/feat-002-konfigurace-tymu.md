@@ -66,3 +66,4 @@ Jako agilní kouč chci přidávat a odebírat členy týmu a měnit jejich spec
 ## Related Features
 - **feat-019-ai-multiplikator-vykonu:** chipy skillů na `MemberCard` dostávají malé tlačítko „AI“, které přepíná hodnoty 1× → 2× → 5× → 1× kliknutím (revize 2026-11-03: dříve jedno tlačítko v horním řádku karty pro celou jednotku). Jednotka má novou vlastnost `aiBySkill` (chybějící klíč = 1×). Za 1 s simulace odvede jednotka 2 nebo 5 s práce na úkolu skillu, který má AI.
 - **feat-021-prevod-design-system-org-flow:** barvy rolí se mění na role tokeny design systému podle slotů (Design `role-rose`, Frontend `role-blue`, QA `role-green`…); názvy barev v tabulce výše jsou historické.
+- **feat-027-cas-simulace-pracovni-dny:** metrika Total Wait (součet `idleSec`) se zobrazuje v jednotce `man-days`; `idleSec` zůstává interní název, mění se jen jeho JSDoc (pracovní dny).

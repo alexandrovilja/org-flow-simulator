@@ -70,7 +70,7 @@ describe('feat-017: RevenueCurvePreview (náhled tvaru křivky)', () => {
   ] as const)('%s: má přístupný popisek a text „plateau N× Flat“', (profile, label, plateau) => {
     render(<RevenueCurvePreview profile={profile} />)
     expect(screen.getByRole('img', { name: `Revenue curve preview: ${label}` })).toBeTruthy()
-    expect(screen.getByText(`Revenue per tick after delivery · 0–16 ticks · plateau ${plateau}× Flat`)).toBeTruthy()
+    expect(screen.getByText(`Revenue per week after delivery · 0–16 weeks · plateau ${plateau}× Flat`)).toBeTruthy()
   })
 
   it('křivka má 17 bodů (tiky 0–16)', () => {
@@ -166,7 +166,7 @@ describe('feat-017: přepínač „Revenue curve“ v BacklogSettingsPanel', () 
   })
 
   it.each([
-    ['flat', 'Every feature earns the same amount per tick from the moment it is delivered.'],
+    ['flat', 'Every feature earns the same amount per week from the moment it is delivered.'],
     ['j-curve', 'Earns little right after delivery, then grows past the flat level. Illustrative shape inspired by delayed returns to IT investment.'],
     ['s-curve', 'Ramps up gradually after delivery and levels off at the flat amount. Bass adoption curve.'],
   ] as const)('hover hint zvoleného profilu „%s“ popisuje jeho tvar', async (profile, hint) => {

@@ -273,7 +273,7 @@ describe('feat-019: tooltip dlaždice Coordination overhead (rozhodnutí A)', ()
       <CashFlowPanel
         state={state}
         stats={computeStats([])}
-        totalTimeDisplay="00:00.0"
+        totalTimeDisplay="0.0 days"
         avgWip={null}
         revenueComparison={{ value: 0, currentTotal: { revenue: 0, time: 0 } }}
         showCoordination
@@ -281,8 +281,8 @@ describe('feat-019: tooltip dlaždice Coordination overhead (rozhodnutí A)', ()
     )
     const tile = screen.getByTestId('stat-tile-Coordination overhead')
     const tooltip = tile.getAttribute('title') ?? ''
-    // Stávající text zůstává, nová věta je na konci
-    expect(tooltip).toContain('It is counted in work-seconds across all units')
+    // Stávající text zůstává (od feat-027 počítá v man-days of work místo work-seconds), nová věta je na konci
+    expect(tooltip).toContain('It is counted in man-days of work across all units')
     expect(tooltip.endsWith('Skills using AI process this extra work faster, so the share can be higher than the time it actually took.')).toBe(true)
   })
 })

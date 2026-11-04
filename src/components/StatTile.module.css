@@ -105,15 +105,6 @@
   color: var(--done);
 }
 
-.unit {
-  margin-left: var(--space-2);
-  font-size: 11px;
-  line-height: 16px;
-  font-weight: 400;
-  letter-spacing: 0;
-  color: var(--ink-3);
-}
-
 .hint {
   font-size: 11px;
   line-height: 16px;

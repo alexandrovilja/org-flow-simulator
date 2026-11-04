@@ -48,7 +48,7 @@ const runningState = (simTime: number): SimState => ({ ...freshState(), simTime 
 const finishedState = (simTime: number): SimState =>
   ({ ...freshState(), simTime, finished: true })
 
-/** Příklad 2 z feat-018: aktuální běh je kratší (12 s), předchozí trval 24 s. */
+/** Příklad 2 z feat-018: aktuální běh je kratší (12 dní), předchozí trval 24 dní. */
 const SHORTER: RevenueComparison = {
   value: 500,
   currentTotal: { revenue: 500, time: 12 },
@@ -59,7 +59,7 @@ const SHORTER: RevenueComparison = {
   },
 }
 
-/** Příklad 3 z feat-018: aktuální běh je delší (24 s), předchozí trval 12 s. */
+/** Příklad 3 z feat-018: aktuální běh je delší (24 dní), předchozí trval 12 dní. */
 const LONGER: RevenueComparison = {
   value: 200,
   currentTotal: { revenue: 1000, time: 24 },
@@ -90,7 +90,7 @@ function renderPanel(state: SimState, revenueComparison: RevenueComparison, extr
   const props: ComponentProps<typeof CashFlowPanel> = {
     state,
     stats: computeStats(state.leadTimes),
-    totalTimeDisplay: '00:12.0',
+    totalTimeDisplay: '2 weeks 2.0 days',
     avgWip: 2,
     revenueComparison,
     ...extra,
@@ -156,11 +156,11 @@ describe('feat-018: StatTile — rozbalitelný detail', () => {
   })
 
   it('hodnota, delta badge a hint zůstávají vidět i s detailem', () => {
-    render(<StatTile label="Rich" value="€500" delta={150} higherIsBetter hint="@ 00:12.0" details={<span>Detail body</span>} />)
+    render(<StatTile label="Rich" value="€500" delta={150} higherIsBetter hint="@ 2 weeks 2.0 days" details={<span>Detail body</span>} />)
     const tile = screen.getByTestId('stat-tile-Rich')
     expect(tile).toHaveTextContent('€500')
     expect(tile).toHaveTextContent('↑ 150%')
-    expect(tile).toHaveTextContent('@ 00:12.0')
+    expect(tile).toHaveTextContent('@ 2 weeks 2.0 days')
   })
 })
 
@@ -187,12 +187,12 @@ describe('feat-018: CashFlowPanel — dlaždice „Revenue (time-matched)“', (
       expect(tile).not.toHaveTextContent('@')
     })
 
-    it('po rozkliknutí ukáže „Total €3k in 00:10.0“ a nic o předchozím běhu', async () => {
+    it('po rozkliknutí ukáže „Total €3k in 2 weeks 0.0 days“ a nic o předchozím běhu', async () => {
       const user = userEvent.setup()
       renderPanel(freshState(), LIVE)
       const tile = screen.getByTestId(TILE_ID)
       await user.click(within(tile).getByRole('button', { name: /details/i }))
-      expect(tile).toHaveTextContent('Total €3k in 00:10.0')
+      expect(tile).toHaveTextContent('Total €3k in 2 weeks 0.0 days')
       expect(tile).not.toHaveTextContent('Previous')
     })
   })
@@ -217,18 +217,18 @@ describe('feat-018: CashFlowPanel — dlaždice „Revenue (time-matched)“', (
       renderPanel(finishedState(12), SHORTER)
       const tile = screen.getByTestId(TILE_ID)
       expect(tile).not.toHaveTextContent('live total')
-      expect(tile).toHaveTextContent('@ 00:12.0')
+      expect(tile).toHaveTextContent('@ 2 weeks 2.0 days')
     })
   })
 
   describe('Příklad 2: aktuální běh je kratší než předchozí', () => {
-    it('ukáže výnos ve společném čase, deltu +150 % a hint „@ 00:12.0“', () => {
+    it('ukáže výnos ve společném čase, deltu +150 % a hint „@ 2 weeks 2.0 days“', () => {
       renderPanel(finishedState(12), SHORTER)
       const tile = screen.getByTestId(TILE_ID)
       expect(tile).toHaveTextContent('€500')
       expect(tile).toHaveTextContent('↑ 150%')
       expect(tile).toHaveTextContent('vs prev run')
-      expect(tile).toHaveTextContent('@ 00:12.0')
+      expect(tile).toHaveTextContent('@ 2 weeks 2.0 days')
     })
 
     it('detail je ve výchozím stavu sbalený', () => {
@@ -244,9 +244,9 @@ describe('feat-018: CashFlowPanel — dlaždice „Revenue (time-matched)“', (
       renderPanel(finishedState(12), SHORTER)
       const tile = screen.getByTestId(TILE_ID)
       await user.click(within(tile).getByRole('button', { name: /details/i }))
-      expect(tile).toHaveTextContent('Total €500 in 00:12.0')
-      expect(tile).toHaveTextContent('Previous run @ 00:12.0: €200')
-      expect(tile).toHaveTextContent('Previous total €1k in 00:24.0')
+      expect(tile).toHaveTextContent('Total €500 in 2 weeks 2.0 days')
+      expect(tile).toHaveTextContent('Previous run @ 2 weeks 2.0 days: €200')
+      expect(tile).toHaveTextContent('Previous total €1k in 4 weeks 4.0 days')
     })
   })
 
@@ -258,11 +258,11 @@ describe('feat-018: CashFlowPanel — dlaždice „Revenue (time-matched)“', (
       expect(tile).not.toHaveTextContent('€1k')
     })
 
-    it('ukáže deltu −60 % (šipka dolů) a hint „@ 00:12.0“', () => {
+    it('ukáže deltu −60 % (šipka dolů) a hint „@ 2 weeks 2.0 days“', () => {
       renderPanel(finishedState(24), LONGER)
       const tile = screen.getByTestId(TILE_ID)
       expect(tile).toHaveTextContent('↓ 60%')
-      expect(tile).toHaveTextContent('@ 00:12.0')
+      expect(tile).toHaveTextContent('@ 2 weeks 2.0 days')
     })
 
     it('po rozkliknutí ukáže skutečný celkový výnos za celý čas běhu', async () => {
@@ -270,9 +270,9 @@ describe('feat-018: CashFlowPanel — dlaždice „Revenue (time-matched)“', (
       renderPanel(finishedState(24), LONGER)
       const tile = screen.getByTestId(TILE_ID)
       await user.click(within(tile).getByRole('button', { name: /details/i }))
-      expect(tile).toHaveTextContent('Total €1k in 00:24.0')
-      expect(tile).toHaveTextContent('Previous run @ 00:12.0: €500')
-      expect(tile).toHaveTextContent('Previous total €500 in 00:12.0')
+      expect(tile).toHaveTextContent('Total €1k in 4 weeks 4.0 days')
+      expect(tile).toHaveTextContent('Previous run @ 2 weeks 2.0 days: €500')
+      expect(tile).toHaveTextContent('Previous total €500 in 2 weeks 2.0 days')
     })
   })
 
@@ -282,7 +282,7 @@ describe('feat-018: CashFlowPanel — dlaždice „Revenue (time-matched)“', (
       const tile = screen.getByTestId(TILE_ID)
       expect(tile).toHaveTextContent('€500')
       expect(tile).not.toHaveTextContent('vs prev run')
-      expect(tile).not.toHaveTextContent('@ 00:12.0')
+      expect(tile).not.toHaveTextContent('@ 2 weeks 2.0 days')
     })
   })
 
@@ -301,7 +301,7 @@ describe('feat-018: CashFlowPanel — dlaždice „Revenue (time-matched)“', (
         <CashFlowPanel
           state={fresh}
           stats={computeStats(fresh.leadTimes)}
-          totalTimeDisplay="00:00.0"
+          totalTimeDisplay="0.0 days"
           avgWip={null}
           revenueComparison={{ value: 0, currentTotal: { revenue: 0, time: 0 } }}
         />,
@@ -324,7 +324,7 @@ describe('feat-018: CashFlowPanel — dlaždice „Revenue (time-matched)“', (
         <CashFlowPanel
           state={fresh}
           stats={computeStats(fresh.leadTimes)}
-          totalTimeDisplay="00:00.0"
+          totalTimeDisplay="0.0 days"
           avgWip={null}
           revenueComparison={{ value: 0, currentTotal: { revenue: 0, time: 0 } }}
         />,
@@ -344,7 +344,7 @@ describe('feat-018: CashFlowPanel — dlaždice „Revenue (time-matched)“', (
         <CashFlowPanel
           state={running}
           stats={computeStats(running.leadTimes)}
-          totalTimeDisplay="00:00.1"
+          totalTimeDisplay="0.1 days"
           avgWip={null}
           revenueComparison={{ value: 0, currentTotal: { revenue: 0, time: 0.1 } }}
         />,

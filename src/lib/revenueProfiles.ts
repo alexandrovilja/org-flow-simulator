@@ -15,7 +15,7 @@ export interface RevenueProfileInfo {
 export const REVENUE_PROFILE_INFO: Record<RevenueProfile, RevenueProfileInfo> = {
   'flat': {
     label: 'Flat',
-    hint: 'Every feature earns the same amount per tick from the moment it is delivered.',
+    hint: 'Every feature earns the same amount per week from the moment it is delivered.',
   },
   'j-curve': {
     label: 'J-curve',
