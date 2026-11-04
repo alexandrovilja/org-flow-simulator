@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { render, screen, fireEvent, act, within } from '@testing-library/react'
 import { Simulator } from '@/components/Simulator'
 import { markTutorialCompleted, markModeSeen, resetTutorial } from '@/lib/storage'
+import { WORK_TIME_PATTERN } from './workTime'
 
 // feat-018: napojení dlaždice „Revenue (time-matched)“ v Simulator.tsx — druhý běh se srovnává s prvním
 // ve společném čase, za běhu je vidět „live total“, Reset sbalí detail. Předchozí běh a RAF smyčka žijí
@@ -107,13 +108,13 @@ describe('feat-018: dlaždice „Revenue (time-matched)“ v Simulatoru', { time
 
     await advanceUntilDone()
     expect(revenueTile()).toHaveTextContent('vs prev run')
-    expect(revenueTile()).toHaveTextContent(/@ \d\d:\d\d\.\d/)
+    expect(revenueTile()).toHaveTextContent(new RegExp(`@ ${WORK_TIME_PATTERN}`))
     expect(revenueTile()).not.toHaveTextContent('live total')
 
     fireEvent.click(detailsButton())
-    expect(revenueTile()).toHaveTextContent(/Total €[\d.]+k? in \d\d:\d\d\.\d/)
-    expect(revenueTile()).toHaveTextContent(/Previous run @ \d\d:\d\d\.\d: €[\d.]+k?/)
-    expect(revenueTile()).toHaveTextContent(/Previous total €[\d.]+k? in \d\d:\d\d\.\d/)
+    expect(revenueTile()).toHaveTextContent(new RegExp(`Total €[\\d.]+k? in ${WORK_TIME_PATTERN}`))
+    expect(revenueTile()).toHaveTextContent(new RegExp(`Previous run @ ${WORK_TIME_PATTERN}: €[\\d.]+k?`))
+    expect(revenueTile()).toHaveTextContent(new RegExp(`Previous total €[\\d.]+k? in ${WORK_TIME_PATTERN}`))
   })
 
   it('Reset sbalí rozbalený detail', async () => {

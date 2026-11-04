@@ -24,7 +24,7 @@ interface FeatureCardProps {
    */
   roleConfig?: Record<Role, RoleMeta>
   /**
-   * Předformátovaný výnos za tick (např. "€400/tick") — zobrazí se jako badge
+   * Předformátovaný výnos za týden (např. "€400/week") — zobrazí se jako badge
    * v hlavičce karty. Používá se jen v Cash Flow módu; jinde se neposílá.
    */
   revenue?: string

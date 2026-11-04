@@ -203,3 +203,4 @@ Model je **pedagogický, ne prediktivní**. Konstanty (25 % / 20 % / 50 %) jsou 
 
 ## Related Features
 - **feat-021-prevod-design-system-org-flow:** tokeny reworku se přejmenují (`--rework-ink` → `--rework`, `--rework-bg` → `--rework-soft`); čipy ⇄/↺ se přestylují podle design systému, chování beze změny.
+- **feat-027-cas-simulace-pracovni-dny:** tooltip dlaždice Coordination overhead místo „work-seconds“ říká „man-days of work“; „person-seconds“ v Open Questions se čte jako person-days. Výpočet beze změny.

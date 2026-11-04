@@ -1,8 +1,9 @@
+import { formatDays } from '@/lib/formatTime'
 import type { CssVariables } from '@/types/css'
 import type { LeadTimeEntry, SimStats } from '@/types/simulation'
 import styles from './LeadTimeChart.module.css'
 
-/** Props grafu lead time. */
+/** Props grafu lead time (hodnoty v pracovních dnech, feat-027). */
 interface LeadTimeChartProps {
   /** Lead time dokončených features v pořadí dokončení. */
   leadTimes: LeadTimeEntry[]
@@ -44,9 +45,10 @@ export function LeadTimeChart({ leadTimes, stats }: LeadTimeChartProps) {
     <div className={styles.chart} style={chartStyle}>
       {/* Osa Y: maximum, polovina, nula */}
       <div className={styles.axisY} style={{ top: padTop, bottom: padBottom, width: padLeft - 4 }}>
-        <span>{maxY.toFixed(0)}s</span>
-        <span>{(maxY / 2).toFixed(0)}s</span>
-        <span>0s</span>
+        {/* Osa je úzká, proto zkratka „d“ (pracovní dny, feat-027); popisky čar a tooltipy bodů mají celé „days“ */}
+        <span>{maxY.toFixed(0)}d</span>
+        <span>{(maxY / 2).toFixed(0)}d</span>
+        <span>0d</span>
       </div>
 
       <div className={styles.plot} style={{ left: padLeft, right: padRight, top: padTop, bottom: padBottom }}>
@@ -55,17 +57,17 @@ export function LeadTimeChart({ leadTimes, stats }: LeadTimeChartProps) {
         ))}
 
         <div className={`${styles.ref} ${styles.p85}`} style={{ top: yLineFor(stats.p85) }}>
-          <span className={styles.refLabel}>p85 {stats.p85.toFixed(1)}s</span>
+          <span className={styles.refLabel}>p85 {formatDays(stats.p85)}</span>
         </div>
 
         <div className={`${styles.ref} ${styles.avg}`} style={{ top: yLineFor(stats.avg) }}>
-          <span className={styles.refLabel}>avg {stats.avg.toFixed(1)}s</span>
+          <span className={styles.refLabel}>avg {formatDays(stats.avg)}</span>
         </div>
 
         {points.map(p => (
           <div
             key={p.id}
-            title={`F-${String(p.id).padStart(3, '0')} · ${p.ms.toFixed(1)}s`}
+            title={`F-${String(p.id).padStart(3, '0')} · ${formatDays(p.ms)}`}
             className={styles.dot}
             style={{ left: `${p.x}%`, top: `${p.yPct * 100}%` }}
           />

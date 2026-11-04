@@ -45,7 +45,7 @@ const WELCOME_BULLETS = [
 
 /** Text kroku ovládání v Advanced a Cash Flow (oba módy mají stejný Reset). */
 const CONTROLS_TEXT =
-  'Change the speed (0.5×, 1×, 10×) at any time. ↺ Reset puts the same backlog back to the start and keeps your units. ? brings this tour back.'
+  'Change the speed (0.5×, 1×, 10×) at any time; 1× is one working day per second. ↺ Reset puts the same backlog back to the start and keeps your units. ? brings this tour back.'
 
 /** Tabulka „Prohlídka Compare (14 kroků)“ ze specu. */
 const COMPARE: ExpectedStep[] = [
@@ -58,10 +58,10 @@ const COMPARE: ExpectedStep[] = [
   { chapter: 'COMPARE', title: "Who's on the team", targetId: 'compare-team-a-composition', parentTargetId: TEAM_A, description: 'Six people and the roles they can do. During the run, each card shows what that person is working on — or IDLE when they have nothing to do.' },
   { chapter: 'COMPARE', title: 'A feature', targetId: 'compare-team-a-first-feature', parentTargetId: TEAM_A, fallbackTargetId: 'compare-team-a-todo', description: 'Each colored segment is work for one role — the wider the segment, the more work. A feature is done when every segment is filled.' },
   { chapter: 'COMPARE', title: 'In Progress', targetId: 'compare-team-a-in-progress', parentTargetId: TEAM_A, description: 'During the run, features being worked on sit here. The filled part of a segment is work done; a pale segment waits for someone free with that role.' },
-  { chapter: 'COMPARE', title: 'Done', targetId: 'compare-team-a-done', parentTargetId: TEAM_A, description: 'Finished features land here. The number under each one is its lead time: from entering the backlog to done.' },
-  { chapter: 'COMPARE', title: 'Results', targetId: 'compare-team-a-results', parentTargetId: TEAM_A, description: 'Total Time: until the last feature is done. Avg Cycle Time: from work start to done. Avg WIP: features in progress at once. Lower is better — each tile shows the gap to the other team.' },
+  { chapter: 'COMPARE', title: 'Done', targetId: 'compare-team-a-done', parentTargetId: TEAM_A, description: 'Finished features land here. The number under each one is its lead time in working days: from entering the backlog to done.' },
+  { chapter: 'COMPARE', title: 'Results', targetId: 'compare-team-a-results', parentTargetId: TEAM_A, description: 'Total Time: working weeks and days until the last feature is done. Avg Cycle Time: working days from work start to done. Avg WIP: features in progress at once. Lower is better — each tile shows the gap to the other team.' },
   { chapter: 'COMPARE', title: 'Team B', targetId: 'compare-team-b-panel', description: 'Team B starts as Double: the same six people, each covering two roles. Everything else is identical, so you read it just like Team A.' },
-  { chapter: 'COMPARE', title: 'Controls', targetId: 'compare-controls', description: 'Change the speed (0.5×, 1×, 10×) at any time, even mid-run. ↺ Reset starts over with the default Single vs Double teams. ? brings this tour back.' },
+  { chapter: 'COMPARE', title: 'Controls', targetId: 'compare-controls', description: 'Change the speed (0.5×, 1×, 10×) at any time, even mid-run; 1× is one working day per second. ↺ Reset starts over with the default Single vs Double teams. ? brings this tour back.' },
   { chapter: 'COMPARE', title: 'Run it', targetId: 'compare-run-button', description: 'Click ▶ Run to start both teams. When both finish, a result box shows which team was faster and why.' },
 ]
 
@@ -78,7 +78,7 @@ const EXPERIMENT: ExpectedStep[] = [
   { chapter: 'BACKLOG & RULES', title: 'Work rules', targetId: 'experiment-team-accordion', description: 'Open Team to choose how a free unit picks work. Reduce WIP: finish started features first. Min units: stick to features it knows and avoid those others work on.' },
   { chapter: 'RUN & RESULTS', title: 'In Progress', targetId: 'experiment-in-progress', description: 'Features being worked on. A framed card has work going on right now. A letter on a segment shows which unit is on it; ✓ marks a finished segment.' },
   { chapter: 'RUN & RESULTS', title: 'Unit states', targetId: 'experiment-team-composition', description: "During the run, each unit shows what it works on. idle — no work for its skills. waiting… (highlighted) — work exists, but an earlier phase of that feature isn't done." },
-  { chapter: 'RUN & RESULTS', title: 'Done', targetId: 'experiment-done', description: 'Finished features, with the number of tasks and the lead time of each: from entering the backlog to done.' },
+  { chapter: 'RUN & RESULTS', title: 'Done', targetId: 'experiment-done', description: 'Finished features, with the number of tasks and the lead time of each in working days: from entering the backlog to done.' },
   { chapter: 'RUN & RESULTS', title: 'Metrics', targetId: 'experiment-results', description: 'Hover ? on a tile for its definition. Total Wait and Avg Handoffs stay at zero until you give skills different phases under Skills.' },
   { chapter: 'CONTROLS', title: 'Controls', targetId: 'experiment-controls', description: CONTROLS_TEXT },
   { chapter: 'CONTROLS', title: 'Run it', targetId: 'experiment-run-button', description: 'Click ▶ Run. When the run finishes, change one thing — a unit, a skill or a rule — press ↺ Reset and run again. Each tile then shows the change against the previous run.' },
@@ -87,9 +87,9 @@ const EXPERIMENT: ExpectedStep[] = [
 /** Tabulka „Prohlídka Cash Flow (8 kroků, nová)“ ze specu. */
 const CASHFLOW: ExpectedStep[] = [
   { chapter: 'INTRO', title: 'Flow meets money', targetId: 'mode-tab-cashflow', description: "The same setup as Advanced, but every finished feature starts earning money. Units, AI and settings work just like there; this tour covers what's new." },
-  { chapter: 'REVENUE', title: 'Value per feature', targetId: 'cashflow-backlog-list', description: 'Each feature shows what it earns per tick — every 3 s of simulation time — once delivered. The most valuable features sit at the top, as the highest priority.' },
+  { chapter: 'REVENUE', title: 'Value per feature', targetId: 'cashflow-backlog-list', description: 'Each feature shows what it earns per week — every 5 working days (1 week) — once delivered. The most valuable features sit at the top, as the highest priority.' },
   { chapter: 'REVENUE', title: 'Revenue curve', targetId: 'cashflow-backlog-accordion', description: 'Open Backlog to pick how revenue ramps up after delivery. Flat: full amount at once. J-curve: low at first, then above flat. S-curve: slow start, levels off at flat.' },
-  { chapter: 'REVENUE', title: 'Earnings', targetId: 'cashflow-done', description: 'Each delivered feature earns every tick. The big number is its total so far, +€ flashes on each payment and the bar counts down to the next one.' },
+  { chapter: 'REVENUE', title: 'Earnings', targetId: 'cashflow-done', description: 'Each delivered feature earns every week. The big number is its total so far, +€ flashes on each payment and the bar counts down to the next one.' },
   { chapter: 'REVENUE', title: 'Revenue (time-matched)', targetId: 'cashflow-revenue', description: "Compares this run with the previous one at the same moment, so a longer run can't win just by running longer. Details shows the full totals." },
   { chapter: 'COORDINATION', title: 'Coordination overhead', targetId: 'cashflow-team-accordion', description: 'Turn it on under Team: each extra unit that joins a feature pays 25 % extra work and may cause rework (20 % chance). Cards then show ⇄ joins and ↺ rework.' },
   { chapter: 'CONTROLS', title: 'Controls', targetId: 'cashflow-controls', description: CONTROLS_TEXT },

@@ -102,7 +102,7 @@ test.describe('feat-022: sjednocení designu v celém nástroji', () => {
 
     const fonts = await doneListFonts(page)
     expect(fonts.some(f => /^\d+ tasks?$/.test(f.text)), 'řádek s počtem tasků').toBe(true)
-    expect(fonts.some(f => /^\d+\.\d+s$/.test(f.text)), 'řádek s lead time').toBe(true)
+    expect(fonts.some(f => /^\d+\.\d+ days$/.test(f.text)), 'řádek s lead time (feat-027: ve dnech)').toBe(true)
     expect(fonts.filter(f => !MONO.test(f.family))).toEqual([])
   })
 
@@ -118,7 +118,7 @@ test.describe('feat-022: sjednocení designu v celém nástroji', () => {
     await runButton(page, 'Pause').click()
 
     const fonts = await doneListFonts(page)
-    expect(fonts.some(f => /^€[\d.,]+k?\/tick$/.test(f.text)), 'výnos za tick').toBe(true)
+    expect(fonts.some(f => /^€[\d.,]+k?\/week$/.test(f.text)), 'výnos za týden (feat-027)').toBe(true)
     expect(fonts.filter(f => !MONO.test(f.family))).toEqual([])
 
     const breakdown = page.getByText(/handoff [\d.,]+ %/)

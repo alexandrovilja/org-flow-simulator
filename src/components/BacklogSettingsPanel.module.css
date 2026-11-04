@@ -158,6 +158,13 @@
   width: 100%;
 }
 
+/* Nápověda ke sloupci Size pod tlačítky importu (feat-027): jeden řádek ve stylu hintu dlaždic */
+.importHint {
+  font-size: 11px;
+  line-height: 16px;
+  color: var(--ink-3);
+}
+
 /* Výsledek importu XLS: úspěch v barvách done, chyba v barvách reworku */
 .importMsg {
   padding: 5px var(--space-8);

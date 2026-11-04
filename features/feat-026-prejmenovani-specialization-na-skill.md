@@ -194,3 +194,4 @@ Hlášky importu:
 - **feat-022-sjednoceni-designu:** převedla hlášky importu do angličtiny a české sloupce vědomě ponechala; feat-026 to mění. Příklady a testy zmiňují sekci „Specializations“.
 - **feat-023-jednotne-pismo-textu:** příklady a testy zmiňují sekci „Specializations“ a import.
 - **feat-025-revize-tutorialu:** kroky 8 a 13 prohlídky Advanced; uzavírá bod z jejího Out of Scope.
+- **feat-027-cas-simulace-pracovni-dny:** sloupec `Size` zůstává beze změny názvu, mění se jen jeho význam (man-days) a nápověda u importu.

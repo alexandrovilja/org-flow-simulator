@@ -14,7 +14,7 @@ const WIDTH = 250
 const HEIGHT = 46
 /** Okraj, aby tlustá čára křivky na krajích nebyla oříznutá. */
 const PAD = 3
-/** Kolik ticků osa X zobrazuje (0–16 ticků = 48 s simulačního času). */
+/** Kolik ticků osa X zobrazuje (0–16 ticků = 16 týdnů = 80 pracovních dnů, feat-027). */
 const MAX_TICK = 16
 /** Horní hranice osy Y v násobcích základního výnosu — sdílená pro všechny profily, aby šlo vidět J-plató 2×. */
 const MAX_MULTIPLIER = 2
@@ -76,7 +76,7 @@ export function RevenueCurvePreview({ profile }: RevenueCurvePreviewProps) {
         <polyline data-testid="revenue-curve-line" className={styles.curve} points={CURVE_POINTS[profile]} />
       </svg>
       <div className={styles.caption}>
-        {`Revenue per tick after delivery · 0–${MAX_TICK} ticks · plateau ${revenuePlateau(profile)}× Flat`}
+        {`Revenue per week after delivery · 0–${MAX_TICK} weeks · plateau ${revenuePlateau(profile)}× Flat`}
       </div>
     </div>
   )

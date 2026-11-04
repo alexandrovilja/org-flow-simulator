@@ -5,6 +5,7 @@ import { ConfirmOverlay } from '@/components/ConfirmOverlay'
 import { FeedbackDialog } from '@/components/FeedbackDialog'
 import { EMPTY_FEEDBACK_DRAFT, WEB3FORMS_ENDPOINT, formatFeedbackDate } from '@/lib/feedback'
 import { markTutorialCompleted, markModeSeen, resetTutorial } from '@/lib/storage'
+import { simDays } from './workTime'
 
 // feat-024 Zpětná vazba od uživatelů — ikona v liště a dialog „Send feedback“ v celé aplikaci.
 //
@@ -103,13 +104,12 @@ const nameOf = (el: Element) => el.getAttribute('aria-label') ?? el.textContent?
 const runButton = () => screen.getByRole('button', { name: '▶ Run' })
 
 /**
- * Simulační čas z prvního čítače „MM:SS.d“ na obrazovce.
+ * Simulační čas z prvního čítače Total Time na obrazovce (feat-027: pracovní dny, „2 weeks 4.3 days“).
  *
- * @returns Čas v sekundách
+ * @returns Čas v pracovních dnech
  */
 function simSeconds(): number {
-  const [minutes, rest] = screen.getAllByText(/^\d\d:\d\d\.\d$/)[0].textContent!.split(':')
-  return Number(minutes) * 60 + Number(rest)
+  return simDays()
 }
 
 /**

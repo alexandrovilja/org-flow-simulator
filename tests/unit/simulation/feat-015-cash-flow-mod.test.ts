@@ -85,7 +85,7 @@ describe('feat-015: revenue accrual on tick', () => {
     expect(state.totalRevenueAllTime).toBe(0)
   })
 
-  it('ticks each done feature independently, exactly 3s after its own completion — not on a shared cycle', () => {
+  it('ticks each done feature independently, exactly one interval (5 days, feat-027) after its own completion — not on a shared cycle', () => {
     // Feature A dokončena v simTime=0, Feature B o 1.5s později v simTime=1.5.
     const { state, settings, rng, feature: featureA } = makeDoneFeatureState(300, 0)
     const featureB = state.backlog.pop() ?? { ...featureA, id: featureA.id + 1 }
@@ -97,13 +97,13 @@ describe('feat-015: revenue accrual on tick', () => {
     featureB.lastRevenueTickAt = 1.5
     state.done.push(featureB)
 
-    // simTime: 0 → 3.0 — A dosáhla svých 3s (tiká), B jen 1.5s od svého dokončení (netiká).
+    // simTime: 0 → jeden interval — A dosáhla svého ticku, B je teprve 1.5 dne od svého dokončení (netiká).
     tick(state, REVENUE_TICK_INTERVAL_SEC, settings, rng)
     expect(featureA.totalRevenue).toBe(300)
     expect(featureB.totalRevenue).toBe(0)
 
-    // simTime: 3.0 → 4.5 — B dosáhla svých 3s (4.5-1.5=3.0, tiká poprvé),
-    // A má od svého posledního ticku jen 1.5s (netiká podruhé).
+    // simTime: interval → interval + 1.5 — B má od svého dokončení celý interval (tiká poprvé),
+    // A má od svého posledního ticku jen 1.5 dne (netiká podruhé).
     tick(state, 1.5, settings, rng)
     expect(featureA.totalRevenue).toBe(300)
     expect(featureB.totalRevenue).toBe(150)
@@ -171,10 +171,11 @@ describe('feat-015: computeRevenueAsOf (time-matched revenue comparison)', () =>
   it('sums multiple features with different finishedAt/revenuePerTick, independent of array order', () => {
     const featureA = { finishedAt: 0, revenuePerTick: 300 }
     const featureB = { finishedAt: 1.5, revenuePerTick: 150 }
-    // Stejný scénář jako 'ticks each done feature independently' výše: v simTime=4.5
-    // A stihla 1 tick (300), B stihla 1 tick (150) → 450 celkem.
-    const forward = computeRevenueAsOf([featureA, featureB], 4.5)
-    const reversed = computeRevenueAsOf([featureB, featureA], 4.5)
+    // Stejný scénář jako 'ticks each done feature independently' výše: v čase jednoho intervalu
+    // plus 1,5 dne (feat-027: 6,5 dne) A stihla 1 tick (300), B stihla 1 tick (150) → 450 celkem.
+    const at = REVENUE_TICK_INTERVAL_SEC + 1.5
+    const forward = computeRevenueAsOf([featureA, featureB], at)
+    const reversed = computeRevenueAsOf([featureB, featureA], at)
     expect(forward).toBe(450)
     expect(reversed).toBe(450)
   })

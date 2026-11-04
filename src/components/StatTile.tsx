@@ -1,10 +1,12 @@
 import { useState } from 'react'
 import { formatPercent } from '@/lib/formatPercent'
+import { ValueUnit } from '@/components/ValueUnit'
 import styles from './StatTile.module.css'
 
 interface StatTileProps {
   label: string
-  value: string
+  /** Hodnota dlaždice: text, nebo komponenta (Total Time je `WorkTimeValue`, feat-027). */
+  value: React.ReactNode
   unit?: string
   hint?: string
   tooltip?: string
@@ -85,7 +87,7 @@ export function StatTile({ label, value, unit, hint, tooltip, variant, finished,
       {/* Třída „mono“ zůstává: E2E test feat-015 podle ní hledá hodnotu časovače */}
       <span className={`mono ${styles.value}`}>
         {value}
-        {unit && <span className={styles.unit}>{unit}</span>}
+        {unit && <ValueUnit tight>{unit}</ValueUnit>}
       </span>
       {children}
       {hint && <span className={styles.hint}>{hint}</span>}

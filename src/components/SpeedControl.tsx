@@ -50,6 +50,8 @@ export function SpeedControl({
       <Button onBar onClick={onReset} title={resetTitle}>↺ Reset</Button>
       <SegmentedControl
         tone="bar"
+        // Co znamená 1×: čas simulace se čte v pracovních dnech (feat-027); popisek se ukáže po najetí myší
+        hint="1× = 1 working day per second"
         options={SPEEDS.map(s => ({ value: String(s), label: `${s}×` }))}
         value={String(speed)}
         onChange={v => {

@@ -116,8 +116,11 @@
   gap: var(--space-8);
 }
 
-/* Dlaždice srovnání týmů (vzhled jako StatTile) */
+/* Dlaždice srovnání týmů (vzhled jako StatTile). `min-width: 0` drží tři sloupce `1fr` skutečně stejně
+   široké (feat-027): bez něj by nezalomitelný čas „37 weeks 2.9 days“ sloupec roztáhl a nikdy by se
+   nezkrátil na „37w 2.9d“. */
 .metric {
+  min-width: 0;
   padding: var(--space-8) 10px;
   border-radius: var(--radius-md);
   background: var(--surface-panel);

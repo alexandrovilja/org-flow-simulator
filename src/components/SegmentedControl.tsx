@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import styles from './SegmentedControl.module.css'
 
 /** One choice of a segmented control */
@@ -19,7 +19,7 @@ interface SegmentedControlProps<T extends string> {
   value: T | null
   /** Called when the user picks a different option */
   onChange: (value: T) => void
-  /** Tooltip text shown on hover as a floating panel */
+  /** Tooltip text shown as a floating panel on hover and on keyboard focus */
   hint?: string
   /** When true, the control is dimmed and clicks are ignored (e.g. setting locked until Reset) */
   disabled?: boolean
@@ -40,7 +40,7 @@ interface SegmentedControlProps<T extends string> {
  * @param options - two to four choices, each with a value, display label and optional title
  * @param value   - the currently selected value, or null for none
  * @param onChange - callback fired with the newly selected value
- * @param hint    - optional description shown as a floating tooltip on hover
+ * @param hint    - optional description shown as a floating tooltip on hover and on keyboard focus
  * @param disabled - optional; dims the control and ignores clicks
  * @param tone    - optional; `bar` for the dark top bar
  * @param fullWidth - optional; stretch to the parent's width (segments stay equally wide)
@@ -50,6 +50,9 @@ export function SegmentedControl<T extends string>({ options, value, onChange, h
   // null = nothing pressed on purpose (-1 matches no segment); an unknown value falls back to the
   // first segment, so a stale value never leaves the control looking empty
   const activeIndex = value === null ? -1 : Math.max(0, options.findIndex(o => o.value === value))
+  // true od stisku myši do ztráty fokusu: zaostření kliknutím nesmí hint připnout (zůstává jen při najetí),
+  // klávesnice (Tab) hint ukáže, aby ho nepřišli o něj uživatelé bez myši
+  const pointerFocus = useRef(false)
   const [visible, setVisible] = useState(false)
 
   return (
@@ -57,6 +60,13 @@ export function SegmentedControl<T extends string>({ options, value, onChange, h
       className={[styles.root, tone === 'bar' && styles.bar, fullWidth && styles.fullWidth].filter(Boolean).join(' ')}
       onMouseEnter={() => hint && setVisible(true)}
       onMouseLeave={() => setVisible(false)}
+      onMouseDown={() => { pointerFocus.current = true }}
+      onFocus={() => { if (hint && !pointerFocus.current) setVisible(true) }}
+      onBlur={event => {
+        pointerFocus.current = false
+        // Posun fokusu na jiný segment téhož přepínače hint nechá; skryje se až při odchodu z přepínače
+        if (!event.currentTarget.contains(event.relatedTarget)) setVisible(false)
+      }}
     >
       <div
         role="group"

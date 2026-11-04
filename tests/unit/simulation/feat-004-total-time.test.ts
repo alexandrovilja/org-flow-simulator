@@ -1,5 +1,4 @@
 import { describe, it, expect } from 'vitest'
-import { formatTime } from '@/lib/formatTime'
 import { mulberry32, makeInitialState, resetFromSnapshot, tick } from '@/simulation/engine'
 import type { SimSettings } from '@/types/simulation'
 
@@ -15,36 +14,9 @@ const SETTINGS: SimSettings = {
 // ---------------------------------------------------------------------------
 // formatTime
 // ---------------------------------------------------------------------------
-
-describe('formatTime', () => {
-  it('formats zero as 00:00.0', () => {
-    expect(formatTime(0)).toBe('00:00.0')
-  })
-
-  it('formats seconds correctly', () => {
-    expect(formatTime(5)).toBe('00:05.0')
-    expect(formatTime(59)).toBe('00:59.0')
-  })
-
-  it('formats minutes correctly', () => {
-    expect(formatTime(60)).toBe('01:00.0')
-    expect(formatTime(125)).toBe('02:05.0')
-  })
-
-  it('formats tenths of a second correctly', () => {
-    expect(formatTime(1.3)).toBe('00:01.3')
-    expect(formatTime(1.95)).toBe('00:01.9')
-  })
-
-  it('truncates (does not round) tenths', () => {
-    // 1.99 should show .9, not round up to .10
-    expect(formatTime(1.99)).toBe('00:01.9')
-  })
-
-  it('pads minutes and seconds with leading zeros', () => {
-    expect(formatTime(61.5)).toBe('01:01.5')
-  })
-})
+// Od feat-027 se Total Time píše v pracovních týdnech a dnech („2 weeks 4.3 days“) místo „MM:SS.d“ —
+// testy formátu jsou v tests/unit/simulation/feat-027-format-time.test.ts. Zůstává princip z feat-004:
+// desetiny se zkracují (floor), nikdy nezaokrouhlují (hlídá feat-027 Příklad 3).
 
 // ---------------------------------------------------------------------------
 // finished flag — engine

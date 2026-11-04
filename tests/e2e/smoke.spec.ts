@@ -50,10 +50,11 @@ test.describe('Smoke: základní funkčnost', () => {
   test('po kliknutí na Run se timer spustí', async ({ page }) => {
     await runButton(page, 'Run').click()
 
-    // Před spuštěním ukazuje Total Time „—“, za běhu čas ve formátu mm:ss.d — hledáme hodnotu různou od 00:00.0
+    // Před spuštěním ukazuje Total Time „—“, za běhu čas v pracovních týdnech a dnech (feat-027: „4.3 days“,
+    // „2 weeks 4.3 days“, v úzké dlaždici zkráceně „2w 4.3d“) — hledáme hodnotu různou od „0.0 days“
     const timerValue = totalTimeValue(page)
-    await expect(timerValue).toHaveText(/^\d{2}:\d{2}\.\d$/)
-    await expect(timerValue).not.toHaveText('00:00.0')
+    await expect(timerValue).toHaveText(/^(\d+ ?(weeks?|w) )?\d+\.\d ?(days|d)$/)
+    await expect(timerValue).not.toHaveText('0.0 days')
   })
 
   test('backlog zobrazuje items', async ({ page }) => {

@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { render, screen, fireEvent, act } from '@testing-library/react'
 import { Simulator } from '@/components/Simulator'
 import { markTutorialCompleted, markModeSeen, resetTutorial } from '@/lib/storage'
+import { WORK_TIME_PATTERN } from './workTime'
 
 // feat-017: propojení přepínače křivky v Simulator.tsx (uložení doběhnutého běhu jako předchozího,
 // zavření dialogu při Resetu). Tuto logiku nejde otestovat na úrovni hooku, protože předchozí běh a
@@ -90,7 +91,7 @@ describe('feat-017 Příklad 7: srovnání stejného backlogu napříč profily 
     await runToEnd()
     expect(screen.getAllByText(/vs prev run/).length).toBeGreaterThan(0)
     // hint pod Total Revenue říká, ke kterému času se srovnání vztahuje
-    expect(screen.getByText(/^@ \d\d:\d\d\.\d$/)).toBeTruthy()
+    expect(screen.getByText(new RegExp(`^@ ${WORK_TIME_PATTERN}$`))).toBeTruthy()
   })
 
   it('změna přes dialog během běhu: když běh mezitím doběhne, „Change and reset“ ho uloží jako předchozí', async () => {

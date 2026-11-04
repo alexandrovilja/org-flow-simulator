@@ -9,6 +9,7 @@ import { computeStats, makeInitialState, mulberry32 } from '@/simulation/engine'
 import type { SimState, SimStats } from '@/types/simulation'
 import type { TutorialMode } from '@/types/tutorial'
 import { controlNames } from './topBarControls'
+import { simDays } from './workTime'
 
 // feat-025 (Revize tutoriálu) — tutoriál v aplikaci.
 //
@@ -307,10 +308,9 @@ describe('feat-025 review: „?“ za běhu simulaci pozastaví', () => {
    */
   const SIM_RUN_TIMEOUT_MS = 20_000
 
-  /** Simulační čas z prvního čítače „MM:SS.d“ na obrazovce (v Compare Total Time týmu A). */
+  /** Simulační čas z prvního čítače Total Time na obrazovce (v Compare tým A); feat-027: pracovní dny. */
   function simSeconds(): number {
-    const [minutes, rest] = screen.getAllByText(/^\d\d:\d\d\.\d$/)[0].textContent!.split(':')
-    return Number(minutes) * 60 + Number(rest)
+    return simDays()
   }
 
   it.each(['Compare', 'Advanced', 'Cash Flow'] as const)('%s: běh se zastaví a prohlídka začne', async tab => {

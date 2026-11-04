@@ -9,7 +9,7 @@ import type { SimSettings, SimState, Feature, RevenueProfile } from '@/types/sim
 
 // feat-017: Rozložení výnosu v čase (Flat / J-curve / S-curve).
 // Tvar křivky je čistá funkce (profil, k), kde k = pořadí revenue ticku od dokončení featury
-// (k = 1 je první tik, 3 s po dokončení). Profil je štítek na featuře, žádný RNG.
+// (k = 1 je první tik; po dokončení uplyne jeden interval, feat-027: 5 pracovních dnů, dřív 3 s). Profil je štítek na featuře, žádný RNG.
 // Nové exporty engine.ts, které tyto testy předpokládají: revenueMultiplier, cumulativeRevenueMultiplier,
 // revenuePlateau, setRevenueProfile. Nová pole Feature: revenueProfile, revenueTickCount.
 // Nové pole SimSettings: revenueProfile? (chybějící = 'flat').
@@ -121,7 +121,7 @@ describe('feat-017: kumulativní multiplikátor (cumulativeRevenueMultiplier)', 
     }
   })
 
-  it('J-curve dožene Flat v kumulativním výnosu po 11. tiku (33 s), ne dřív', () => {
+  it('J-curve dožene Flat v kumulativním výnosu po 11. tiku (11 týdnů = 55 pracovních dnů), ne dřív', () => {
     expect(cumulativeRevenueMultiplier('j-curve', 10)).toBeLessThan(10)
     expect(cumulativeRevenueMultiplier('j-curve', 11)).toBeGreaterThan(11)
   })
@@ -247,13 +247,14 @@ describe('feat-017: revenue accrual v tick() podle profilu', () => {
     expect(feature.lastTickRevenue).toBeCloseTo(400 * revenueMultiplier('j-curve', 3), 6)
   })
 
-  it('Příklad 16 — křivka se měří od dokončení featury, ne od startu běhu: dokončení v 12 s → první tik v 15 s s k = 1', () => {
+  it('Příklad 16 — křivka se měří od dokončení featury, ne od startu běhu: dokončení ve dni 12 → první tik ve dni 17 (o týden později) s k = 1', () => {
     const { state, settings, rng, feature } = makeDoneFeatureState(400, 'j-curve', 12)
-    tick(state, 2.5, settings, rng)
+    // feat-027: první tik přijde za REVENUE_TICK_INTERVAL_SEC = 5 dní od dokončení
+    tick(state, REVENUE_TICK_INTERVAL_SEC - 0.5, settings, rng)
     expect(feature.totalRevenue).toBe(0)
     tick(state, 0.5, settings, rng)
-    expect(state.simTime).toBe(15)
-    expect(feature.lastRevenueTickAt).toBe(15)
+    expect(state.simTime).toBe(12 + REVENUE_TICK_INTERVAL_SEC)
+    expect(feature.lastRevenueTickAt).toBe(12 + REVENUE_TICK_INTERVAL_SEC)
     expect(feature.lastTickRevenue).toBeCloseTo(400 * revenueMultiplier('j-curve', 1), 9)
   })
 })
@@ -316,12 +317,13 @@ describe('feat-017 Příklad 10: computeRevenueAsOf odpovídá živé smyčce pr
   }
 
   it('záznam bez revenueProfile (starý snapshot předchozího běhu) se počítá jako Flat', () => {
-    expect(computeRevenueAsOf([{ finishedAt: 0, revenuePerTick: 400 }], 9)).toBe(1200)
+    // tři intervaly po dokončení (feat-027: 15 dní) = tři plné tiky
+    expect(computeRevenueAsOf([{ finishedAt: 0, revenuePerTick: 400 }], REVENUE_TICK_INTERVAL_SEC * 3)).toBe(1200)
   })
 
   it('záznam s profilem (zjednodušený snapshot CashFlowRunSnapshot.doneFeatures) respektuje tvar křivky', () => {
     const expected = 400 * cumulativeRevenueMultiplier('s-curve', 3)
-    expect(computeRevenueAsOf([{ finishedAt: 0, revenuePerTick: 400, revenueProfile: 's-curve' }], 9)).toBeCloseTo(expected, 9)
+    expect(computeRevenueAsOf([{ finishedAt: 0, revenuePerTick: 400, revenueProfile: 's-curve' }], REVENUE_TICK_INTERVAL_SEC * 3)).toBeCloseTo(expected, 9)
   })
 
   it('featura dokončená až po zadaném čase (nebo ještě nedokončená) přispívá 0 i u J-curve', () => {
@@ -335,7 +337,9 @@ describe('feat-017 Příklad 10: computeRevenueAsOf odpovídá živé smyčce pr
 // ───────────────────────────────────────────────────────────────────────────────
 
 describe('feat-017 Příklad 11: výnos nezávisí na kroku ani rychlosti simulace', () => {
-  it('J-curve: krok 0,5 s, 1,5 s a 3 s dají stejný Total Revenue ve stejném simTime', () => {
+  it('J-curve: krok 0,5, 1,5 a 3 dne dají stejný Total Revenue ve stejném simTime', () => {
+    // 15 revenue ticků (feat-027: 15 týdnů = 75 dní); 75 je násobkem všech tří kroků, takže jsou součty přesné
+    const UNTIL = REVENUE_TICK_INTERVAL_SEC * 15
     const run = (dt: number) => {
       const rng = mulberry32(42)
       const settings: SimSettings = { ...BASE_SETTINGS, initialBacklog: 1 }
@@ -348,7 +352,7 @@ describe('feat-017 Příklad 11: výnos nezávisí na kroku ani rychlosti simula
       f.revenueProfile = 'j-curve'
       f.revenueTickCount = 0
       state.done.push(f)
-      while (state.simTime < 45) tick(state, dt, settings, rng)
+      while (state.simTime < UNTIL) tick(state, dt, settings, rng)
       return state.totalRevenueAllTime
     }
     const reference = run(0.5)
@@ -375,7 +379,7 @@ describe('feat-017 Příklad 12: vytěsněné featury si drží tvar křivky', (
   }
 
   /**
-   * Done list přesně na capu (40), všechny featury už vyplatily `ticksPaid` tiků (simTime = ticksPaid × 3 s)
+   * Done list přesně na capu (40), všechny featury už vyplatily `ticksPaid` tiků (simTime = ticksPaid × REVENUE_TICK_INTERVAL_SEC)
    * a jedna featura v inProgress se dokončí hned na první tick(). Nejstarší (id 40, základ 999) se vytěsní
    * do `doneOverflow` uprostřed života křivky (výchozí: mezi 4. a 5. tikem).
    */
