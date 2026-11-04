@@ -89,8 +89,8 @@ async function advanceUntilDone(): Promise<void> {
   throw new Error('Běh nedoběhl ani za 60 s falešného času')
 }
 
-/** Časový limit (reálný čas) testů, které posouvají falešný čas o desítky dní simulace. */
-const SIM_RUN_TIMEOUT_MS = 20_000
+/** Časový limit (reálný čas) testů, které posouvají falešný čas o desítky dní simulace (CI je až 6× pomalejší než lokální stroj). */
+const SIM_RUN_TIMEOUT_MS = 40_000
 
 // ───────────────────────────────────────────────────────────────────────────────
 // Total Time ve třech módech (Příklady 4 a 5)
@@ -154,7 +154,7 @@ describe('feat-027 Příklady 4 a 5: Total Time v týdnech a dnech', { timeout: 
     render(<Simulator />)
     setSpeed10()
     fireEvent.click(runButton())
-    await advance(3000)
+    await advance(1500)
     const values = workTimeValues()
     expect(values).toHaveLength(2)
     for (const value of values) expect(value.textContent).toMatch(new RegExp(`^${WORK_TIME_PATTERN}$`))
@@ -213,7 +213,7 @@ describe('feat-027 Příklady 6–8: doby trvání ve dnech', { timeout: SIM_RUN
     render(<Simulator />)
     setSpeed10()
     fireEvent.click(runButton())
-    await advance(4000)
+    await advance(2000)
     expect(screen.getAllByText(/^\d+\.\d days$/).length).toBeGreaterThan(0)
     expect(screen.queryAllByText(/^\d+\.\ds$/)).toHaveLength(0)
     // hodnota Avg Cycle Time týmu: číslo a „days“

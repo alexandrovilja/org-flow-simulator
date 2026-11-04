@@ -46,8 +46,12 @@ const RUN_CONTROLS = ['↺ Reset', '0.5×', '1×', '10×', '▶ Run']
 /** Tooltip tlačítka Reset v Advanced a Cash Flow (v Compare Reset tooltip nemá). */
 const RESET_TOOLTIP = 'Restore the initial backlog and clear in-progress / done'
 
-/** Časový limit (reálný čas) testů, které posouvají falešný čas o desítky sekund simulace. */
-const SIM_RUN_TIMEOUT_MS = 20_000
+/**
+ * Časový limit (reálný čas) testů, které posouvají falešný čas o desítky sekund simulace.
+ * Test rychlosti v Compare trvá lokálně kolem 3 s, ale na CI runneru 17 s (zelený běh feat-019) až 20,5 s
+ * (PR feat-027 s víc souběžnými testy) — limit 20 s byl na hraně, proto 40 s.
+ */
+const SIM_RUN_TIMEOUT_MS = 40_000
 
 /** Názvy tří módů tak, jak je mají záložky v liště. */
 type ModeName = 'Compare' | 'Advanced' | 'Cash Flow'
