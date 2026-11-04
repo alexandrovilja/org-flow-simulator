@@ -1,7 +1,7 @@
 # Feature: AI multiplikátor výkonu
 
 ## Status
-in-progress
+done
 
 *Revize (2026-11-03): AI se už nenastavuje na celou jednotku, ale na **jednotlivý skill jednotky**. Člověk (nebo tým) může použít AI při vývoji, ale ne při code review nebo UAT. Přepsáno Problem, User Story, UI / Design, příklady, Out of Scope, Technical Notes a Open Questions. Dřívější změna z 2026-10-20 (přepínání kliknutím 1× → 2× → 5× → 1×) zůstává v platnosti, jen se děje na chipu skillu.*
 
