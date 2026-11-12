@@ -23,7 +23,7 @@ Scénáře počítají s těmito pravidly. Body R1–R6 vyplynuly při sestavov�
 | R9 | Koordinační režie z feat-016 v tomto módu není. | rozhodnuto |
 | R10 | Výběr práce řídí přepínač **Reduce WIP / Min units** jako v Cash Flow. U Min units je jednotkou **tým**: člověk dá přednost featuře, na které už pracoval někdo z jeho týmu, potom featuře, na které nepracoval nikdo z jiného týmu, a nakonec rozhoduje priorita. Kolega ze stejného týmu se nepočítá jako jiná jednotka, takže s jediným týmem vybírá Min units stejně jako Reduce WIP. Skill, mandát a fáze platí v obou režimech. | rozhodnuto |
 | R11 | Skilly, AI, mandáty, oblasti, lidé a názvy týmů se mění jen před během. Od prvního spuštění (i v pauze a po doběhnutí) je vše zamčené až do Resetu. | rozhodnuto |
-| R12 | Srovnání s předchozím během funguje jako v Cash Flow: předchozí běh je poslední doběhnutý běh, který se stane „předchozím“ po Resetu nebo vygenerování nového backlogu. Delty cycle time, WIP a Idle time jsou vidět už za běhu, delta Total time až po doběhnutí, výnos podle feat-018. | rozhodnuto |
+| R12 | Srovnání s předchozím během funguje jako v Cash Flow: předchozí běh je poslední doběhnutý běh, který se stane „předchozím“ po Resetu nebo vygenerování nového backlogu. Delty cycle time a WIP jsou vidět už za běhu, delty Total time a Idle time až po doběhnutí (obě se za běhu sčítají; změna Idle time ve feat-029), výnos podle feat-018. | rozhodnuto |
 | R13 | Organizace se neukládá mezi načteními stránky (stejně jako týmy v ostatních módech). | rozhodnuto |
 
 ## Konvence
@@ -523,8 +523,8 @@ Scénáře počítají s těmito pravidly. Body R1–R6 vyplynuly při sestavov�
 - **Then:**
   - **In progress:**
     - F-1: štítek BIL zelený „✓ BIL“, WEB běžný; pruh postupu 63 % (2.5 ze 4 dní)
-    - F-2: štítek WEB žlutý, pruh postupu 13 % (0.5 ze 4 dní), poznámka „Waiting · WEB“
-    - po rozbalení F-2: Java v BIL s iniciálou Bena a výplní 50 %; Frontend ve WEB je Waiting (šrafa) s tooltipem „Frontend · waiting · 1 idle person with this skill in Team Mobile“
+    - F-2: štítek WEB žlutý, pruh postupu 13 % (0.5 ze 4 dní)
+    - po rozbalení F-2: Java v BIL s iniciálou Bena a výplní 50 %; Frontend ve WEB je Waiting (šrafa) s tooltipem „Frontend · waiting · 1 idle person with this skill in Team Mobile“; pod oblastmi poznámka „Waiting · WEB“ (jen v rozbalené featuře, feat-029)
     - nad seznamem filtr „1 waiting“
   - **Organizace:**
     - Eli má žlutou kartu „Idle“ s tooltipem „Idle while work for their skills waits in Web portal“; Dani, Fae a Gus mají šedé „Idle“
@@ -636,7 +636,7 @@ Scénáře počítají s těmito pravidly. Body R1–R6 vyplynuly při sestavov�
 #### F9 · Kdy se srovnání ukáže — O · U
 - **Given:** první běh doběhl, kouč klikl na Reset a spustil druhý běh
 - **When:** druhý běh probíhá (čas 3.0, už 2 hotové featury)
-- **Then:** Avg cycle time, Avg WIP a Idle time ukazují „vs prev run“; Total time ho ukáže až po doběhnutí (R12)
+- **Then:** Avg cycle time a Avg WIP ukazují „vs prev run“; Total time a Idle time ho ukážou až po doběhnutí (R12)
 
 ---
 
@@ -700,6 +700,8 @@ Scénáře počítají s těmito pravidly. Body R1–R6 vyplynuly při sestavov�
 - **Given:** data z D7, čas 0.5
 - **When:** kouč se podívá na panel organizace
 - **Then:** řádek Team Billing: mandát „BIL“, pruh „2/3“, ve sloupci Working on štítky „F-1“ a „F-2“ (podle čísla) a šedé „1 idle“
+- **When:** běh doběhne
+- **Then:** Working on ukazuje „—“ a hlavička organizace nemá počet idle lidí
 
 #### H2 · Více lidí na jedné featuře — H · U
 - **Given:** data z D14, čas 1.0
@@ -710,6 +712,10 @@ Scénáře počítají s těmito pravidly. Body R1–R6 vyplynuly při sestavov�
 - **Given:** data z D2, čas 1.5; filtr „1 waiting“ je zapnutý a F-1 v něm není
 - **When:** kouč klikne na štítek „F-1“ v řádku Team Web (Hana na F-1 pracuje)
 - **Then:** filtr se vypne a F-1 v In progress je rozbalená, zvýrazněná a posunutá do viditelné části
+- **When:** kouč klikne na štítek „F-2“ v řádku Team Billing
+- **Then:** zvýrazněná je jen F-2, F-1 zůstane rozbalená
+- **When:** běh doběhne, kouč klikne na Reset a spustí nový běh
+- **Then:** filtr je vypnutý a žádná featura není rozbalená ani zvýrazněná
 
 #### H4 · Lidé v rozbaleném týmu — H · U
 - **Given:** data z D7, čas 1.0; Team Billing rozbalený
@@ -727,6 +733,8 @@ Scénáře počítají s těmito pravidly. Body R1–R6 vyplynuly při sestavov�
 - **Given:** data z D2, čas 1.5
 - **When:** kouč klikne na „1 waiting“
 - **Then:** In progress ukazuje jen F-2; další kliknutí ukáže F-1 i F-2
+- **When:** filtr je zapnutý a čas dojde na 3.5 (Hana už dělá Frontend ve F-2)
+- **Then:** nic nečeká, filtr zmizí a vypne se; In progress ukazuje F-2
 
 #### H7 · Detail položky backlogu — H · U
 - **Given:** ORG-DEF; položka `F-2 (p2, €280/week): BIL [Product 2 · Java 3] | WEB [QA 3]`
@@ -914,4 +922,5 @@ Podle úrovně: unit testy enginu pokrývají hlavně skupiny A, C, D, E, F a G;
 
 ## Testy (fáze TDD)
 - **Inkrement 1 (feat-028):** 72 testů v `tests/`: unit `feat-028-org-backlog`, `-org-validation`, `-org-engine`, `-organization-view`, `-simulator-integration`, `-tokens` a data `feat028Fixtures.ts`; E2E `feat-028-organizace.spec.ts` a rozšířený `feat-021-design-system.spec.ts` (lišta se čtyřmi záložkami).
-- **Inkrementy 2–9:** koncept testů pro celou feature (185 testů z 2026-11-11) je v [`docs/feat-028-test-drafts/`](feat-028-test-drafts/README.md) a vezme se do `tests/` v TDD fázi příslušného inkrementu.
+- **Inkrement 2 (feat-029):** 54 testů v `tests/`: unit `feat-029-org-idle` (engine, 21) a `feat-029-organization-view` (komponenta, 33); E2E `feat-029-proc-prace-ceka.spec.ts` (H3, J9 za běhu) a rozšířený test I4 v `feat-028-organizace.spec.ts` (Idle Time). V `feat-028-organization-view` dostal snapshot předchozího běhu pole `idleTime`.
+- **Inkrementy 3–9:** koncept testů pro celou feature (185 testů z 2026-11-11) je v [`docs/feat-028-test-drafts/`](feat-028-test-drafts/README.md) a vezme se do `tests/` v TDD fázi příslušného inkrementu.
