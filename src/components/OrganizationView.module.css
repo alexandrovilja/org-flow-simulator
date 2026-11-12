@@ -1,4 +1,4 @@
-/* Mód Organization (feat-028, inkrement 1): tři sloupce jako Cash Flow — vlevo Backlog, uprostřed
+/* Mód Organization (feat-028, inkrement 1; feat-029 přidává čekání, idle a rozbalování): tři sloupce jako Cash Flow — vlevo Backlog, uprostřed
    In progress a Organization, vpravo Metrics a Done (ResultsAside). Barvy jen z tokenů globals.css (J10);
    tón featury podle odstínu je ve FeatureTone.module.css. Rozložení musí projít projektorem 1024 × 768
    bez vodorovného rolování (J9), proto mají sloupce i buňky min-width: 0 a texty se zalamují nebo zkracují. */
@@ -34,6 +34,29 @@
   border: var(--border-hair) solid var(--line);
   border-radius: var(--radius-md);
   background: var(--surface-panel);
+}
+
+/* Tlačítko položky backlogu (feat-029): celá hlavička položky rozbalí detail; vzhled zůstává jako karta */
+.itemButton {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+  width: 100%;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.itemButton:focus-visible,
+.featureToggle:focus-visible,
+.workChip:focus-visible,
+.waitFilter:focus-visible {
+  outline: var(--border-active) solid var(--focus);
+  outline-offset: 1px;
 }
 
 /* Řádek s názvem featury a štítky oblastí (backlog i In progress) */
@@ -97,6 +120,49 @@
   border-color: var(--done);
   background: var(--done-soft);
   color: var(--done);
+}
+
+/* Oblast s čekajícím úkolem (feat-029) */
+.areaTagWait {
+  border-color: var(--wait);
+  background: var(--wait-soft);
+  color: var(--wait);
+}
+
+/* Detail rozbalené položky backlogu: řádek s prioritou a prací, pod ním oblasti s úkoly a mandáty */
+.backlogDetail {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  min-width: 0;
+}
+
+.detailMeta {
+  font-size: 10px;
+  line-height: 12px;
+  color: var(--ink-3);
+}
+
+.detailArea {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-4);
+  min-width: 0;
+}
+
+.detailMandate {
+  font-size: 10px;
+  line-height: 12px;
+  color: var(--ink-3);
+}
+
+/* Oblast bez týmu s mandátem: červeně, stejně jako varování v panelu organizace */
+.detailNoMandate {
+  font-size: 10px;
+  line-height: 12px;
+  font-weight: 600;
+  color: var(--rework);
 }
 
 /* Pruh pracnosti: skupiny úkolů po oblastech s mezerou, uvnitř segmenty v barvách skillů */
@@ -177,6 +243,137 @@
   overflow: hidden;
 }
 
+/* Tlačítko řádku rozpracované featury: rozbalí úkoly (feat-029) */
+.featureToggle {
+  display: flex;
+  align-items: center;
+  gap: var(--space-6);
+  width: 100%;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+/* Featura vybraná skokem z panelu organizace */
+.highlighted {
+  outline: var(--border-active) solid var(--accent);
+  outline-offset: 1px;
+}
+
+/* Rozbalené úkoly: řádek na oblast se štítkem a segmenty úkolů */
+.taskDetail {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding: var(--space-2) 0 var(--space-4);
+}
+
+.taskArea {
+  display: flex;
+  align-items: center;
+  gap: var(--space-6);
+  min-width: 0;
+}
+
+.taskTrack {
+  flex: 1;
+  display: flex;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+/* Segment úkolu: šířka podle pracnosti (flex-grow inline), světlý podklad v barvě skillu */
+.task {
+  position: relative;
+  flex: 1 1 0;
+  min-width: 12px;
+  height: 14px;
+  overflow: hidden;
+  border-radius: var(--radius-xs);
+  background: var(--surface-panel);
+}
+
+.task::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--role);
+  opacity: 0.22;
+}
+
+/* Odvedená práce: výplň v barvě skillu zleva (šířka inline) */
+.taskFill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  background: var(--role);
+  opacity: 0.7;
+}
+
+.taskDone .taskFill {
+  opacity: 0.55;
+}
+
+/* Písmeno člověka u rozpracovaného úkolu a „✓“ u hotového */
+.taskMark {
+  position: relative;
+  display: block;
+  padding: 0 3px;
+  font-size: 10px;
+  line-height: 14px;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+/* Waiting: šrafa a čárkovaný obrys v barvě čekání */
+.taskWaiting {
+  outline: var(--border-active) dashed var(--wait);
+  outline-offset: calc(-1 * var(--border-active));
+}
+
+.taskWaiting::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(135deg, transparent 0 4px, var(--wait) 4px 6px);
+  opacity: 0.6;
+}
+
+/* Poznámka pod oblastmi rozbalené featury: „Waiting · WEB“ */
+.waitNote {
+  font-size: 10px;
+  line-height: 12px;
+  font-weight: 600;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  color: var(--wait);
+}
+
+/* Filtr „1 waiting“ v hlavičce In progress; zapnutý je plný */
+.waitFilter {
+  height: 18px;
+  padding: 0 var(--space-6);
+  border: var(--border-hair) solid var(--wait);
+  border-radius: var(--radius-xs);
+  background: var(--wait-soft);
+  color: var(--wait);
+  font-size: 10px;
+  line-height: 1;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.waitFilter[aria-pressed='true'] {
+  background: var(--wait);
+  color: var(--surface-panel);
+}
+
 /* Čtvereček v odstínu featury (barva z FeatureTone.module.css) */
 .swatch {
   width: 8px;
@@ -254,10 +451,12 @@
   align-items: center;
 }
 
-/* Řádky za běhu: Team | Mandate | People (pruh 64 px a „12/12“) */
+/* Řádky za běhu: Team | Mandate | People (pruh 56 px a „12/12“) | Working on (feat-029). Na projektoru 1024 px
+   zbývá na tři pružné sloupce ~270 px; název týmu dostane nejvíc, aby se „Team Billing“ nezkracoval, a štítky
+   featur se v Working on zalomí do dvou řad */
 .runLine {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 104px;
+  grid-template-columns: minmax(0, 1.25fr) minmax(0, 0.6fr) 96px minmax(0, 1.15fr);
   column-gap: var(--space-8);
   align-items: center;
 }
@@ -415,6 +614,69 @@
   color: var(--rework);
 }
 
+/* Počet idle lidí za běhu (v hlavičce i u týmu): šedě, v barvě čekání když je mezi nimi žlutý idle */
+.headIdle,
+.idleCount {
+  font-size: 10px;
+  line-height: 12px;
+  font-weight: 600;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: var(--ink-4);
+}
+
+.headIdle[data-tone='blocked'],
+.idleCount[data-tone='blocked'] {
+  color: var(--wait);
+}
+
+/* Sloupec Working on: štítky featur a počet idle lidí */
+.workingOn {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 3px;
+  min-width: 0;
+  padding: var(--space-4) 0;
+}
+
+/* Štítek featury, na které tým pracuje; klik ukáže featuru v In progress */
+.workChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  height: 16px;
+  padding: 0 var(--space-4);
+  border: var(--border-hair) solid var(--line-control);
+  border-radius: var(--radius-xs);
+  background: var(--surface-panel);
+  color: var(--ink);
+  font-size: 10px;
+  line-height: 1;
+  font-weight: 600;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+}
+
+.workChip:hover {
+  border-color: var(--ink);
+}
+
+.chipSwatch {
+  width: 6px;
+  height: 6px;
+  flex-shrink: 0;
+  border-radius: 1px;
+}
+
+/* „×2“: kolik lidí z týmu na featuře pracuje */
+.chipCount {
+  font-style: normal;
+  color: var(--ink-3);
+}
+
 /* Tým bez mandátu za běhu: jen tlumená informace */
 .none {
   font-size: 10px;
@@ -548,7 +810,7 @@
 .peopleBar {
   display: flex;
   flex-shrink: 0;
-  width: 64px;
+  width: 56px;
   height: 8px;
   overflow: hidden;
   border-radius: var(--radius-xs);
@@ -566,4 +828,65 @@
   display: block;
   flex: 0 1 0;
   height: 100%;
+}
+
+/* Žlutý idle v pruhu lidí: šrafa v barvě čekání (feat-029) */
+.peopleBlocked {
+  display: block;
+  flex: 0 1 0;
+  height: 100%;
+  background: repeating-linear-gradient(135deg, var(--wait) 0 2px, var(--wait-soft) 2px 4px);
+}
+
+/* Karta člověka ve žlutém idle */
+.personBlocked {
+  border-color: var(--wait);
+  background: var(--wait-soft);
+}
+
+/* Stav člověka za běhu na celou šířku karty: úkol s pruhem postupu, nebo „Idle“ */
+.personState {
+  flex-basis: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.personTask {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 10px;
+  line-height: 12px;
+  font-weight: 600;
+  color: var(--ink-2);
+}
+
+.personProgress {
+  display: block;
+  height: 4px;
+  overflow: hidden;
+  border-radius: 2px;
+  background: var(--track);
+}
+
+.personProgressFill {
+  display: block;
+  height: 100%;
+  background: var(--role);
+}
+
+.idleText {
+  font-size: 10px;
+  line-height: 12px;
+  font-weight: 600;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  color: var(--ink-4);
+}
+
+.idleText[data-tone='blocked'] {
+  color: var(--wait);
 }

@@ -1,6 +1,6 @@
 import type { FeatureStatus, Role, RoleMeta, TaskStatus } from '@/types/simulation'
 
-// Datový model módu Organization (feat-028, inkrement 1: mandáty a tok práce).
+// Datový model módu Organization (feat-028, inkrement 1: mandáty a tok práce; feat-029: idle a čekání).
 // Organizace se skládá z týmů a týmy z lidí. Skill (co člověk umí) patří člověku, mandát (do kterých
 // oblastí smí tým zasahovat) patří týmu. Featura zasahuje do jedné nebo více oblastí a v každé oblasti
 // má úkoly pro konkrétní skilly. Typy jsou oddělené od ostatních módů, aby se jejich engine nezměnil.
@@ -130,6 +130,11 @@ export interface OrgSimState {
   simTime: number
   /** Integrál počtu rozpracovaných featur v čase — z něj se počítá Avg WIP. */
   wipIntegral: number
+  /**
+   * Idle čas po lidech (id člověka → pracovní dny, feat-029, pravidlo R1). Roste člověku bez úkolu, dokud kdekoli
+   * v backlogu nebo v rozpracovaných featurách čeká nepřidělený úkol s některým z jeho skillů. Chybějící klíč = 0.
+   */
+  idleByPerson: Record<number, number>
   /** Čas prvního kroku běhu; `null` před během. */
   startedAt: number | null
   /** Backlog i rozpracované featury jsou prázdné, běh doběhl. */
@@ -176,6 +181,8 @@ export interface OrgMetrics {
   avgCycleTime: number | null
   /** Průměrný počet rozpracovaných featur; `null` v čase 0. */
   avgWip: number | null
+  /** Idle Time: součet idle času všech lidí v person-days (feat-029). */
+  idleTime: number
   /** Počet hotových featur. */
   doneCount: number
 }
@@ -190,4 +197,46 @@ export interface OrgRunSnapshot {
   avgCycleTime: number | null
   /** Průměrný WIP; `null`, když běh neměl žádný čas. */
   avgWip: number | null
+  /** Idle Time doběhnutého běhu v person-days (feat-029). */
+  idleTime: number
+}
+
+/**
+ * Stav úkolu pro zobrazení (feat-029). K uloženým stavům „todo / doing / done“ přidává „waiting“: nepřidělený úkol
+ * rozpracované featury s odemčenou fází, který by mohl vzít idle člověk se skillem úkolu, ale jeho tým nemá mandát
+ * na oblast úkolu (pravidlo R2). Počítá se ze stavu běhu, neukládá se.
+ */
+export type OrgTaskStatus = 'todo' | 'doing' | 'done' | 'waiting'
+
+/**
+ * Stav člověka za běhu (feat-029):
+ *  - `working` — pracuje na úkolu `taskId` featury `featureId`,
+ *  - `idle` — nemá úkol (obyčejný, šedý idle),
+ *  - `blocked` — „žlutý idle“: nemá úkol, ale nepřidělená práce s jeho skillem a odemčenou fází čeká v oblastech
+ *    mimo mandát jeho týmu (`areas`, v pořadí oblastí organizace; pravidlo R2).
+ */
+export type OrgPersonStatus =
+  | { kind: 'working'; featureId: number; taskId: number }
+  | { kind: 'idle' }
+  | { kind: 'blocked'; areas: string[] }
+
+/**
+ * Idle člověk spolu se svým týmem — pro tooltip čekajícího úkolu („1 idle person with this skill in Team Mobile“).
+ */
+export interface OrgIdleMember {
+  /** Idle člověk. */
+  person: OrgPerson
+  /** Tým, do kterého člověk patří. */
+  team: OrgTeam
+}
+
+/**
+ * Stav toku práce v jednom okamžiku pro vykreslení jednoho snímku (feat-029). Spočítá se jednou za snímek
+ * (`orgFlowView`), aby se waiting a žlutý idle nepočítaly zvlášť pro každý úkol a každého člověka.
+ */
+export interface OrgFlowView {
+  /** Stav každého člověka organizace podle id. */
+  people: Map<number, OrgPersonStatus>
+  /** Čekající (waiting) úkoly a idle lidé z týmů bez mandátu, kteří by je uměli; lidé v pořadí panelu. */
+  waiting: Map<OrgTask, OrgIdleMember[]>
 }

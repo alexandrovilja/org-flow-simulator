@@ -233,8 +233,8 @@ describe('feat-028 F6–F9: srovnání s předchozím během', () => {
     return s
   }
 
-  /** Předchozí běh: Total 12.0, Avg cycle 8.7, Avg WIP 4.3. */
-  const previous: OrgRunSnapshot = { totalTime: 12, avgCycleTime: 8.7, avgWip: 4.3 }
+  /** Předchozí běh: Total 12.0, Avg cycle 8.7, Avg WIP 4.3 (Idle Time 17.0 přidal snapshot ve feat-029). */
+  const previous: OrgRunSnapshot = { totalTime: 12, avgCycleTime: 8.7, avgWip: 4.3, idleTime: 17 }
 
   /** Řádek delty pod hodnotou dlaždice. */
   const deltaOf = (name: string) => within(tile(name)).getByText('vs prev run').parentElement!
