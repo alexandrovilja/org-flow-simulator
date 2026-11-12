@@ -7,8 +7,8 @@
  *  - Záložka „Organization“; panel organizace je region „Organization“ s řádky `data-testid="org-team-row"`.
  *  - Organizace se neukládá: po obnovení stránky je zpět výchozí organizace.
  *  - Od prvního Run jsou mandáty zamčené (i v pauze) do Resetu.
- *  - Po Resetu, změně mandátu a druhém doběhnutém běhu mají dlaždice Total Time, Avg Cycle Time a Avg WIP řádek
- *    „vs prev run“.
+ *  - Po Resetu, změně mandátu a druhém doběhnutém běhu mají dlaždice Total Time, Avg Cycle Time, Avg WIP a Idle Time
+ *    (feat-029) řádek „vs prev run“.
  *  - Přepnutí na jiný mód běh pozastaví; po návratu je stav zachovaný.
  *  - Při 1024 × 768 je mód použitelný bez vodorovného rolování stránky.
  *
@@ -92,7 +92,8 @@ test.describe('feat-028: mód Organization (inkrement 1)', () => {
     await page.getByRole('button', { name: /Reset$/ }).click()
     await addMandate(page, 'Team Mobile', 'WEB Web portal')
     await runToDone(page)
-    for (const label of ['Total Time', 'Avg Cycle Time', 'Avg WIP']) {
+    // Idle Time přidal feat-029
+    for (const label of ['Total Time', 'Avg Cycle Time', 'Avg WIP', 'Idle Time']) {
       await expect(page.getByTestId(`stat-tile-${label}`).getByText('vs prev run')).toBeVisible()
     }
   })
