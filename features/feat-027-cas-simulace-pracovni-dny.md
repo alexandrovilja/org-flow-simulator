@@ -1,7 +1,7 @@
 # Feature: Čas simulace v pracovních dnech
 
 ## Status
-ready
+done
 
 ## Problem
 Simulátor dnes měří čas v „sekundách“: Total Time je čítač `MM:SS.d` (např. `02:43.0`), Avg Cycle Time ukazuje `9.1s`, lead time featury `12.4s`, Total Wait `117s`. Pro kouče, který běh ukazuje managementu, jsou to bezrozměrné hodinky: nikdo na workshopu si z „2:43“ nepřeloží, jak dlouho by práce trvala v jeho organizaci, a kouč musí pokaždé vysvětlovat, co sekundy znamenají. Organizace přitom plánují, slibují a měří v pracovních dnech a týdnech.
