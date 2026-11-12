@@ -218,7 +218,8 @@ test.describe('feat-021: design system Org Flow', () => {
     for (const width of [1024, 1280]) {
       await page.setViewportSize({ width, height: 768 })
       await page.goto(BASE)
-      for (const mode of ['Compare', 'Advanced', 'Cash Flow']) {
+      // feat-028: čtvrtá záložka Organization se musí vejít stejně jako ostatní
+      for (const mode of ['Compare', 'Advanced', 'Cash Flow', 'Organization']) {
         await page.getByRole('tab', { name: mode }).click()
         const bar = await topBarLayout(page)
         const where = `${width} px, ${mode}`
