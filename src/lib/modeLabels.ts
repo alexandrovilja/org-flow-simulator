@@ -8,4 +8,5 @@ export const MODE_LABELS: Record<AppMode, string> = {
   compare: 'Compare',
   experiment: 'Advanced',
   cashflow: 'Cash Flow',
+  organization: 'Organization',
 }

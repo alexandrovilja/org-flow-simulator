@@ -88,3 +88,4 @@ Změna se týká jen dlaždice výnosu v pravém sloupci Metrics v Cash Flow mó
 - **feat-016-coordination-overhead:** dlaždice Coordination overhead se nově nachází pod dlaždicí „Revenue (time-matched)“.
 - **feat-017-rozlozeni-vynosu-v-case:** porovnání funguje i mezi různými profily výnosu; tato feature jen mění, co dlaždice ukazuje.
 - **feat-027-cas-simulace-pracovni-dny:** časy v hintu `@ …` a v detailu dlaždice se zobrazují jako týdny a dny (`@ 32 weeks 4.9 days`) místo `mm:ss.s`; logika `computeRevenueComparison` beze změny. Příklady jsou v původních jednotkách.
+- **feat-033-vynosy-organizace (draft, mód Organization):** dlaždice Revenue (time-matched) s detailem bude i v módu Organization; logika `computeRevenueComparison` beze změny.

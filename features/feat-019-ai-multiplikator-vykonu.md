@@ -207,3 +207,4 @@ Změna se týká jen karty jednotky (`MemberCard`) a chipů skillů na ní, v re
 - **feat-023-jednotne-pismo-textu:** chip skillu s AI a × se zkracuje výpustkou stejně jako dnes (plný název v `title` jen u zkráceného textu).
 - **feat-025-revize-tutorialu:** krok „AI speed-up“ míří na AI prvního chipu první jednotky a vysvětluje, že AI se zapíná u skillů.
 - **feat-027-cas-simulace-pracovni-dny:** rychlost práce se čte „za 1 pracovní den jednotka odvede 2 nebo 5 dnů práce“ (dříve sekund); matematika beze změny. Tooltip Coordination overhead: „work-seconds“ → „man-days of work“.
+- **feat-035-ai-na-skillech-lidi (draft, mód Organization):** AI po skillech bude i na kartách lidí v panelu organizace (klik cyklí 1× → 2× → 5× → 1×). Nastavuje se jen před během a při přesunu člověka do jiného týmu (feat-030) se přenáší.

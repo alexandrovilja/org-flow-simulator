@@ -1,0 +1,277 @@
+/**
+ * Sdílená testovací data feat-028 (mód Organization) podle `docs/feat-028-test-analysis.md`, sekce
+ * „Testovací data“: skilly SK, oblasti AR a organizace ORG-DEF, ORG-T, ORG-B a ORG-B2.
+ *
+ * Vitest tenhle soubor nespouští jako test (nekončí na .test.ts), jen ho importují testy feat-028.
+ *
+ * Featury se zapisují stejně jako v analýze, např. `F-1 (p1, €300/week): BIL [Product 2 · Java 3] | MOB [Frontend 3]`:
+ * priorita 1, výnos €300 za týden, v oblasti BIL úkoly Product (2 dny) a Java (3 dny), v oblasti MOB Frontend (3 dny).
+ * Klíč skillu v `roleConfig` je v testovacích datech rovný jeho názvu (Product, Java, …).
+ */
+
+import { makeOrgFeature, makeOrgState, tickOrg } from '@/simulation/organizationEngine'
+import type { OrgArea, OrgFeature, OrgPerson, OrgSetup, OrgSimState, OrgTask, OrgTeam } from '@/types/organization'
+import type { RoleMeta, WipMode } from '@/types/simulation'
+
+/** Krok simulace v testech enginu (analýza, Konvence): 0.01 pracovního dne. */
+export const DT = 0.01
+
+/**
+ * Skilly SK: Product (fáze 1), Java (2), Frontend (2), QA (3), žádný povinný.
+ *
+ * @returns Nová kopie `roleConfig` (testy ji smí měnit)
+ */
+export function skills(): Record<string, RoleMeta> {
+  return {
+    Product: { label: 'Product', color: 'var(--role-rose)', level: 1, required: false },
+    Java: { label: 'Java', color: 'var(--role-blue)', level: 2, required: false },
+    Frontend: { label: 'Frontend', color: 'var(--role-brick)', level: 2, required: false },
+    QA: { label: 'QA', color: 'var(--role-green)', level: 3, required: false },
+  }
+}
+
+/**
+ * Oblasti AR: BIL Billing, MOB Mobile app, WEB Web portal.
+ *
+ * @returns Nové pole oblastí
+ */
+export function areas(): OrgArea[] {
+  return [
+    { code: 'BIL', name: 'Billing' },
+    { code: 'MOB', name: 'Mobile app' },
+    { code: 'WEB', name: 'Web portal' },
+  ]
+}
+
+/** Zápis týmu pro `makeSetup`: název, mandáty a lidé jako `[jméno, skilly]`. */
+type TeamSpec = [name: string, mandates: string[], people: Array<[name: string, skills: string[]]>]
+
+/**
+ * Sestaví organizaci ze zápisu týmů. Týmy dostanou id 1, 2, 3…, lidé id 1, 2, 3… napříč týmy
+ * v pořadí panelu (shora dolů).
+ *
+ * @param teams - Týmy v pořadí panelu organizace
+ * @returns Nová organizace se skilly SK a oblastmi AR
+ */
+export function makeSetup(teams: TeamSpec[]): OrgSetup {
+  let personId = 1
+  const built: OrgTeam[] = teams.map(([name, mandates, people], i) => ({
+    id: i + 1,
+    name,
+    mandates: [...mandates],
+    people: people.map(([pName, pSkills]): OrgPerson => ({ id: personId++, name: pName, skills: [...pSkills] })),
+  }))
+  return { teams: built, areas: areas(), roleConfig: skills() }
+}
+
+/**
+ * ORG-DEF: výchozí organizace (R4) — 3 týmy po 4 lidech (Product, Java, Frontend, QA).
+ *
+ * @returns Nová organizace ORG-DEF
+ */
+export function orgDef(): OrgSetup {
+  return makeSetup([
+    ['Team Billing', ['BIL'], [['Ada', ['Product']], ['Ben', ['Java']], ['Cyril', ['Frontend']], ['Chen', ['QA']]]],
+    ['Team Mobile', ['MOB'], [['Dani', ['Product']], ['Emil', ['Java']], ['Eli', ['Frontend']], ['Fae', ['QA']]]],
+    ['Team Web', ['WEB'], [['Gus', ['Product']], ['Hugo', ['Java']], ['Hana', ['Frontend']], ['Ivo', ['QA']]]],
+  ])
+}
+
+/**
+ * ORG-T: testovací organizace pro pravidla běhu.
+ *
+ * @returns Nová organizace ORG-T
+ */
+export function orgT(): OrgSetup {
+  return makeSetup([
+    ['Team Billing', ['BIL'], [['Ada', ['Product']], ['Ben', ['Java']], ['Chen', ['QA']]]],
+    ['Team Mobile', ['MOB'], [['Dani', ['Product']], ['Eli', ['Frontend']], ['Fae', ['QA']]]],
+    ['Team Web', ['WEB'], [['Gus', ['Java', 'Product']], ['Hana', ['Frontend']], ['Ivo', ['QA']]]],
+  ])
+}
+
+/**
+ * ORG-B: jen Team Billing z ORG-T (Ada Product, Ben Java, Chen QA), mandát BIL.
+ *
+ * @returns Nová organizace ORG-B
+ */
+export function orgB(): OrgSetup {
+  return makeSetup([['Team Billing', ['BIL'], [['Ada', ['Product']], ['Ben', ['Java']], ['Chen', ['QA']]]]])
+}
+
+/**
+ * ORG-B2: Team Billing (BIL) s Adou (Product), Benem a Barou (Java, Frontend) a Chenem (QA).
+ *
+ * @returns Nová organizace ORG-B2
+ */
+export function orgB2(): OrgSetup {
+  return makeSetup([
+    ['Team Billing', ['BIL'], [['Ada', ['Product']], ['Ben', ['Java', 'Frontend']], ['Bara', ['Java', 'Frontend']], ['Chen', ['QA']]]],
+  ])
+}
+
+/**
+ * Tým podle názvu.
+ *
+ * @param setup - Organizace
+ * @param name - Název týmu, např. „Team Mobile“
+ * @returns Tým (test selže, když neexistuje)
+ */
+export function team(setup: OrgSetup, name: string): OrgTeam {
+  const t = setup.teams.find(x => x.name === name)
+  if (!t) throw new Error(`Tým ${name} v organizaci není`)
+  return t
+}
+
+/**
+ * Člověk podle jména.
+ *
+ * @param setup - Organizace
+ * @param name - Jméno, např. „Eli“
+ * @returns Člověk (test selže, když neexistuje)
+ */
+export function person(setup: OrgSetup, name: string): OrgPerson {
+  for (const t of setup.teams) {
+    const p = t.people.find(x => x.name === name)
+    if (p) return p
+  }
+  throw new Error(`Člověk ${name} v organizaci není`)
+}
+
+/**
+ * Přidá týmu mandáty (v pořadí oblastí, bez duplicit) — např. „Team Mobile má mandáty MOB a WEB“.
+ *
+ * @param setup - Organizace (mění se na místě)
+ * @param teamName - Název týmu
+ * @param codes - Kódy oblastí, které se mají přidat
+ * @returns Stejná organizace pro řetězení
+ */
+export function grant(setup: OrgSetup, teamName: string, ...codes: string[]): OrgSetup {
+  const t = team(setup, teamName)
+  const wanted = new Set([...t.mandates, ...codes])
+  t.mandates = setup.areas.map(a => a.code).filter(c => wanted.has(c))
+  return setup
+}
+
+// Zápis featury: „F-1 (p1, €300/week): BIL [Product 2 · Java 3] | MOB [Frontend 3]“; priorita a výnos nepovinné.
+const FEATURE_RE = /^F-(\d+)(?:\s*\(([^)]*)\))?\s*:\s*(.+)$/
+
+/**
+ * Vytvoří featuru ze zápisu analýzy přes `makeOrgFeature` z enginu. Bez priority má featura prioritu
+ * rovnou svému číslu, bez výnosu €100 za týden.
+ *
+ * @param notation - Zápis, např. `F-2 (p3): BIL [Java 1 · QA 1]`
+ * @returns Nová featura ve stavu backlog
+ */
+export function feat(notation: string): OrgFeature {
+  const m = FEATURE_RE.exec(notation.trim())
+  if (!m) throw new Error(`Neplatný zápis featury: ${notation}`)
+  const id = Number(m[1])
+  const meta = m[2] ?? ''
+  const priority = Number(/p(\d+)/.exec(meta)?.[1] ?? id)
+  const revenuePerTick = Number(/€(\d+)\/week/.exec(meta)?.[1] ?? 100)
+  const areaSpecs = m[3].split('|').map(part => {
+    const am = /^\s*([A-Z]{2,3})\s*\[(.*)\]\s*$/.exec(part)
+    if (!am) throw new Error(`Neplatná oblast v zápisu: ${part}`)
+    const tasks = am[2].split('·').map(t => {
+      const tm = /^\s*(\S+)\s+(\d+(?:\.\d+)?)\s*$/.exec(t)
+      if (!tm) throw new Error(`Neplatný úkol v zápisu: ${t}`)
+      return { role: tm[1], work: Number(tm[2]) }
+    })
+    return { area: am[1], tasks }
+  })
+  return makeOrgFeature({ id, priority, revenuePerTick, areas: areaSpecs })
+}
+
+/**
+ * Stav běhu z organizace a featur v zápisu analýzy.
+ *
+ * @param setup - Organizace
+ * @param notations - Featury backlogu
+ * @returns Nový stav před během (čas 0)
+ */
+export function stateOf(setup: OrgSetup, ...notations: string[]): OrgSimState {
+  return makeOrgState(setup, notations.map(feat))
+}
+
+/**
+ * Krokuje běh s `dt = 0.01`, dokud nedosáhne času `t` (nebo nedoběhne).
+ *
+ * @param state - Stav běhu
+ * @param t - Cílový čas v pracovních dnech
+ * @param wipMode - Režim výběru práce (výchozí Reduce WIP)
+ * @returns Stav v čase `t`
+ */
+export function runUntil(state: OrgSimState, t: number, wipMode: WipMode = 'reduce-wip'): OrgSimState {
+  let s = state
+  while (s.simTime < t - 1e-6 && !s.finished) s = tickOrg(s, DT, wipMode)
+  return s
+}
+
+/**
+ * Krokuje běh s `dt = 0.01` až do konce. Pojistka 1000 dní chrání test před nekonečnou smyčkou.
+ *
+ * @param state - Stav běhu
+ * @param wipMode - Režim výběru práce (výchozí Reduce WIP)
+ * @returns Doběhnutý stav
+ */
+export function runToEnd(state: OrgSimState, wipMode: WipMode = 'reduce-wip'): OrgSimState {
+  let s = state
+  while (!s.finished) {
+    s = tickOrg(s, DT, wipMode)
+    if (s.simTime > 1000) throw new Error('Běh nedoběhl do 1000 dní')
+  }
+  return s
+}
+
+/**
+ * Všechny featury stavu bez ohledu na fázi (backlog, rozpracované, hotové).
+ *
+ * @param state - Stav běhu
+ * @returns Featury
+ */
+export function allFeatures(state: OrgSimState): OrgFeature[] {
+  return [...state.backlog, ...state.inProgress, ...state.done]
+}
+
+/**
+ * Featura podle čísla.
+ *
+ * @param state - Stav běhu
+ * @param id - Číslo featury (F-1 → 1)
+ * @returns Featura (test selže, když neexistuje)
+ */
+export function featureOf(state: OrgSimState, id: number): OrgFeature {
+  const f = allFeatures(state).find(x => x.id === id)
+  if (!f) throw new Error(`Featura F-${id} ve stavu není`)
+  return f
+}
+
+/**
+ * Úkol featury podle oblasti a skillu (v oblasti je každý skill nejvýš jednou).
+ *
+ * @param state - Stav běhu
+ * @param id - Číslo featury
+ * @param area - Kód oblasti
+ * @param role - Skill (v testovacích datech klíč = název)
+ * @returns Úkol (test selže, když neexistuje)
+ */
+export function taskOf(state: OrgSimState, id: number, area: string, role: string): OrgTask {
+  const t = featureOf(state, id).tasks.find(x => x.area === area && x.role === role)
+  if (!t) throw new Error(`F-${id} nemá úkol ${role} v ${area}`)
+  return t
+}
+
+/**
+ * Úseky práce úkolu jako `[jméno, od, do]` — pro čitelné porovnání v testech.
+ *
+ * @param state - Stav běhu
+ * @param task - Úkol
+ * @returns Úseky v pořadí, jak vznikly
+ */
+export function segmentsOf(state: OrgSimState, task: OrgTask): Array<[string, number, number | null]> {
+  return task.segments.map(sg => {
+    const name = state.setup.teams.flatMap(t => t.people).find(p => p.id === sg.personId)?.name ?? `#${sg.personId}`
+    return [name, sg.from, sg.to]
+  })
+}

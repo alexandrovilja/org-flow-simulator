@@ -1,0 +1,1267 @@
+<!DOCTYPE html>
+<html lang="cs" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>feat-028 UI mockup – mód Organization</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  /* Tokeny 1:1 ze src/app/globals.css (výřez: jen to, co mockup používá) */
+  :root {
+    color-scheme: light;
+    --surface-page: #f3f3f3; --surface-panel: #ffffff; --surface-subtle: #f9f9f9; --surface-raised: #ffffff; --surface-bar: #121212;
+    --ink: #121212; --ink-2: #484848; --ink-3: #696969; --ink-4: #989898; --ink-inverse: #ffffff; --ink-on-bar: #dedede;
+    --line: #dbdbdb; --line-2: #e8e8e8; --line-control: #898989; --line-on-bar: #ffffff2e; --track: #1212120f;
+    --action: #2b59ff; --on-action: #ffffff; --accent: #7a3bf0; --on-accent: #ffffff; --ai-bolt: #7a3bf0; --highlight: #ffe14d; --focus: #7a3bf0;
+    --done: #097f43; --done-soft: #ebf6e6; --wait: #8d672b; --wait-soft: #fcf1d2; --rework: #b3261e; --rework-soft: #fceceb;
+    --role-rose: #bf406e; --role-blue: #1075ac; --role-brick: #a14a1c; --role-green: #097f43; --role-ochre: #8d672b; --role-teal: #0b7a75; --role-violet: #815ea9; --role-slate: #4f5a6b;
+    --shadow-pop: 0 12px 32px -8px #12121240, 0 2px 6px #1212121f;
+    --font-mono: 'JetBrains Mono', ui-monospace, Menlo, monospace;
+  }
+  [data-theme="dark"] {
+    color-scheme: dark;
+    --surface-page: #0f0f0f; --surface-panel: #191919; --surface-subtle: #141414; --surface-raised: #252525; --surface-bar: #060606;
+    --ink: #eeeeee; --ink-2: #cacaca; --ink-3: #9e9e9e; --ink-4: #696969;
+    --line: #333333; --line-2: #262626; --line-control: #696969; --track: #ffffff14;
+    --accent: #c0a3fa; --on-accent: #0f0f0f; --ai-bolt: #121212; --focus: #c0a3fa;
+    --done: #5cc48a; --done-soft: #163626; --wait: #ddc97b; --wait-soft: #352f1d; --rework: #f08a80; --rework-soft: #3a1f24;
+    --shadow-pop: 0 18px 40px #00000080;
+  }
+  * { box-sizing: border-box; font-variant-ligatures: none; }
+  body { margin: 0; background: var(--surface-page); color: var(--ink); font-family: var(--font-mono); font-size: 14px; line-height: 1.5; -webkit-font-smoothing: antialiased; }
+  button, input { font-family: inherit; font-size: inherit; }
+  button { cursor: pointer; }
+  button:disabled { cursor: default; }
+
+  /* ---- chrome mockupu (není součást návrhu) ---- */
+  .doc { max-width: 1480px; margin: 0 auto; padding: 24px 16px 64px; }
+  .doc h1 { font-size: 16px; margin: 0 0 4px; }
+  .doc h2 { font-size: 13px; margin: 36px 0 4px; }
+  .sub { color: var(--ink-2); font-size: 12px; margin: 0 0 10px; max-width: 96ch; }
+  .ctrl { display: flex; flex-wrap: wrap; gap: 8px 18px; align-items: center; font-size: 11px; color: var(--ink-3); margin: 12px 0 8px; }
+  .ctrl .grp { display: inline-flex; gap: 4px; align-items: center; flex-wrap: wrap; }
+  .ctrl button { font-size: 11px; padding: 4px 9px; border-radius: 4px; border: 1px solid var(--line-control); background: var(--surface-panel); color: var(--ink); }
+  .ctrl button[aria-pressed="true"] { background: var(--ink); color: var(--surface-page); border-color: var(--ink); }
+  .note { font-size: 11px; color: var(--ink-2); margin: 8px 0 0; max-width: 96ch; }
+  .frame { border: 1px solid var(--line); border-radius: 12px; background: var(--surface-panel); padding: 12px 16px 16px; }
+  .doc ol { font-size: 12px; color: var(--ink-2); max-width: 96ch; padding-left: 20px; margin: 4px 0 0; }
+  .doc ol li { margin-bottom: 4px; }
+  .legend { display: grid; grid-template-columns: 150px 1fr; gap: 10px 12px; align-items: center; font-size: 11px; color: var(--ink-2); max-width: 820px; }
+  .legend b { color: var(--ink); }
+  .legend .k { display: flex; gap: 4px; align-items: center; }
+  .legend .grpname { grid-column: 1 / -1; margin-top: 6px; font-size: 10px; font-weight: 600; letter-spacing: .8px; text-transform: uppercase; color: var(--ink-3); }
+
+  /* ---- obrazovka aplikace: lišta + tři sloupce (Simulator.module.css .threeColumns) ---- */
+  .screen { width: 1440px; height: 900px; display: grid; grid-template-columns: 320px 1fr 280px; grid-template-rows: 56px 1fr; background: var(--surface-page); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+
+  /* Horní lišta (TopBar.module.css) */
+  .bar { grid-column: 1 / -1; display: grid; grid-template-columns: 1fr auto 1fr; align-items: stretch; padding: 0 20px; background: var(--surface-bar); color: var(--ink-on-bar); }
+  .brand { display: flex; align-items: center; gap: 12px; }
+  .mark { width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border: 1px solid var(--line-on-bar); }
+  .wordmark { display: flex; flex-direction: column; gap: 3px; white-space: nowrap; }
+  .wname { font-size: 15px; line-height: 18px; font-weight: 800; letter-spacing: .6px; text-transform: uppercase; color: #fff; }
+  .tagline { font-size: 10px; line-height: 10px; font-weight: 600; letter-spacing: 1.2px; text-transform: uppercase; color: var(--highlight); }
+  .tabs { display: flex; align-items: stretch; }
+  .tab { display: flex; align-items: center; padding: 0 20px; border: 0; border-top: 3px solid transparent; border-bottom: 3px solid transparent; background: transparent; color: var(--ink-on-bar); font-size: 13px; line-height: 16px; font-weight: 800; letter-spacing: .3px; text-transform: uppercase; white-space: nowrap; }
+  .tab[aria-selected="true"] { color: #fff; border-bottom-color: var(--highlight); }
+  .controls { display: flex; align-items: center; justify-content: flex-end; gap: 8px; }
+  .bbtn { height: 28px; min-width: 28px; padding: 0 10px; background: transparent; border: 1px solid var(--line-on-bar); color: var(--ink-on-bar); font-size: 11px; font-weight: 700; letter-spacing: .6px; text-transform: uppercase; }
+  .speed { display: inline-flex; border: 1px solid var(--line-on-bar); }
+  .speed button { height: 26px; padding: 0 9px; border: 0; background: transparent; color: var(--ink-on-bar); font-size: 11px; font-weight: 700; }
+  .speed button.on { background: #fff; color: #121212; }
+  .run { height: 36px; padding: 0 16px; border: 0; background: var(--action); color: var(--on-action); font-size: 12px; font-weight: 800; letter-spacing: .6px; text-transform: uppercase; }
+
+  /* Hlavička panelu (PanelHeader.module.css) */
+  .ph { padding: 12px 16px 8px; display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+  .ph .t { font-size: 11px; line-height: 16px; font-weight: 500; letter-spacing: 1.1px; text-transform: uppercase; color: var(--ink-2); }
+  .ph .c { margin-left: 8px; font-size: 11px; line-height: 16px; color: var(--ink-3); font-variant-numeric: tabular-nums; }
+  .ph .h { font-size: 11px; line-height: 16px; color: var(--ink-3); white-space: nowrap; }
+  .ph .r { display: flex; align-items: baseline; gap: 10px; }
+  .hwait { margin-left: 8px; font-size: 11px; line-height: 16px; font-weight: 600; color: var(--wait); }
+  .lnk { padding: 0; border: 0; background: transparent; color: var(--ink-2); font-size: 11px; line-height: 16px; text-decoration: underline; text-underline-offset: 2px; }
+  .fchip { height: 18px; padding: 0 6px; border: 1px solid var(--wait); border-radius: 2px; background: var(--wait-soft); color: var(--wait); font-size: 10px; font-weight: 700; letter-spacing: .4px; text-transform: uppercase; }
+  .fchip[aria-pressed="true"] { background: var(--wait); color: var(--surface-panel); }
+  .empty { margin: 0; padding: 0 16px; font-size: 11px; color: var(--ink-3); }
+  .eb { font-size: 10px; line-height: 12px; font-weight: 600; letter-spacing: .8px; text-transform: uppercase; color: var(--ink-3); }
+
+  /* Štítek oblasti: obrysový a textový, aby se nepletl s plnými barevnými čipy skillů */
+  .atag { display: inline-flex; align-items: center; gap: 3px; height: 16px; padding: 0 4px; border: 1px solid var(--line-control); border-radius: 2px; background: var(--surface-panel); color: var(--ink); font-size: 10px; line-height: 1; font-weight: 700; letter-spacing: .6px; text-transform: uppercase; white-space: nowrap; }
+  .atag.wait { border-color: var(--wait); background: var(--wait-soft); color: var(--wait); }
+  .atag.done { border-color: var(--done); background: var(--done-soft); color: var(--done); }
+  .fname { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 11px; line-height: 16px; font-weight: 500; color: var(--ink-2); }
+  .btags { display: flex; gap: 3px; flex-shrink: 0; }
+  .swatch { width: 8px; height: 8px; flex-shrink: 0; border-radius: 2px; background: oklch(68% 0.13 var(--hue)); }
+
+  /* Čip skillu (RoleChip.module.css): plná barva skillu, bílý text; při nastavení před během s tlačítkem AI a × */
+  .chip { display: inline-flex; align-items: center; gap: 4px; max-width: 100%; height: 18px; padding: 0 6px; border-radius: 2px; background: var(--role); color: #fff; font-size: 11px; line-height: 1; font-weight: 600; letter-spacing: .2px; white-space: nowrap; }
+  .chip .cl { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+  .chip .crm { flex-shrink: 0; width: 12px; height: 12px; padding: 0; border: 0; border-radius: 2px; display: inline-flex; align-items: center; justify-content: center; background: color-mix(in srgb, #fff 25%, transparent); color: #fff; font-size: 10px; line-height: 1; }
+  .chip.sm { height: 16px; padding: 0 5px; font-size: 10px; }
+  /* Tlačítko AI na čipu (feat-019): bez AI průhledné „AI“ s rámečkem, zapnuté bílý odznak s bleskem a hodnotou */
+  .aib { flex-shrink: 0; height: 14px; min-width: 18px; padding: 0 3px; display: inline-flex; align-items: center; justify-content: center; gap: 2px; background: transparent; border: 1px solid color-mix(in srgb, #fff 65%, transparent); border-radius: 2px; color: #fff; font-size: 9px; font-weight: 700; line-height: 1; letter-spacing: 0; }
+  .aib.on { background: #fff; border-color: #fff; color: var(--surface-bar); }
+  .aib.on svg { color: var(--ai-bolt); }
+  span.aib { cursor: default; }
+  /* Značka AI u rozpracovaného úkolu člověka (MemberCard.module.css .taskAi) */
+  .tai { flex-shrink: 0; height: 12px; padding: 0 3px; display: inline-flex; align-items: center; gap: 2px; border-radius: 2px; background: var(--accent); color: var(--on-accent); font-size: 9px; font-weight: 700; line-height: 1; }
+
+  /* Levý sloupec: backlog a nastavení */
+  .side { display: flex; flex-direction: column; min-height: 0; background: var(--surface-panel); border-right: 1px solid var(--line); }
+  .blist { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; padding: 0 16px 12px; }
+  /* Položka backlogu: sbalená je jeden řádek s pruhem pracnosti, rozkliknutá ukáže úkoly a týmy s mandátem */
+  .bcard { flex-shrink: 0; border-radius: 8px; background: var(--surface-panel); border: 1px solid var(--line); }
+  .bcard.open { border-color: var(--line-control); }
+  .bhead { width: 100%; display: flex; flex-direction: column; gap: 6px; padding: 6px 8px; border: 0; background: transparent; color: inherit; text-align: left; }
+  .btop { display: flex; align-items: center; gap: 6px; }
+  .bbar { display: flex; gap: 6px; height: 6px; }
+  .bbarwrap { flex: 1; min-width: 0; }
+  .bgrp { display: flex; gap: 2px; min-width: 0; }
+  .bseg { display: block; min-width: 2px; height: 6px; border-radius: 1px; background: var(--role); opacity: .45; }
+  .bdetail { display: flex; flex-direction: column; gap: 8px; padding: 0 8px 8px; }
+  .bmeta { font-size: 10px; line-height: 14px; color: var(--ink-3); }
+  .barea { display: grid; grid-template-columns: 34px 1fr; gap: 3px 6px; align-items: start; }
+  .btasks { display: flex; flex-wrap: wrap; gap: 3px; }
+  .bteams { grid-column: 2; font-size: 10px; line-height: 14px; color: var(--ink-3); }
+  .bteams.none { color: var(--rework); font-weight: 600; }
+  /* Nastavení: když se editor skillů nevejde, roluje se, aby backlog nad ním nezmizel */
+  .settings { flex-shrink: 0; max-height: 62%; overflow-y: auto; border-top: 1px solid var(--line); padding-bottom: 12px; }
+  .acc { margin: 0 16px 6px; border: 1px solid var(--line); border-radius: 8px; }
+  .accHead { width: 100%; display: flex; justify-content: space-between; padding: 6px 10px; border: 0; background: transparent; font-size: 11px; line-height: 16px; font-weight: 600; letter-spacing: 1.1px; text-transform: uppercase; color: var(--ink-2); }
+  .accHead em { font-style: normal; font-weight: 400; color: var(--ink-3); margin-left: 6px; }
+  .accBody { display: flex; flex-wrap: wrap; gap: 4px 6px; padding: 2px 10px 10px; }
+  .arearow { width: 100%; display: flex; align-items: center; gap: 8px; }
+  .areaname { flex: 1; font-size: 11px; line-height: 16px; color: var(--ink); border-bottom: 1px dashed var(--line); }
+  .locked { width: 100%; margin: 0 0 2px; padding: 4px 6px; border-radius: 4px; background: var(--surface-subtle); font-size: 10px; line-height: 14px; color: var(--ink-3); }
+
+  /* NOVĚ: editor skillů jako v Advanced (RoleSettings.module.css): barva, název, fáze, povinnost, smazání */
+  .se { width: 100%; display: flex; flex-direction: column; gap: 8px; }
+  .sgrid { display: grid; grid-template-columns: 24px 1fr 72px 40px 20px; gap: 6px; align-items: center; }
+  .shead { padding-bottom: 4px; border-bottom: 1px solid var(--line); }
+  .cc { display: flex; justify-content: center; text-align: center; }
+  .srow { display: flex; flex-direction: column; gap: 4px; }
+  .swrap { position: relative; flex-shrink: 0; }
+  .sw { width: 20px; height: 20px; padding: 0; display: flex; align-items: center; justify-content: center; border: 2px solid transparent; border-radius: 2px; font-size: 10px; line-height: 1; color: color-mix(in srgb, #fff 75%, transparent); }
+  .sw.lg { width: 28px; height: 28px; }
+  .sw.sel { border-color: var(--ink); }
+  .cpick { position: absolute; top: 26px; left: 0; z-index: 20; padding: 8px; display: grid; grid-template-columns: repeat(8, 22px); gap: 5px; background: var(--surface-raised); border: 1px solid var(--line); border-radius: 4px; box-shadow: var(--shadow-pop); }
+  .cpick.below { top: 34px; }
+  .cpick button { width: 22px; height: 22px; padding: 0; border: 2px solid transparent; border-radius: 2px; color: #fff; font-size: 10px; font-weight: 700; }
+  .cpick button.sel { border-color: var(--ink); }
+  .sin { width: 100%; min-width: 0; padding: 2px 6px; border: 1px solid var(--line-control); border-radius: 0; background: var(--surface-panel); color: var(--ink); font-size: 11px; line-height: 16px; font-weight: 500; text-overflow: ellipsis; }
+  .sin:disabled { border-color: var(--line); color: var(--ink-2); background: var(--surface-subtle); }
+  .sin.add { flex: 1; height: 28px; }
+  .sin.err { border-color: var(--rework); }
+  .step { display: flex; align-items: center; gap: 3px; }
+  .step button { width: 18px; height: 18px; padding: 0; display: flex; align-items: center; justify-content: center; border: 1px solid var(--line-control); border-radius: 0; background: var(--surface-panel); color: var(--ink-2); font-size: 11px; line-height: 1; }
+  .step button:disabled { opacity: .45; }
+  .lvl { min-width: 16px; text-align: center; font-size: 11px; line-height: 16px; font-weight: 600; color: var(--ink); }
+  .sdel { padding: 0; border: 0; background: transparent; color: var(--ink-3); font-size: 12px; line-height: 1; }
+  .sconfirm { display: flex; align-items: center; gap: 6px; padding: 5px 8px; background: var(--rework-soft); border: 1px solid var(--rework); border-radius: 4px; font-size: 11px; line-height: 16px; color: var(--ink-2); }
+  .sconfirm span { flex: 1; }
+  .sbtn { padding: 2px 8px; border: 1px solid transparent; border-radius: 0; font-size: 11px; line-height: 16px; font-weight: 700; }
+  .sbtn.danger { background: var(--rework); border-color: var(--rework); color: var(--surface-panel); }
+  .sbtn.neutral { background: transparent; border-color: var(--line-control); color: var(--ink-2); }
+  .sadd { display: flex; flex-direction: column; gap: 6px; margin-top: 4px; padding-top: 8px; border-top: 1px solid var(--line); }
+  .sarow { display: flex; align-items: center; gap: 6px; }
+  .strong { height: 28px; padding: 0 12px; border: 1px solid var(--ink); border-radius: 0; background: var(--ink); color: var(--surface-panel); font-size: 13px; line-height: 16px; font-weight: 800; letter-spacing: .3px; text-transform: uppercase; }
+  .serr { font-size: 11px; line-height: 16px; color: var(--rework); }
+  .shelp { margin: 0; font-size: 11px; line-height: 16px; color: var(--ink-3); }
+  /* Editor oblastí: kód, název, smazání */
+  .agrid { display: grid; grid-template-columns: 40px 1fr 20px; gap: 6px; align-items: center; }
+  .sin.code { flex: 0 0 56px; text-transform: uppercase; }
+
+  /* NOVĚ: kontrola před během – seznam problémů, kvůli kterým je Run neaktivní */
+  .warn { margin: 0 16px 8px; padding: 6px 10px; border: 1px solid var(--rework); border-radius: 4px; background: var(--rework-soft); }
+  .warn .eb { color: var(--rework); }
+  .warn ul { max-height: 96px; overflow-y: auto; margin: 2px 0 0; padding-left: 16px; font-size: 11px; line-height: 16px; color: var(--ink-2); }
+  .run:disabled { opacity: .45; }
+
+  /* NOVĚ: Settings → Backlog (jako v Cash Flow, místo posuvníků variability tři posuvníky rozsahu min–max) */
+  .bset { flex-direction: column; flex-wrap: nowrap; gap: 10px; }
+  .strong.full { width: 100%; }
+  .fld { display: flex; flex-direction: column; gap: 4px; }
+  .fhint { font-size: 10px; line-height: 14px; color: var(--ink-3); }
+  .seg2 { display: flex; border: 1px solid var(--line-control); }
+  .seg2 button { flex: 1; height: 24px; padding: 0 6px; border: 0; background: var(--surface-panel); color: var(--ink-2); font-size: 11px; font-weight: 600; }
+  .seg2 button + button { border-left: 1px solid var(--line-control); }
+  .seg2 button[aria-pressed="true"] { background: var(--ink); color: var(--surface-panel); }
+  /* Posuvník rozsahu: dva jezdce nad jednou dráhou a výplň mezi nimi; vzhled jako Slider.module.css */
+  .rs { display: flex; flex-direction: column; gap: 4px; width: 100%; }
+  .rshead { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+  .rslabel { font-size: 11px; line-height: 16px; font-weight: 500; color: var(--ink-2); }
+  .rsval { font-size: 11px; line-height: 16px; font-weight: 600; color: var(--ink); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .rstrack { position: relative; height: 16px; }
+  .rstrack::before { content: ''; position: absolute; left: 0; right: 0; top: 6px; height: 4px; border-radius: 999px; background: var(--line-control); }
+  .rsfill { position: absolute; top: 6px; height: 4px; border-radius: 999px; background: var(--ink); }
+  .rstrack input { position: absolute; inset: 0; width: 100%; height: 16px; margin: 0; background: transparent; -webkit-appearance: none; appearance: none; pointer-events: none; }
+  .rstrack input::-webkit-slider-runnable-track { height: 4px; background: transparent; }
+  .rstrack input::-moz-range-track { background: transparent; }
+  .rstrack input::-webkit-slider-thumb { -webkit-appearance: none; pointer-events: auto; width: 14px; height: 14px; margin-top: -5px; border-radius: 999px; background: var(--ink); box-shadow: 0 0 0 2px var(--surface-panel); cursor: pointer; }
+  .rstrack input::-moz-range-thumb { pointer-events: auto; width: 14px; height: 14px; border: 0; border-radius: 999px; background: var(--ink); box-shadow: 0 0 0 2px var(--surface-panel); cursor: pointer; }
+  .rstrack input:disabled::-webkit-slider-thumb { background: var(--ink-4); cursor: default; }
+  .rsscale { display: flex; justify-content: space-between; font-size: 9px; line-height: 10px; color: var(--ink-3); font-variant-numeric: tabular-nums; }
+
+  /* Střední sloupec: In progress nahoře, organizace dole */
+  .center { display: flex; flex-direction: column; min-height: 0; min-width: 0; }
+  .inprog { flex: 1 1 0; min-height: 150px; display: flex; flex-direction: column; background: var(--surface-panel); border-bottom: 1px solid var(--line); }
+
+  /* Featura: řádek se štítky oblastí, po rozkliknutí úkoly, dole pruh celkového postupu.
+     OPRAVA: řádky mřížky mají výšku podle obsahu (max-content) a karta nemá overflow: hidden – jinak se
+     řádky v omezené výšce seznamu smrskly a rozbalené karty se překrývaly se sousedními. */
+  .flist { display: grid; grid-template-columns: 1fr 1fr; grid-auto-rows: max-content; gap: 6px 8px; align-items: start; align-content: start; min-height: 0; overflow-y: auto; padding: 2px 16px 12px; }
+  .fitem { min-width: 0; border-radius: 8px; background: oklch(97.5% 0.02 var(--hue)); border: 1px solid oklch(86% 0.05 var(--hue)); }
+  [data-theme="dark"] .fitem { background: oklch(28% 0.03 var(--hue)); border-color: oklch(42% 0.05 var(--hue)); }
+  .fitem.hl { outline: 2px solid var(--accent); outline-offset: 1px; }
+  .frow { width: 100%; height: 26px; display: flex; align-items: center; gap: 6px; padding: 0 8px; border: 0; background: transparent; color: inherit; text-align: left; }
+  .fprog { height: 6px; overflow: hidden; border-radius: 0 0 7px 7px; background: var(--track); }
+  .fprog i { display: block; height: 100%; background: oklch(62% 0.14 var(--hue)); }
+  .fdetail { display: flex; flex-direction: column; gap: 6px; padding: 2px 8px 8px; }
+  .arow { display: grid; grid-template-columns: 34px minmax(0, 1fr); gap: 6px; align-items: center; }
+  /* Úkoly oblasti se zalomí, když se do šířky karty nevejdou */
+  .trk { display: flex; flex-wrap: wrap; gap: 2px; min-height: 18px; }
+  .seg { position: relative; flex: 0 1 calc(var(--w) * 22px); min-width: 22px; height: 18px; overflow: hidden; border-radius: 2px; background: var(--track); }
+  .seg .wash { position: absolute; inset: 0; background: var(--role); opacity: .25; }
+  .seg .fill { position: absolute; inset: 0 auto 0 0; background: var(--role); }
+  .seg .lbl { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700; color: #fff; text-shadow: 0 0 2px color-mix(in srgb, var(--surface-bar) 60%, transparent); }
+  .seg.blocked { outline: 1.5px dashed var(--wait); outline-offset: -1.5px; }
+  .seg .hatch { position: absolute; inset: 0; background: repeating-linear-gradient(135deg, transparent 0 4px, color-mix(in srgb, var(--wait) 60%, transparent) 4px 6px); }
+  .fnote { font-size: 10px; line-height: 12px; font-weight: 600; letter-spacing: .8px; text-transform: uppercase; color: var(--wait); }
+
+  /* Organizace. Před během: matice týmy × oblasti k nastavení. Za běhu: jen čtení, na čem který tým pracuje. */
+  .org { flex: 0 1 auto; max-height: 68%; min-height: 0; display: flex; flex-direction: column; padding-bottom: 10px; background: var(--surface-panel); }
+  .mbody { flex: 0 1 auto; min-height: 0; overflow-y: auto; padding: 0 16px; }
+  .mx { display: grid; grid-template-columns: var(--cols); align-items: center; }
+  .rx { display: grid; grid-template-columns: minmax(150px, 1.1fr) 124px 112px minmax(0, 2.6fr); column-gap: 8px; align-items: center; }
+  .mx.head, .rx.head { padding: 0 16px 4px; }
+  .mx.row, .rx.row { min-height: 30px; border-top: 1px solid var(--line-2); }
+  .mx.row:hover, .rx.row:hover { background: var(--surface-subtle); }
+  .hcol { display: flex; justify-content: center; }
+  .tcell { display: flex; align-items: center; gap: 6px; min-width: 0; }
+  .chev { width: 16px; height: 18px; flex-shrink: 0; padding: 0; border: 0; background: transparent; color: var(--ink-3); font-size: 10px; }
+  .tbtn { min-width: 0; padding: 0; border: 0; background: transparent; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; line-height: 16px; font-weight: 700; color: var(--ink); }
+  .sdots { display: flex; gap: 2px; flex-shrink: 0; }
+  .sdot { width: 8px; height: 8px; border-radius: 2px; background: var(--role); }
+  .aicount { flex-shrink: 0; height: 12px; padding: 0 3px; display: inline-flex; align-items: center; gap: 2px; border-radius: 2px; background: var(--accent); color: var(--on-accent); font-size: 9px; font-weight: 700; line-height: 1; }
+  .mtags { display: flex; flex-wrap: wrap; gap: 3px; }
+  .pcell { display: flex; align-items: center; gap: 6px; }
+  /* Pruh lidí týmu: tmavá = pracuje, šrafa = volný bez mandátu, prázdná = volný */
+  .pb { display: flex; flex-shrink: 0; width: 64px; height: 8px; border-radius: 2px; overflow: hidden; background: var(--track); }
+  .pb i { display: block; height: 100%; }
+  .pb .w { background: var(--ink); }
+  .pb .n { background: repeating-linear-gradient(135deg, var(--wait) 0 2px, var(--wait-soft) 2px 4px); }
+  .pn { font-size: 10px; line-height: 12px; font-weight: 600; color: var(--ink-3); white-space: nowrap; font-variant-numeric: tabular-nums; }
+  /* Na kterých featurách tým právě pracuje */
+  .wlist { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; min-width: 0; padding: 4px 0; }
+  .wchip { display: inline-flex; align-items: center; gap: 4px; height: 18px; padding: 0 6px; border-radius: 2px; border: 1px solid oklch(86% 0.05 var(--hue)); background: oklch(97.5% 0.02 var(--hue)); color: var(--ink-2); font-size: 10px; line-height: 1; font-weight: 600; font-variant-numeric: tabular-nums; }
+  [data-theme="dark"] .wchip { background: oklch(28% 0.03 var(--hue)); border-color: oklch(42% 0.05 var(--hue)); }
+  .wchip em { font-style: normal; font-weight: 400; color: var(--ink-3); }
+  .widle { font-size: 10px; line-height: 12px; font-weight: 600; letter-spacing: .8px; text-transform: uppercase; color: var(--ink-4); }
+  .wnm { font-size: 10px; line-height: 12px; font-weight: 600; letter-spacing: .4px; text-transform: uppercase; color: var(--wait); }
+  /* Buňka mandátu v nastavení před během: plná = tým má mandát */
+  .cell { justify-self: center; width: 28px; height: 20px; padding: 0; display: inline-flex; align-items: center; justify-content: center; border: 1px solid transparent; border-radius: 2px; background: transparent; color: var(--ink-4); font-size: 10px; line-height: 1; font-weight: 700; }
+  button.cell:hover { border: 1px dashed var(--line-control); }
+  .cell.on { background: var(--ink); border-color: var(--ink); color: var(--surface-panel); }
+  /* NOVĚ: nastavení před během – řádek týmu s mandáty jako štítky (+ přidá, × odebere), stejně jako skilly u člověka */
+  .sx { display: grid; grid-template-columns: minmax(0, 1.3fr) 80px minmax(0, 2fr); column-gap: 8px; align-items: center; }
+  .sx.head { padding: 0 16px 4px; }
+  .sx.row { min-height: 30px; border-top: 1px solid var(--line-2); }
+  .sx.row:hover { background: var(--surface-subtle); }
+  .mtags .addm { height: 16px; min-width: 16px; }
+  .atag .ax { width: 10px; height: 10px; padding: 0; margin-left: 1px; border: 0; background: transparent; color: var(--ink-3); font-size: 10px; line-height: 1; }
+  .atag.pick { height: 18px; }
+  .atag.pick span { font-weight: 400; letter-spacing: 0; text-transform: none; color: var(--ink-2); }
+  .apick { margin: 0 0 6px 22px; }
+  .mnone { font-size: 10px; line-height: 12px; font-weight: 600; letter-spacing: .8px; text-transform: uppercase; color: var(--rework); }
+  .tdetail { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 6px; padding: 4px 0 10px 22px; align-items: start; }
+  .person { display: flex; flex-direction: column; gap: 4px; min-width: 0; padding: 6px 8px; background: var(--surface-panel); border: 1px solid var(--line); border-radius: 8px; }
+  .person.nomandate { background: var(--wait-soft); border-color: var(--wait); }
+  .ptop { display: flex; align-items: center; gap: 6px; min-width: 0; }
+  .avatar { width: 20px; height: 20px; flex-shrink: 0; border-radius: 999px; display: flex; align-items: center; justify-content: center; background: var(--ink); color: var(--surface-panel); font-size: 9px; font-weight: 700; }
+  /* Jméno se nezkracuje; když se čipy skillů nevejdou vedle něj, zalomí se pod sebe */
+  .pname { flex-shrink: 0; white-space: nowrap; font-size: 11px; line-height: 16px; font-weight: 600; color: var(--ink); }
+  .chips { flex: 1; min-width: 0; display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 4px; }
+  .pskills { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; }
+  .mini { flex-shrink: 0; width: 18px; height: 18px; padding: 0; display: flex; align-items: center; justify-content: center; background: transparent; border: 1px solid var(--line-control); border-radius: 2px; color: var(--ink-3); font-size: 11px; line-height: 1; }
+  .addm { flex-shrink: 0; height: 18px; min-width: 18px; padding: 0 4px; background: transparent; border: 1px dashed var(--line-control); border-radius: 2px; color: var(--ink-3); font-size: 10px; font-weight: 600; line-height: 1; }
+  /* Výběr skillu k přidání člověku (MemberCard.module.css .picker) */
+  .ppick { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; padding: 4px 6px; background: var(--surface-subtle); border: 1px solid var(--line-2); border-radius: 4px; }
+  .ppick .pk { height: 18px; padding: 0 8px; border: 0; border-radius: 2px; background: var(--role); color: #fff; font-size: 11px; font-weight: 600; letter-spacing: .2px; }
+  .ppick .px { margin-left: auto; padding: 0 2px; border: 0; background: transparent; color: var(--ink-3); font-size: 11px; }
+  .ppick .pnone { font-size: 10px; color: var(--ink-3); }
+  .pstate { min-height: 21px; display: flex; flex-direction: column; justify-content: center; gap: 2px; }
+  .pline { display: flex; align-items: center; gap: 4px; overflow: hidden; white-space: nowrap; font-size: 11px; line-height: 16px; color: var(--ink-2); }
+  .prole { font-size: 10px; line-height: 12px; font-weight: 600; color: var(--ink-3); }
+  .pbar { height: 3px; border-radius: 2px; overflow: hidden; background: var(--track); }
+  .pbar i { display: block; height: 100%; background: var(--role); }
+  .st { display: flex; align-items: center; gap: 4px; font-size: 10px; line-height: 12px; font-weight: 600; letter-spacing: .8px; text-transform: uppercase; color: var(--ink-3); }
+  .st .dot { width: 6px; height: 6px; flex-shrink: 0; border-radius: 999px; background: var(--ink-4); }
+  .st.wait { color: var(--wait); }
+  .st.wait .dot { background: var(--wait); box-shadow: 0 0 0 2px color-mix(in srgb, var(--wait) 30%, transparent); }
+  .dashed { min-height: 24px; background: transparent; border: 1px dashed var(--line-control); border-radius: 4px; color: var(--ink-3); font-size: 10px; font-weight: 600; letter-spacing: .8px; text-transform: uppercase; }
+  .addteam { margin: 8px 16px 0; height: 26px; }
+
+  /* Pravý sloupec: metriky a Done (ResultsAside, StatTile.module.css) */
+  .aside { display: flex; flex-direction: column; min-height: 0; background: var(--surface-panel); border-left: 1px solid var(--line); }
+  .tiles { display: flex; flex-direction: column; gap: 6px; padding: 0 16px 12px; }
+  .tile { display: flex; flex-direction: column; gap: 4px; min-width: 0; padding: 8px 10px; background: var(--surface-panel); border: 1px solid var(--line); border-radius: 8px; }
+  .tile.timer { padding: 10px 12px; }
+  .tile.waiting { background: var(--wait-soft); border-color: var(--wait); }
+  .tlabel { display: flex; justify-content: space-between; align-items: center; font-size: 10px; line-height: 12px; font-weight: 600; letter-spacing: .8px; text-transform: uppercase; color: var(--ink-3); }
+  .live { width: 6px; height: 6px; border-radius: 999px; background: var(--accent); }
+  .tval { font-size: 20px; line-height: 24px; font-weight: 600; font-variant-numeric: tabular-nums; color: var(--ink); white-space: nowrap; }
+  .timer .tval { font-size: 28px; line-height: 30px; letter-spacing: -.6px; }
+  .unit { margin: 0 6px 0 4px; font-size: 11px; line-height: 16px; font-weight: 400; letter-spacing: 0; color: var(--ink-3); }
+  .thint { font-size: 11px; line-height: 16px; color: var(--ink-3); }
+  /* Srovnání s předchozím během jako v Cash Flow (StatTile): šipka a procenta, zelená lepší, červená horší */
+  .dl { font-size: 10px; line-height: 12px; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .dl.good { color: var(--done); }
+  .dl.bad { color: var(--rework); }
+  .dl.flat { color: var(--ink-3); }
+  .dl em { font-style: normal; font-weight: 400; color: var(--ink-3); }
+  /* Dokončený běh: dlaždice času zezelená a místo tečky ukáže ✓ Complete (StatTile .finished) */
+  .tile.timer.finished { background: var(--done-soft); border-color: var(--done); }
+  .tile.timer.finished .tval { color: var(--done); }
+  .complete { font-size: 10px; line-height: 12px; font-weight: 600; letter-spacing: .8px; text-transform: uppercase; color: var(--done); }
+  /* NOVĚ: název týmu jde před během přepsat přímo v řádku (jako jméno jednotky v Advanced) */
+  .tname { min-width: 0; max-width: 100%; padding: 0 2px; border: 1px solid transparent; border-radius: 2px; background: transparent; color: var(--ink); font-size: 12px; line-height: 18px; font-weight: 700; text-overflow: ellipsis; }
+  .tname:hover { border-color: var(--line); }
+  .tname:focus { outline: 2px solid var(--focus); outline-offset: 1px; background: var(--surface-panel); }
+  .delta { font-size: 10px; line-height: 12px; font-weight: 600; color: var(--done); }
+  .delta em { font-style: normal; font-weight: 400; color: var(--ink-3); }
+  /* Rozbalitelný detail dlaždice (StatTile, feat-018) */
+  .dbtn { align-self: flex-start; padding: 0; border: 0; background: none; color: var(--ink-3); font-size: 11px; line-height: 16px; text-decoration: underline; text-underline-offset: 2px; }
+  .tdet { display: flex; flex-direction: column; gap: 2px; font-size: 11px; line-height: 16px; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+  .donebox { flex: 1; min-height: 0; overflow-y: auto; border-top: 1px solid var(--line); }
+
+  /* NOVĚ: výnos featury za týden po dodání (jako odznak v Cash Flow) */
+  .frev { flex-shrink: 0; font-size: 10px; line-height: 12px; font-weight: 700; color: var(--done); white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .bline { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+
+  /* Hotová featura (DoneRow.module.css): výnos za týden, dosud vydělaný výnos vpravo, odpočet do dalšího výnosu.
+     NOVĚ jde rozkliknout na timeline zpracování. */
+  .dlist { display: flex; flex-direction: column; gap: 4px; padding: 0 16px 12px; }
+  .dcard { flex-shrink: 0; border-radius: 4px; background: oklch(97.5% 0.02 var(--hue)); border: 1px solid oklch(86% 0.05 var(--hue)); }
+  [data-theme="dark"] .dcard { background: oklch(28% 0.03 var(--hue)); border-color: oklch(42% 0.05 var(--hue)); }
+  .dhead { width: 100%; display: flex; align-items: center; gap: 8px; padding: 6px 8px 4px; border: 0; background: transparent; color: inherit; text-align: left; }
+  .dmain { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+  .dname { font-size: 11px; line-height: 16px; font-weight: 500; color: var(--ink-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .ddet { font-size: 10px; line-height: 12px; font-weight: 600; color: var(--ink-3); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .daside { display: flex; flex-direction: column; align-items: flex-end; gap: 1px; flex-shrink: 0; min-width: 44px; color: var(--done); font-variant-numeric: tabular-nums; }
+  .dval { font-size: 11px; line-height: 16px; font-weight: 600; }
+  .ddelta { font-size: 10px; line-height: 12px; font-weight: 600; }
+  .dcd { display: block; height: 3px; margin: 0 8px 6px; border-radius: 2px; overflow: hidden; background: var(--track); }
+  .dcd i { display: block; height: 100%; background: var(--done); }
+
+  /* NOVÉ: timeline zpracování hotové featury. Řádek = úkol (seskupený po oblastech), osa = pracovní dny simulace. */
+  .tl { display: flex; flex-direction: column; gap: 3px; margin: 0 8px; padding: 6px 0 8px; border-top: 1px solid oklch(86% 0.05 var(--hue)); }
+  [data-theme="dark"] .tl { border-top-color: oklch(42% 0.05 var(--hue)); }
+  .tlmeta, .tlsum { font-size: 10px; line-height: 14px; color: var(--ink-3); font-variant-numeric: tabular-nums; }
+  .tlmeta b { color: var(--ink-2); font-weight: 600; }
+  .tlr { display: grid; grid-template-columns: 64px minmax(0, 1fr); gap: 6px; align-items: center; min-height: 12px; }
+  /* Nadpis oblasti v timeline: štítek oblasti, její název a tým, který ji zpracoval */
+  .tlg { display: flex; align-items: center; gap: 6px; margin-top: 3px; font-size: 10px; line-height: 14px; font-weight: 600; color: var(--ink-2); white-space: nowrap; overflow: hidden; }
+  /* Název skillu úkolu v timeline: čtvereček v barvě skillu a název (dlouhý se zkrátí výpustkou) */
+  .tls { display: flex; align-items: center; gap: 4px; min-width: 0; font-size: 10px; line-height: 12px; color: var(--ink-2); }
+  .tls i { width: 6px; height: 6px; flex-shrink: 0; border-radius: 1px; background: var(--role); }
+  .tln { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .tlt { position: relative; display: block; height: 12px; border-radius: 1px; background: var(--track); }
+  .tlw { position: absolute; top: 0; bottom: 0; display: flex; align-items: center; justify-content: center; overflow: hidden; border-radius: 1px; background: var(--role); color: #fff; font-size: 8px; line-height: 1; font-weight: 700; }
+  .tlm { position: absolute; top: 1px; bottom: 1px; border-radius: 1px; background: repeating-linear-gradient(135deg, var(--wait) 0 2px, var(--wait-soft) 2px 4px); }
+  .tlq { position: absolute; top: 50%; height: 0; border-top: 1px dashed var(--ink-3); }
+  .tlticks { display: flex; justify-content: space-between; padding-top: 2px; border-top: 1px solid var(--line); font-size: 9px; line-height: 10px; color: var(--ink-3); font-variant-numeric: tabular-nums; }
+  .tlleg { display: flex; flex-wrap: wrap; gap: 2px 10px; font-size: 9px; line-height: 12px; color: var(--ink-3); }
+  .tlleg span { display: inline-flex; align-items: center; gap: 4px; }
+  .tlleg i { position: relative; display: inline-block; width: 12px; height: 7px; }
+</style>
+</head>
+<body>
+<div class="doc">
+  <h1>feat-028 UI mockup – mód Organization (týmy složené z lidí), verze 9</h1>
+  <p class="sub">Skilly, AI a mandáty se nastavují <b>jen před během</b>. Mandát dostává tým stejně jako skill člověk: štítkem oblasti, + a ×. Oblasti a skilly se zakládají v nastavení vlevo. Za běhu je panel organizace jen ke čtení: ukazuje, na kterých featurách který tým pracuje, a tým jde rozkliknout na lidi. Texty v aplikaci jsou anglicky jako dnes.</p>
+
+  <div class="ctrl">
+    <span class="grp">Organizace:
+      <button data-size="small">Malá (3 týmy)</button>
+      <button data-size="large" aria-pressed="true">Velká (12 týmů)</button>
+    </span>
+    <span class="grp">Stav:
+      <button data-view="setup" aria-pressed="true">Před během</button>
+      <button data-view="running">Za běhu</button>
+      <button data-view="finished">Po druhém běhu</button>
+    </span>
+    <span class="grp">Téma:
+      <button data-theme-btn="light" aria-pressed="true">Light</button>
+      <button data-theme-btn="dark">Dark</button>
+    </span>
+    <span class="grp"><button id="resetOrg">Vrátit výchozí stav</button></span>
+  </div>
+
+  <h2>1. Celá obrazovka</h2>
+  <p class="sub"><b>Před během:</b> vlevo dole je editor skillů (barva, název, fáze, povinnost, přidání a smazání). U týmu <b>+</b> přidá mandát na oblast a <b>×</b> ho odebere, název týmu rozbalí jeho lidi. U člověka tlačítko <b>AI</b> na čipu přepíná 1× → 2× → 5× → 1×, <b>+</b> přidá skill a <b>×</b> ho odebere. <b>Za běhu:</b> klikni na štítek featury u týmu, na řádek featury (úkoly po oblastech) nebo na položku backlogu. <b>Výnosy:</b> u featur je výnos za týden, celkový výnos je v dlaždici Revenue (time-matched). <b>Hotová featura</b> vpravo se kliknutím rozbalí na timeline zpracování. <b>Backlog:</b> Settings → Backlog má posuvníky min–max; Generate new backlog vygeneruje backlog podle nich a kontrola před během hned ukáže, co v organizaci chybí.</p>
+  <div id="wrap"><div class="screen" id="screen"></div></div>
+  <p class="note">Mockup není simulace: z nastavených mandátů jen rozdělí lidi na čekající úkoly a AI na rychlost práce nemá vliv. Čísla v metrikách jsou vzorová a nic netvrdí o skutečném chování modelu.</p>
+
+  <h2>2. Jak obrazovku číst</h2>
+  <div class="frame">
+    <div class="legend" id="legend"></div>
+  </div>
+
+  <h2>3. Na co se při posuzování dívat</h2>
+  <ol>
+    <li>Settings → Backlog: posuvníky min–max pro oblasti ve featuře (1 až počet oblastí), skilly v oblasti (1 až počet skillů) a pracnost skillu (1–20 dní). Zkus u velké organizace zvednout skilly v oblasti a dát Generate new backlog: objeví se varování a Run zešedne.</li>
+    <li>Výsledky po druhém běhu mají stejný formát jako v Cash Flow: velká skutečná hodnota a pod ní „↓ 21% vs prev run“, zelená lepší, červená horší; dlaždice času ukáže ✓ Complete.</li>
+    <li>Název týmu jde před během přepsat kliknutím na něj, stejně jako jméno jednotky v Advanced.</li>
+    <li>Mandát se nastavuje u týmu stejně jako skill u člověka (štítky oblastí, + a ×). Oblasti se zakládají v nastavení Areas, stejně jako skilly v Skills. Matice týmy × oblasti zmizela.</li>
+    <li>Texty bez „mandate“ u čekání: úkol je „waiting“, člověk „idle“, dlaždice „Idle time“. Šrafa a žlutá zůstávají jen jako vizuální rozlišení idle lidí, pro jejichž skill jinde čeká práce. Vyhovuje to?</li>
+    <li>Timeline hotové featury má nadpis pro každou oblast (s týmem, který ji zpracoval) a u každého úkolu název skillu. Rozlišuje jen práci a čekání.</li>
+    <li>Editor skillů je stejný jako v Advanced, včetně sloupců Phase a Req. Dávají v tomto módu smysl, když úkoly featury jsou rozdělené po oblastech?</li>
+  </ol>
+</div>
+
+<script>
+  // ---- vzorová data ----
+  // Výchozí skilly: klíč, název, barva (tokeny rolí), fáze a povinnost jako v editoru Advanced
+  const SKILL_DEFAULTS = {
+    P: ['Product', 'var(--role-rose)', 1],
+    J: ['Java', 'var(--role-blue)', 2],
+    F: ['Frontend', 'var(--role-brick)', 2],
+    Q: ['QA', 'var(--role-green)', 3],
+    D: ['Data', 'var(--role-violet)', 2],
+    O: ['DevOps', 'var(--role-teal)', 3],
+  };
+  const PALETTE = [['Rose', 'var(--role-rose)'], ['Blue', 'var(--role-blue)'], ['Brick', 'var(--role-brick)'], ['Green', 'var(--role-green)'], ['Ochre', 'var(--role-ochre)'], ['Teal', 'var(--role-teal)'], ['Violet', 'var(--role-violet)'], ['Slate', 'var(--role-slate)']];
+  // Jaké skilly práce v oblasti obvykle potřebuje (jen pro dogenerování hotových featur)
+  const PROFILE = { BIL: 'PJQ', PAY: 'PJQO', MOB: 'PFQ', WEB: 'PFQJ', CRM: 'PJD', API: 'JOQ', DWH: 'DO', IDN: 'JOQ' };
+  const NAMES = 'Ada Ben Chen Dani Eli Fae Gus Hana Ivo Jana Karl Lea Milan Nora Oto Pavla Radek Sara Tom Uma Vit Wanda Xenie Yuri Zora Adam Bara Cyril Dita Emil Filip Gita Hugo Irma Jakub Klara Libor Marta Nikola Olga Petr Rita Simon Tereza Urban Vera Viktor Alena Bruno Cecilie David Ema Franta Gabriela Hynek Iva Josef Katka Ludek Monika'.split(' ');
+  const SURNAMES = 'KNSPVHDMBCJLRTZF';
+  const BOLT = '<svg width="6" height="9" viewBox="0 0 6 9" aria-hidden="true"><path d="M3.6 0 0 5h2.3L1.7 9 6 3.6H3.7L4.4 0z" fill="currentColor"/></svg>';
+  const u = (n, unit) => `${n}<span class="unit">${unit}</span>`;
+  const WAIT_HINT = 'person-days without a task';
+
+  // Tým: [název, mandáty, skilly lidí]; skilly člověka jako písmena, číslice za písmenem = AI (např. 'J2' = Java s AI 2×).
+  // Featura: [název, 'OBLAST:úkoly|…'], úkol = skill + pracnost, * = hotový.
+  // Metriky: [popisek, hodnota (HTML), poznámka, rozdíl proti předchozímu běhu, třída]
+  const DATA = {
+    small: {
+      areas: { BIL: 'Billing', MOB: 'Mobile app', WEB: 'Web portal' },
+      skills: 'PJFQ',
+      // Dny pohledů „Za běhu“, „Po druhém běhu“ a délka předchozího běhu; výnos první a pokles za každou další prioritu
+      times: { run: 38, fin: 46, prev: 55 }, revTop: 480, revStep: 22,
+      teams: [['Team Billing', ['BIL'], ['P', 'J2', 'Q']], ['Team Mobile', ['MOB'], ['P', 'F', 'Q']], ['Team Web', ['WEB'], ['JP', 'F5', 'Q']]],
+      done: ['Login flow', 'Search filters', 'Push notifications', 'Refund requests', 'Offline mode', 'Saved cards', 'Dark mode', 'Subscription plans'],
+      wip: [['Card payment', 'BIL:J3 Q2|MOB:F3* Q2*'], ['Invoice export', 'BIL:P2 J3|WEB:F3'], ['Customer dashboard', 'WEB:P2 F3 Q2|MOB:F2*'], ['Onboarding tour', 'MOB:P2* F2*|WEB:F2 Q2']],
+      todo: [['Tax reports', 'BIL:J3 Q2'], ['Audit log', 'WEB:J3 Q2']],
+      metrics: {
+        setup: [['Total time', u('0.0', 'days'), '', '', 'timer'], ['Avg cycle time', '—', '', '', ''], ['Avg WIP', '—', '', '', ''], ['Idle time', '—', WAIT_HINT, '', '']],
+        running: [['Total time', u(7, 'w') + u(3, 'd'), '', '', 'timer live'], ['Avg cycle time', u('8.4', 'days'), '', '', ''], ['Avg WIP', '4.2', '', '', ''], ['Idle time', u('14.5', 'days'), WAIT_HINT, '', 'waiting']],
+        // Po druhém běhu: [popisek, hodnota tohoto běhu, hodnota předchozího běhu, jednotka, třída]
+        finished: [['Total time', 46, 55, 'time', 'timer'], ['Avg cycle time', 6.9, 8.7, 'days', ''], ['Avg WIP', 4.6, 4.3, '', ''], ['Idle time', 3.0, 17, 'pd', '']],
+      },
+    },
+    large: {
+      areas: { BIL: 'Billing', PAY: 'Payments', MOB: 'Mobile app', WEB: 'Web portal', CRM: 'CRM', API: 'Public API', DWH: 'Data warehouse', IDN: 'Identity' },
+      skills: 'PJFQDO',
+      times: { run: 72, fin: 94, prev: 110 }, revTop: 560, revStep: 7,
+      teams: [
+        ['Billing', ['BIL'], ['P', 'J', 'J', 'J', 'Q', 'Q']],
+        ['Payments', ['PAY'], ['P', 'J', 'J', 'Q', 'O']],
+        ['Mobile iOS', ['MOB'], ['P', 'F5', 'F', 'F', 'Q', 'Q']],
+        ['Mobile Android', ['MOB'], ['P', 'F', 'F', 'F', 'Q']],
+        ['Web Checkout', ['WEB'], ['P', 'F', 'F', 'J', 'Q']],
+        ['Web Account', ['WEB'], ['P', 'F', 'F', 'Q']],
+        ['CRM', ['CRM'], ['P', 'J', 'J', 'D', 'Q']],
+        ['Public API', ['API'], ['J2', 'J2', 'J', 'O', 'Q2']],
+        ['Data', ['DWH'], ['D', 'D', 'D', 'O']],
+        ['Identity', ['IDN'], ['J', 'J', 'O', 'Q']],
+        ['Platform', ['API', 'IDN'], ['O', 'O', 'O', 'J']],
+        ['Growth', ['WEB', 'MOB'], ['P', 'P', 'F', 'D', 'Q']],
+      ],
+      done: ['Login flow', 'Search filters', 'Export CSV', 'Dark mode', 'Onboarding', 'Notifications', 'API rate plan', 'Audit trail', 'Billing portal', 'SSO', 'Bulk actions', 'Saved filters', 'Team invites', 'Usage alerts', 'Receipts', 'Price tiers', 'Card vault', 'Address book', 'Order history', 'Wishlist', 'Promo codes', 'Guest checkout', 'Email templates', 'Push opt-in', 'Deep links', 'App shortcuts', 'Session timeout', 'Password reset', 'Two-factor login', 'Role editor', 'Event stream', 'Data export', 'Churn report', 'Cohort view', 'Lead scoring', 'Contact merge', 'Ticket sync', 'Partner portal', 'Sandbox keys', 'Status page'],
+      wip: [
+        ['Checkout redesign', 'WEB:P2* F3 Q2|PAY:J3 Q2|MOB:F3* Q2*'],
+        ['Partner API v2', 'API:J3 O2 Q2|IDN:J2 O2'],
+        ['Loyalty points', 'CRM:P2* J3 D2|WEB:F3 Q2|MOB:F2*'],
+        ['Invoice export', 'BIL:P2* J3 Q2|WEB:F2'],
+        ['SSO for partners', 'IDN:J3 O2 Q2|API:J2|WEB:F2'],
+        ['Usage dashboard', 'DWH:D3 O2|WEB:P2 F3|API:J2'],
+        ['Refund flow', 'PAY:P2 J3 Q2|BIL:J2|WEB:F2 Q2'],
+        ['Push campaigns', 'MOB:P2* F3* Q2*|CRM:J2 D2|API:J2'],
+        ['Saved carts', 'WEB:F3 J2 Q2|MOB:F2*'],
+        ['Rate limiting', 'API:J3 O3 Q2'],
+        ['Tax reports', 'BIL:J3 Q2|DWH:D3'],
+        ['Account merge', 'IDN:J2 Q2|CRM:P2 J2|WEB:F3'],
+        ['Webhooks', 'API:J3 Q2|PAY:J2'],
+        ['Profile page', 'WEB:P2 F3 Q2|MOB:F2* Q2*'],
+      ],
+      todo: [
+        ['Audit log', 'API:J3 Q2|IDN:J2'], ['Bulk invoices', 'BIL:P2 J3|WEB:F2'], ['Search v2', 'WEB:F3 J3 Q2'],
+        ['Consent center', 'IDN:J2 Q2|WEB:P2 F3'], ['Export API', 'API:J3 O2|DWH:D2'], ['Gift cards', 'PAY:P2 J3 Q2|WEB:F3'],
+      ],
+      metrics: {
+        setup: [['Total time', u('0.0', 'days'), '', '', 'timer'], ['Avg cycle time', '—', '', '', ''], ['Avg WIP', '—', '', '', ''], ['Idle time', '—', WAIT_HINT, '', '']],
+        running: [['Total time', u(14, 'w') + u(2, 'd'), '', '', 'timer live'], ['Avg cycle time', u('11.8', 'days'), '', '', ''], ['Avg WIP', '16.4', '', '', ''], ['Idle time', u('212', 'days'), WAIT_HINT, '', 'waiting']],
+        finished: [['Total time', 94, 110, 'time', 'timer'], ['Avg cycle time', 9.1, 11.8, 'days', ''], ['Avg WIP', 12.9, 16.4, '', ''], ['Idle time', 48, 236, 'pd', '']],
+      },
+    },
+  };
+
+  // Deterministický generátor náhodných čísel, aby se mockup po každém načtení choval stejně
+  function rng(seed) { let s = seed; return () => (s = (s * 1664525 + 1013904223) % 4294967296) / 4294967296; }
+
+  const parseSpec = spec => spec.split('|').map(part => {
+    const [area, list] = part.split(':');
+    return { area, tasks: list.trim().split(/\s+/).map(t => ({ skill: t[0], w: +t[1], done: t.endsWith('*') })) };
+  });
+
+  function genSpec(r, areaKeys) {
+    const picked = [];
+    const n = Math.min(1 + Math.floor(r() * 3), areaKeys.length);
+    while (picked.length < n) { const a = areaKeys[Math.floor(r() * areaKeys.length)]; if (!picked.includes(a)) picked.push(a); }
+    return picked.map(area => {
+      // Skilly v oblasti jsou různé: zamíchaný profil oblasti a z něj prvních 1–3
+      const pool = PROFILE[area].split('').sort(() => r() - 0.5);
+      const n = Math.min(pool.length, 1 + Math.floor(r() * 3));
+      return { area, tasks: pool.slice(0, n).map(skill => ({ skill, w: 2 + Math.floor(r() * 2), done: false })) };
+    });
+  }
+
+  // Formát jako formatEuro v aplikaci: €480, od tisíce €12.5k
+  const fmtEuro = n => Math.round(n) >= 1000 ? `€${(n / 1000).toFixed(1).replace(/\.0$/, '')}k` : `€${Math.round(n)}`;
+  const fmtTime = days => `${Math.floor(days / 5)} w ${Math.round(days % 5)} d`;
+  const fmt1 = x => String(Math.round(x * 10) / 10);
+
+  // Výnos featury vydělaný do dne T: týdenní výnos za každý celý týden (5 pracovních dnů) od dokončení
+  const earnedAt = (f, T) => (f.finish <= T ? f.rev * Math.floor((T - f.finish) / 5) : 0);
+
+  // Timeline zpracování featury (vzorová data, ne simulace): úkoly oblasti jdou po fázích skillů, úkol může nejdřív
+  // čekat ve frontě a někdy i na mandát; práci dělá člověk z týmu s mandátem na oblast a AI jeho práci zkrátí.
+  function makeTimeline(f, teams, r, levelOf = k => (SKILL_DEFAULTS[k] || [0, 0, 1])[2]) {
+    const rows = [];
+    // Kdy je který člověk volný: zpracovává vždy jen jeden úkol, další úkol na něj čeká ve frontě
+    const freeAt = {};
+    for (const { area, tasks } of f.areas) {
+      const owner = teams.find(t => t.mandates.includes(area));
+      const sorted = [...tasks].sort((a, b) => levelOf(a.skill) - levelOf(b.skill));
+      let phase = null, phaseStart = 0, phaseEnd = Math.round(r() * 3) / 2;
+      for (const t of sorted) {
+        const lvl = levelOf(t.skill);
+        // Další fáze začne, až skončí všechny úkoly předchozí fáze v oblasti
+        if (lvl !== phase) { phase = lvl; phaseStart = phaseEnd; }
+        const segs = [];
+        let at = phaseStart;
+        const q = Math.round(r() * 3) / 2;
+        if (q > 0) { segs.push({ k: 'q', from: at, to: at + q }); at += q; }
+        if (r() < 0.3) { const m = 1 + Math.round(r() * 4) / 2; segs.push({ k: 'm', from: at, to: at + m }); at += m; }
+        // Úkol vezme ten člověk týmu se skillem, který se uvolní nejdřív
+        const p = owner && owner.people.filter(x => x.skills.includes(t.skill)).sort((a, b) => (freeAt[a.uid] || 0) - (freeAt[b.uid] || 0))[0];
+        if (p && (freeAt[p.uid] || 0) > at) {
+          const last = segs[segs.length - 1];
+          if (last && last.k === 'q') last.to = freeAt[p.uid]; else segs.push({ k: 'q', from: at, to: freeAt[p.uid] });
+          at = freeAt[p.uid];
+        }
+        const dur = t.w / ((p && p.ai[t.skill]) || 1);
+        if (p) freeAt[p.uid] = at + dur;
+        segs.push({ k: 'w', from: at, to: at + dur, who: p ? p.code : '', whoName: p ? `${p.name}, ${owner.name}` : 'unknown' });
+        at += dur;
+        phaseEnd = Math.max(phaseEnd, at);
+        rows.push({ area, skill: t.skill, team: owner ? owner.name : '', segs });
+      }
+    }
+    // Featura začíná prvním úsekem kteréhokoli úkolu
+    const all = rows.flatMap(x => x.segs);
+    const t0 = Math.min(...all.map(s => s.from));
+    all.forEach(s => { s.from -= t0; s.to -= t0; });
+    return { rows, ct: Math.max(...all.map(s => s.to)) };
+  }
+
+  // Plánovaný den dokončení a timeline každé featury (vzorová data): hotové featury skončí před okamžikem pohledu
+  // „Za běhu“, rozpracované a backlog až po něm; timeline se posune tak, aby skončila v plánovaný den
+  function planFeatures(feats, teams, d, levelOf) {
+    const { run, fin } = d.times;
+    const by = st => feats.filter(f => f.st === st);
+    by('done').forEach((f, k, a) => { f.finish = 3 + (k + 1) * (run - 4) / a.length; });
+    by('wip').forEach((f, k, a) => { f.finish = run + 1 + k * (fin - run - 4) / a.length; });
+    by('todo').forEach((f, k, a) => { f.finish = fin - 3 + k * 2 / Math.max(1, a.length); });
+    const rt = rng(11);
+    feats.forEach(f => {
+      const tl = makeTimeline(f, teams, rt, levelOf);
+      const start = Math.max(0, f.finish - tl.ct);
+      tl.rows.forEach(row => row.segs.forEach(x => { x.from += start; x.to += start; }));
+      Object.assign(f, { tl, start, finish: start + tl.ct, ct: tl.ct.toFixed(1) });
+    });
+  }
+
+  // Z popisu datové sady postaví skilly, týmy s lidmi a featury
+  function build(size) {
+    const d = DATA[size], r = rng(7);
+    let pi = 0;
+    const skills = d.skills.split('').map(k => { const [label, color, level] = SKILL_DEFAULTS[k]; return { key: k, label, color, level, req: false }; });
+    const teams = d.teams.map(([name, mandates, specs], ti) => ({
+      id: 't' + ti, name, mandates: [...mandates], open: size === 'small',
+      people: specs.map(spec => {
+        const first = NAMES[pi % NAMES.length], sur = SURNAMES[(pi * 5) % SURNAMES.length];
+        const p = { uid: 'p' + pi++, code: first[0] + sur, name: `${first} ${sur}.`, skills: [], ai: {} };
+        for (const [, k, ai] of spec.matchAll(/([A-Z])([25])?/g)) { p.skills.push(k); if (ai) p.ai[k] = +ai; }
+        return p;
+      }),
+    }));
+    const all = [...d.done.map(n => [n, null, 'done']), ...d.wip.map(([n, s]) => [n, s, 'wip']), ...d.todo.map(([n, s]) => [n, s, 'todo'])];
+    const feats = all.map(([name, spec, st], i) => ({
+      id: 'F-' + String(i + 1).padStart(3, '0'), name, st, hue: (i * 47 + 20) % 360,
+      areas: spec ? parseSpec(spec) : genSpec(r, Object.keys(d.areas)),
+      // Výnos za týden po dodání: vyšší priorita = vyšší výnos (jako v Cash Flow), takže backlog je seřazený i podle výnosu
+      rev: 5 * Math.round((d.revTop - i * d.revStep) / 5),
+    }));
+    planFeatures(feats, teams, d);
+    return { skills, teams, feats, hl: null, pick: null, cpick: null, sdel: null, skillErr: '', newColor: PALETTE[4][1], tdet: false, openD: new Set(), areas: { ...d.areas },
+      // Nastavení backlogu (výchozí rozsahy podle R5): počet featur, oblasti ve featuře, skilly v oblasti, pracnost skillu ve dnech
+      gen: { size: feats.length, areas: [1, 3], skills: [1, 3], effort: [1, 5] }, wip: 'reduce-wip', profile: 'flat', seed: 0, apick: null, adel: null, areaErr: '', openB: new Set(), openF: new Set(size === 'small' ? feats.filter(f => f.st === 'wip').map(f => f.id) : []) };
+  }
+
+  // ---- stav mockupu ----
+  const S = { size: 'large', view: 'setup', onlyWait: false, acc: { backlog: true, skills: true, areas: false }, ...build('large') };
+  const AREAS = () => S.areas;
+  const sk = k => S.skills.find(s => s.key === k);
+
+  const can = (p, skill) => p.skills.includes(skill);
+  const may = (p, area) => p.team.mandates.includes(area);
+
+  // Z nastavených mandátů odvodí, kdo na čem pracuje a co čeká na mandát.
+  function derive() {
+    const run = S.view === 'running';
+    const ps = S.teams.flatMap(t => t.people.map(p => ({ ...p, team: t })));
+    const pool = S.view === 'setup' ? S.feats : run ? [...S.feats.filter(f => f.st === 'wip'), ...S.feats.filter(f => f.st === 'todo')] : [];
+    const tasks = [];
+    for (const f of pool) for (const { area, tasks: ts } of f.areas) for (const t of ts)
+      tasks.push({ f, area, skill: t.skill, w: t.w, status: run && t.done ? 'done' : 'todo', by: null, p: 0, blocked: [] });
+    const busy = new Set();
+    const started = new Set(run ? S.feats.filter(f => f.st === 'wip').map(f => f.id) : []);
+    const pstate = Object.fromEntries(ps.map(p => [p.uid, { kind: 'idle' }]));
+    if (run) {
+      // Volní lidé si vezmou první úkol, který umí a smí (nejdřív rozpracované featury, pak backlog)
+      ps.forEach(p => {
+        const i = tasks.findIndex(x => x.status === 'todo' && can(p, x.skill) && may(p, x.area));
+        if (i < 0) return;
+        const d = tasks[i];
+        d.status = 'doing'; d.by = p; d.p = ((i * 37) % 80 + 10) / 100;
+        busy.add(p.uid); started.add(d.f.id); pstate[p.uid] = { kind: 'work', d };
+      });
+      const idle = ps.filter(p => !busy.has(p.uid));
+      // Čeká na mandát: úkol rozpracované featury, který by volný člověk uměl, ale jeho tým na oblast nesmí
+      for (const d of tasks) if (d.status === 'todo' && started.has(d.f.id)) d.blocked = idle.filter(p => can(p, d.skill) && !may(p, d.area));
+      for (const p of idle) {
+        const areas = [...new Set(tasks.filter(d => d.blocked.some(b => b.uid === p.uid)).map(d => d.area))];
+        if (areas.length) pstate[p.uid] = { kind: 'nomandate', areas };
+      }
+    }
+    // Souhrn lidí týmu podle stavu
+    const team = Object.fromEntries(S.teams.map(t => [t.id, { work: 0, nomandate: 0, idle: 0 }]));
+    for (const p of ps) team[p.team.id][pstate[p.uid].kind]++;
+    return { run, ps, tasks, pstate, started, team, keys: Object.keys(AREAS()) };
+  }
+
+  // ---- vykreslení ----
+  const tag = (a, cls = '', mark = '') => `<span class="atag ${cls}" title="${AREAS()[a]}">${mark}${a}</span>`;
+  const aiBadge = v => `${BOLT}${v}×`;
+
+  function seg(d) {
+    const s = sk(d.skill);
+    const st = `style="--w:${d.w};--role:${s.color}"`;
+    if (d.status === 'done') return `<div class="seg" ${st} title="${s.label} · done"><span class="fill" style="width:100%"></span><span class="lbl">✓</span></div>`;
+    if (d.status === 'doing') return `<div class="seg" ${st} title="${s.label} · ${d.by.name} (${d.by.team.name})"><span class="wash"></span><span class="fill" style="width:${Math.round(d.p * 100)}%"></span><span class="lbl">${d.by.code}</span></div>`;
+    if (d.blocked.length) {
+      const teams = [...new Set(d.blocked.map(p => p.team.name))].join(', ');
+      return `<div class="seg blocked" ${st} title="${s.label} · waiting · ${d.blocked.length} idle people with this skill in ${teams}"><span class="wash"></span><span class="hatch"></span></div>`;
+    }
+    return `<div class="seg" ${st} title="${s.label} · to do"><span class="wash"></span></div>`;
+  }
+
+  // Featura v In progress: řádek se štítky oblastí, po rozkliknutí úkoly, dole pruh celkového postupu
+  function featItem(f, D) {
+    const mine = D.tasks.filter(d => d.f === f);
+    const open = S.openF.has(f.id);
+    const waitAreas = [];
+    const tags = f.areas.map(({ area }) => {
+      const ds = mine.filter(d => d.area === area);
+      if (ds.every(d => d.status === 'done')) return tag(area, 'done', '✓ ');
+      if (ds.some(d => d.blocked.length)) { waitAreas.push(area); return tag(area, 'wait'); }
+      return tag(area);
+    }).join('');
+    const total = mine.reduce((s, d) => s + d.w, 0) || 1;
+    const doneW = mine.reduce((s, d) => s + (d.status === 'done' ? d.w : d.w * d.p), 0);
+    const pct = Math.round(doneW / total * 100);
+    const row = `<button class="frow" data-act="feat" data-id="${f.id}" aria-expanded="${open}" title="Show or hide tasks"><span class="swatch"></span><span class="fname">${f.id} ${f.name}</span><span class="frev" title="Revenue per week after delivery">${fmtEuro(f.rev)}/week</span><span class="btags">${tags}</span></button>`;
+    let detail = '';
+    if (open) {
+      const rows = f.areas.map(({ area }) => `<div class="arow">${tag(area, waitAreas.includes(area) ? 'wait' : '')}<div class="trk">${mine.filter(d => d.area === area).map(seg).join('')}</div></div>`).join('');
+      detail = `<div class="fdetail">${rows}${waitAreas.length ? `<div class="fnote">Waiting · ${waitAreas.join(', ')}</div>` : ''}</div>`;
+    }
+    return `<div class="fitem ${S.hl === f.id ? 'hl' : ''}" style="--hue:${f.hue}">${row}${detail}<div class="fprog" title="${pct} % of the work is done"><i style="width:${pct}%"></i></div></div>`;
+  }
+
+  // Položka backlogu: sbalená ukazuje pruh pracnosti, rozbalená úkoly po oblastech a týmy s mandátem
+  function backlogCard(f, i) {
+    const open = S.openB.has(f.id);
+    // Délka pruhu odpovídá pracnosti featury vůči největší featuře v backlogu; uvnitř se dělí podle úkolů
+    const work = f.areas.reduce((n, a) => n + a.tasks.reduce((m, t) => m + t.w, 0), 0);
+    const groups = f.areas.map(({ tasks }) => `<span class="bgrp" style="flex:${tasks.reduce((m, t) => m + t.w, 0)}">${tasks.map(t => `<i class="bseg" style="--role:${sk(t.skill).color};flex:${t.w}"></i>`).join('')}</span>`).join('');
+    const head = `<button class="bhead" data-act="back" data-id="${f.id}" aria-expanded="${open}" title="Show or hide details"><span class="btop"><span class="fname">${f.id} ${f.name}</span><span class="btags">${f.areas.map(a => tag(a.area)).join('')}</span></span>${open ? '' : `<span class="bline"><span class="bbarwrap"><span class="bbar" style="width:${work / S.maxW * 100}%">${groups}</span></span><span class="frev">${fmtEuro(f.rev)}/week</span></span>`}</button>`;
+    if (!open) return `<div class="bcard">${head}</div>`;
+    const all = f.areas.flatMap(a => a.tasks);
+    const rows = f.areas.map(({ area, tasks }) => {
+      const teams = S.teams.filter(t => t.mandates.includes(area)).map(t => t.name);
+      const chips = tasks.map(t => `<span class="chip sm" style="--role:${sk(t.skill).color}">${sk(t.skill).label} · ${t.w} d</span>`).join('');
+      return `<div class="barea">${tag(area)}<span class="btasks">${chips}</span><span class="bteams ${teams.length ? '' : 'none'}">${teams.length ? 'Mandate: ' + teams.join(', ') : 'No team has a mandate for this area'}</span></div>`;
+    }).join('');
+    return `<div class="bcard open">${head}<div class="bdetail"><div class="bmeta">Priority ${i + 1} · <span class="frev">${fmtEuro(f.rev)}/week</span> · ${all.length} tasks · ${all.reduce((s, t) => s + t.w, 0)} days of work</div>${rows}</div></div>`;
+  }
+
+  // Čip skillu člověka. Před během s tlačítkem AI (cykluje 1× → 2× → 5× → 1×) a ×, za běhu jen odznak AI.
+  function personChip(p, k, editable) {
+    const s = sk(k), v = p.ai[k] || 1;
+    if (!editable) return `<span class="chip" style="--role:${s.color}"><span class="cl">${s.label}</span>${v > 1 ? `<span class="aib on" title="AI speed-up for ${s.label}: ${v}×">${aiBadge(v)}</span>` : ''}</span>`;
+    const next = { 1: 2, 2: 5, 5: 1 }[v];
+    const label = v > 1 ? `AI speed-up for ${s.label}: ${v}×` : `AI speed-up for ${s.label}`;
+    const title = `${label} – ${next === 1 ? 'click to turn off' : `click for ${next}×`}`;
+    return `<span class="chip" style="--role:${s.color}"><span class="cl">${s.label}</span><button class="aib ${v > 1 ? 'on' : ''}" data-act="ai" data-p="${p.uid}" data-k="${k}" title="${title}" aria-label="${label}">${v > 1 ? aiBadge(v) : 'AI'}</button><button class="crm" data-act="prm" data-p="${p.uid}" data-k="${k}" title="Remove skill">×</button></span>`;
+  }
+
+  // Karta člověka: před během k úpravě (skilly, AI, přesun), za běhu jen stav
+  function personCard(p, D, editable) {
+    if (editable) {
+      const free = S.skills.filter(s => !p.skills.includes(s.key));
+      const picker = S.pick === p.uid ? `<div class="ppick">${free.length ? free.map(s => `<button class="pk" style="--role:${s.color}" data-act="padd" data-p="${p.uid}" data-k="${s.key}">${s.label}</button>`).join('') : '<span class="pnone">Has every skill</span>'}<button class="px" data-act="pclose" aria-label="Close">×</button></div>` : '';
+      return `<div class="person"><div class="ptop"><span class="avatar">${p.code}</span><span class="pname">${p.name}</span><span class="chips"></span><button class="mini" title="Move to another team or remove" tabindex="-1">⋯</button></div><div class="pskills">${p.skills.map(k => personChip(p, k, true)).join('')}<button class="addm" data-act="ppick" data-p="${p.uid}" title="Add skill">+</button></div>${picker}</div>`;
+    }
+    const st = D.pstate[p.uid];
+    let state = `<div class="st"><span class="dot"></span>Idle</div>`;
+    if (st.kind === 'work') {
+      const d = st.d, s = sk(d.skill), v = p.ai[d.skill] || 1;
+      state = `<div class="pline"><span class="swatch" style="--hue:${d.f.hue}"></span><span>${d.f.id}</span>${tag(d.area)}<span class="prole">${s.label}</span>${v > 1 ? `<span class="tai" title="AI speed-up: ${v}×">${aiBadge(v)}</span>` : ''}</div><div class="pbar" style="--role:${s.color}"><i style="width:${Math.round(d.p * 100)}%"></i></div>`;
+    } else if (st.kind === 'nomandate') {
+      state = `<div class="st wait" title="Idle while work for their skills waits in ${st.areas.map(a => AREAS()[a]).join(', ')}"><span class="dot"></span>Idle</div>`;
+    }
+    return `<div class="person ${st.kind === 'nomandate' ? 'nomandate' : ''}"><div class="ptop"><span class="avatar">${p.code}</span><span class="pname">${p.name}</span><span class="chips">${p.skills.map(k => personChip(p, k, false)).join('')}</span></div><div class="pstate">${state}</div></div>`;
+  }
+
+  // Před během jde název týmu přepsat přímo v řádku (jako jméno jednotky v Advanced); šipka vedle rozbalí lidi
+  const teamNameEdit = t => `<button class="chev" data-act="toggle" data-team="${t.id}" aria-expanded="${t.open}" aria-label="Show or hide people">${t.open ? '▾' : '▸'}</button><input class="tname" value="${t.name}" size="${Math.max(6, t.name.length + 1)}" data-team-input="${t.id}" aria-label="Team name" title="Click to rename">`;
+  const teamName = t => `<button class="chev" data-act="toggle" data-team="${t.id}" aria-expanded="${t.open}" aria-label="Show or hide people">${t.open ? '▾' : '▸'}</button><button class="tbtn" data-act="toggle" data-team="${t.id}">${t.name}</button>`;
+
+  // Před během: řádek týmu se souhrnem skillů, počtem lidí s AI a mandáty. Mandát se přidává tlačítkem + a odebírá ×,
+  // stejně jako skill u člověka; nabídka ukáže jen oblasti, na které tým mandát ještě nemá.
+  function setupRow(t, D) {
+    const skills = S.skills.filter(s => t.people.some(p => p.skills.includes(s.key)));
+    const dots = `<span class="sdots">${skills.map(s => `<span class="sdot" style="--role:${s.color}" title="${s.label}"></span>`).join('')}</span>`;
+    const withAi = t.people.filter(p => Object.keys(p.ai).length).length;
+    const ai = withAi ? `<span class="aicount" title="${withAi} people with AI">${BOLT}${withAi}</span>` : '';
+    const tags = t.mandates.map(a => `<span class="atag" title="${AREAS()[a]}">${a}<button class="ax" data-act="arm" data-team="${t.id}" data-area="${a}" title="Remove mandate" aria-label="Remove mandate for ${AREAS()[a]}">×</button></span>`).join('') || '<span class="mnone">No mandate</span>';
+    const free = Object.keys(AREAS()).filter(a => !t.mandates.includes(a));
+    const add = free.length ? `<button class="addm" data-act="apick" data-team="${t.id}" title="Add mandate">+</button>` : '';
+    const picker = S.apick === t.id ? `<div class="ppick apick">${free.map(a => `<button class="atag pick" data-act="aadd" data-team="${t.id}" data-area="${a}">${a} <span>${AREAS()[a]}</span></button>`).join('')}<button class="px" data-act="apclose" aria-label="Close">×</button></div>` : '';
+    const detail = t.open ? `<div class="tdetail">${t.people.map(p => personCard(p, D, true)).join('')}<button class="dashed" tabindex="-1">+ Add person</button></div>` : '';
+    return `<div class="sx row"><span class="tcell">${teamNameEdit(t)}${dots}${ai}</span><span class="pn">${t.people.length} people</span><span class="mtags">${tags}${add}</span></div>${picker}${detail}`;
+  }
+
+  // Za běhu: řádek jen ke čtení – mandáty, vytížení lidí a featury, na kterých tým pracuje
+  function runRow(t, D) {
+    const c = D.team[t.id], n = t.people.length;
+    const on = new Map();
+    t.people.forEach(p => { const st = D.pstate[p.uid]; if (st.kind === 'work') on.set(st.d.f, (on.get(st.d.f) || 0) + 1); });
+    const chips = [...on].sort((a, b) => a[0].id.localeCompare(b[0].id)).map(([f, k]) => `<button class="wchip" data-act="jump" data-id="${f.id}" style="--hue:${f.hue}" title="${f.id} ${f.name} · ${k} from ${t.name}. Click to show the feature."><span class="swatch"></span>${f.id}${k > 1 ? `<em>×${k}</em>` : ''}</button>`).join('');
+    const idle = c.nomandate + c.idle;
+    const idleTxt = idle ? `<span class="${c.nomandate ? 'wnm' : 'widle'}">${idle} idle</span>` : '';
+    const work = D.run ? chips + idleTxt : '<span class="widle">—</span>';
+    const bar = `<span class="pb" title="${c.work} working, ${idle} idle${c.nomandate ? ` (${c.nomandate} while work for their skills waits in another area)` : ''}"><i class="w" style="flex:${c.work}"></i><i class="n" style="flex:${c.nomandate}"></i><i style="flex:${c.idle}"></i></span>`;
+    const detail = t.open ? `<div class="tdetail">${t.people.map(p => personCard(p, D, false)).join('')}</div>` : '';
+    return `<div class="rx row"><span class="tcell">${teamName(t)}</span><span class="mtags">${t.mandates.map(a => tag(a)).join('') || '<span class="widle">none</span>'}</span><span class="pcell">${bar}<span class="pn">${D.run ? `${c.work}/${n}` : n}</span></span><span class="wlist">${work}</span></div>${detail}`;
+  }
+
+  function orgPanel(D) {
+    const setup = S.view === 'setup';
+    const idleAll = D.run ? Object.values(D.team).reduce((s, c) => s + c.nomandate + c.idle, 0) : 0;
+    const hint = setup ? 'Click + to add a mandate or a skill' : D.run ? 'Skills, AI and mandates are locked during the run' : 'Reset to change the organization';
+    const header = `<div class="ph"><span><span class="t">Organization</span><span class="c">${S.teams.length} teams · ${D.ps.length} people</span>${idleAll ? `<span class="hwait">${idleAll} idle</span>` : ''}</span><span class="r"><button class="lnk" data-act="expandall">${S.teams.every(t => t.open) ? 'Collapse all' : 'Expand all'}</button><span class="h">${hint}</span></span></div>`;
+    if (setup) {
+      const head = `<div class="sx head"><span class="eb">Team</span><span class="eb">People</span><span class="eb">Mandate</span></div>`;
+      return `<section class="org">${header}${warnBox()}${head}<div class="mbody">${S.teams.map(t => setupRow(t, D)).join('')}</div><button class="dashed addteam" tabindex="-1">+ Add team</button></section>`;
+    }
+    const head = `<div class="rx head"><span class="eb">Team</span><span class="eb">Mandate</span><span class="eb">People</span><span class="eb">Working on</span></div>`;
+    return `<section class="org">${header}${head}<div class="mbody">${S.teams.map(t => runRow(t, D)).join('')}</div></section>`;
+  }
+
+  // Výběr barvy skillu (8 barev rolí z design systému)
+  const colorPicker = (key, selected, below) => `<div class="cpick ${below ? 'below' : ''}">${PALETTE.map(([name, color]) => `<button class="${selected === color ? 'sel' : ''}" style="background:${color}" data-act="scolor" data-key="${key}" data-color="${color}" title="${name}">${selected === color ? '✓' : ''}</button>`).join('')}</div>`;
+
+  // Editor skillů jako v Advanced: barva, název, fáze, povinnost, smazání a přidání. Za běhu zamčený.
+  function skillsEditor() {
+    const locked = S.view !== 'setup';
+    const dis = locked ? 'disabled' : '';
+    const rows = S.skills.map(s => {
+      const users = S.teams.reduce((n, t) => n + t.people.filter(p => p.skills.includes(s.key)).length, 0);
+      const confirm = S.sdel === s.key ? `<div class="sconfirm"><span>Delete <b>${s.label}</b>? ${users} people lose it and tasks requiring it will be removed.</span><button class="sbtn danger" data-act="sdelok" data-key="${s.key}">Delete</button><button class="sbtn neutral" data-act="sdelno">Cancel</button></div>` : '';
+      return `<div class="srow"><div class="sgrid">
+        <span class="swrap"><button class="sw ${S.cpick === s.key ? 'sel' : ''}" style="background:${s.color}" data-act="spick" data-key="${s.key}" title="Change color" ${dis}>▾</button>${S.cpick === s.key ? colorPicker(s.key, s.color) : ''}</span>
+        <input class="sin" value="${s.label}" data-skill-input="${s.key}" aria-label="Skill name" ${dis}>
+        <span class="step"><button data-act="lvl" data-key="${s.key}" data-d="-1" ${locked || s.level <= 1 ? 'disabled' : ''}>−</button><span class="lvl">${s.level}</span><button data-act="lvl" data-key="${s.key}" data-d="1" ${locked || s.level >= 10 ? 'disabled' : ''}>+</button></span>
+        <span class="cc"><input type="checkbox" data-skill-req="${s.key}" ${s.req ? 'checked' : ''} style="accent-color:${s.color}" title="${s.req ? 'Required in every backlog item' : 'Optional'}" ${dis}></span>
+        <span class="cc">${S.skills.length > 1 ? `<button class="sdel" data-act="sdel" data-key="${s.key}" title="Delete ${s.label}" aria-label="Delete ${s.label}" ${dis}>×</button>` : ''}</span>
+      </div>${confirm}</div>`;
+    }).join('');
+    const add = locked ? '' : `<div class="sadd"><span class="eb">Add skill</span><div class="sarow"><span class="swrap"><button class="sw lg ${S.cpick === '__new' ? 'sel' : ''}" style="background:${S.newColor}" data-act="spick" data-key="__new" title="Pick color">▾</button>${S.cpick === '__new' ? colorPicker('__new', S.newColor, true) : ''}</span><input class="sin add ${S.skillErr ? 'err' : ''}" id="newSkill" placeholder="Name…"><button class="strong" data-act="sadd">Add</button></div>${S.skillErr ? `<span class="serr">${S.skillErr}</span>` : ''}</div>`;
+    const note = locked ? `<p class="locked">Skills are locked during the run. Reset to change them.</p>` : '';
+    return `<div class="accBody">${note}<div class="se"><div class="sgrid shead"><span class="eb">Col.</span><span class="eb">Name</span><span class="eb cc">Phase</span><span class="eb cc">Req.</span><span></span></div>${rows}${add}<p class="shelp"><b>Phase:</b> 1 = first, 2 = second, … Same phase = parallel. <b>Req.:</b> always in every item (takes effect on regenerate).</p></div></div>`;
+  }
+
+  // Editor oblastí: kód a název, smazání a přidání. Mandát na oblast dostává tým v panelu organizace (+ u týmu).
+  function areasEditor() {
+    const locked = S.view !== 'setup';
+    const dis = locked ? 'disabled' : '';
+    const keys = Object.keys(S.areas);
+    const rows = keys.map(k => {
+      const v = S.areas[k];
+      const teams = S.teams.filter(t => t.mandates.includes(k)).length;
+      const confirm = S.adel === k ? `<div class="sconfirm"><span>Delete <b>${v}</b>? ${teams} teams lose the mandate and tasks in this area will be removed.</span><button class="sbtn danger" data-act="adelok" data-key="${k}">Delete</button><button class="sbtn neutral" data-act="adelno">Cancel</button></div>` : '';
+      return `<div class="srow"><div class="agrid">${tag(k)}<input class="sin" value="${v}" data-area-input="${k}" aria-label="Area name" ${dis}><span class="cc">${keys.length > 1 ? `<button class="sdel" data-act="adel" data-key="${k}" title="Delete ${v}" aria-label="Delete ${v}" ${dis}>×</button>` : ''}</span></div>${confirm}</div>`;
+    }).join('');
+    const err = S.areaErr ? 'err' : '';
+    const add = locked ? '' : `<div class="sadd"><span class="eb">Add area</span><div class="sarow"><input class="sin add code ${err}" id="newAreaCode" placeholder="ABC" maxlength="3" aria-label="Area code"><input class="sin add ${err}" id="newAreaName" placeholder="Name…" aria-label="Area name"><button class="strong" data-act="areaadd">Add</button></div>${S.areaErr ? `<span class="serr">${S.areaErr}</span>` : ''}</div>`;
+    const note = locked ? '<p class="locked">Areas are locked during the run. Reset to change them.</p>' : '';
+    return `<div class="accBody">${note}<div class="se"><div class="agrid shead"><span class="eb">Code</span><span class="eb">Name</span><span></span></div>${rows}${add}<p class="shelp">A team gets a mandate for an area in the Organization panel: + next to the team.</p></div></div>`;
+  }
+
+  function addArea() {
+    const code = document.getElementById('newAreaCode').value.trim().toUpperCase();
+    const name = document.getElementById('newAreaName').value.trim();
+    if (!/^[A-Z]{2,3}$/.test(code)) { S.areaErr = 'Code must be 2–3 letters.'; return; }
+    if (!name) { S.areaErr = 'Enter a name.'; return; }
+    if (S.areas[code]) { S.areaErr = `${code} already exists.`; return; }
+    S.areas[code] = name;
+    S.areaErr = '';
+  }
+
+  // Smazání oblasti: zmizí z mandátů týmů i z featur (úkoly v oblasti se odeberou, featura bez úkolů zmizí)
+  function deleteArea(key) {
+    delete S.areas[key];
+    S.teams.forEach(t => { t.mandates = t.mandates.filter(a => a !== key); });
+    S.feats.forEach(f => { f.areas = f.areas.filter(a => a.area !== key); f.tl.rows = f.tl.rows.filter(r => r.area !== key); });
+    S.feats = S.feats.filter(f => f.areas.length);
+  }
+
+  // Procenta jako formatPercent v aplikaci: pod 10 s jedním desetinným místem, jinak celé číslo
+  const fmtPct = v => (Math.round(v * 10) / 10 < 10 ? v.toFixed(1) : v.toFixed(0));
+
+  // Dlaždice metriky jako StatTile v Cash Flow: velká skutečná hodnota, hint, srovnání s předchozím během a Details.
+  // `delta` je procentní změna (číslo) nebo nic; `higherBetter` obrací barvy (výnos).
+  // Horní mez posuvníků je aktuální počet oblastí a skillů; po smazání se hodnoty stáhnou dolů
+  function clampGen() {
+    const lim = { areas: Object.keys(S.areas).length, skills: S.skills.length };
+    for (const k of ['areas', 'skills']) S.gen[k] = S.gen[k].map(v => Math.max(1, Math.min(v, lim[k])));
+  }
+
+  // Featura podle posuvníků: různé oblasti, v každé různé skilly, pracnost v celých dnech. Povinné skilly (Req.) zaberou
+  // místa v oblasti jako první, volitelné doplní zbytek do vylosovaného počtu; když je povinných víc než míst, oblast
+  // horní mez posuvníku překročí jen kvůli nim.
+  function genFromSettings(r) {
+    const between = ([lo, hi]) => lo + Math.floor(r() * (hi - lo + 1));
+    const shuffle = arr => [...arr].sort(() => r() - 0.5);
+    const areaKeys = Object.keys(S.areas);
+    const skillOrder = k => S.skills.findIndex(x => x.key === k);
+    const task = skill => ({ skill, w: between(S.gen.effort), done: false });
+    const out = shuffle(areaKeys).slice(0, between(S.gen.areas)).sort((a, b) => areaKeys.indexOf(a) - areaKeys.indexOf(b))
+      .map(area => ({ area, n: between(S.gen.skills), tasks: [] }));
+    S.skills.filter(x => x.req).forEach(x => out[Math.floor(r() * out.length)].tasks.push(task(x.key)));
+    const optional = S.skills.filter(x => !x.req).map(x => x.key);
+    out.forEach(a => {
+      const free = shuffle(optional);
+      while (a.tasks.length < a.n && free.length) a.tasks.push(task(free.pop()));
+      // Úkoly oblasti v pořadí fází a pak skillů, ať se featura čte stejně jako v enginu
+      a.tasks.sort((x, y) => (sk(x.skill).level - sk(y.skill).level) || (skillOrder(x.skill) - skillOrder(y.skill)));
+      delete a.n;
+    });
+    return out;
+  }
+
+  // „Generate new backlog“: nový backlog podle posuvníků. Rozdělení na hotové, rozpracované a čekající featury zůstává
+  // jako ve vzorových datech, aby šly dál ukázat pohledy za běhu.
+  function regenerateBacklog() {
+    const d = DATA[S.size], N = S.gen.size, r = rng(100 + (++S.seed));
+    const total = d.done.length + d.wip.length + d.todo.length;
+    const doneN = Math.round(N * d.done.length / total), wipN = Math.min(d.wip.length, N - doneN);
+    const names = [...d.done, ...d.wip.map(x => x[0]), ...d.todo.map(x => x[0])];
+    S.feats = Array.from({ length: N }, (_, i) => ({
+      id: 'F-' + String(i + 1).padStart(3, '0'),
+      name: i < names.length ? names[i] : `Feature ${i + 1}`,
+      st: i < doneN ? 'done' : i < doneN + wipN ? 'wip' : 'todo',
+      hue: (i * 47 + 20) % 360,
+      areas: genFromSettings(r),
+      rev: 5 * Math.round((d.revTop - i * (d.revTop - 120) / Math.max(1, N - 1)) / 5),
+    }));
+    planFeatures(S.feats, S.teams, d, k => (sk(k) || { level: 1 }).level);
+    S.openB = new Set(); S.openF = new Set(); S.openD = new Set(); S.hl = null;
+  }
+
+  // Kontrola před během (R7): oblast použitá v backlogu musí mít tým s mandátem a v týmech s mandátem někoho
+  // s každým skillem, který oblast potřebuje
+  function validate() {
+    if (!S.feats.length) return ['Backlog is empty'];
+    const out = [];
+    for (const area of Object.keys(S.areas)) {
+      const needed = S.skills.filter(x => S.feats.some(f => f.areas.some(a => a.area === area && a.tasks.some(t => t.skill === x.key))));
+      if (!needed.length) continue;
+      const teams = S.teams.filter(t => t.mandates.includes(area));
+      if (!teams.length) { out.push(`No team has a mandate for ${area}`); continue; }
+      // Všechny chybějící skilly oblasti v jednom řádku, aby seznam neměl víc řádků než oblastí
+      const missing = needed.filter(x => !teams.some(t => t.people.some(p => p.skills.includes(x.key)))).map(x => x.label);
+      if (missing.length) out.push(`No one with ${missing.length < 2 ? missing[0] : `${missing.slice(0, -1).join(', ')} or ${missing[missing.length - 1]}`} can work in ${area}`);
+    }
+    return out;
+  }
+  const warnBox = () => { const w = validate(); return w.length ? `<div class="warn" role="alert"><span class="eb">Run is disabled</span><ul>${w.map(x => `<li>${x}</li>`).join('')}</ul></div>` : ''; };
+
+  const RANGE_UNIT = { areas: ['area', 'areas'], skills: ['skill', 'skills'], effort: ['day', 'days'] };
+  const fmtRange = key => { const [lo, hi] = S.gen[key], [one, many] = RANGE_UNIT[key]; return lo === hi ? `${lo} ${lo === 1 ? one : many}` : `${lo}–${hi} ${many}`; };
+
+  // Posuvník rozsahu min–max se dvěma jezdci; při jediné možné hodnotě (např. jediná oblast) je neaktivní
+  function rangeSlider(key, label, min, max, tooltip) {
+    const [lo, hi] = S.gen[key];
+    const fixed = min === max;
+    const pct = v => (fixed ? 0 : (v - min) / (max - min) * 100);
+    // Když jsou oba jezdce úplně vpravo, musí jít chytit ten minimální, jinak by nešlo rozsah zmenšit zleva
+    const zMin = lo === max ? 3 : 1;
+    return `<div class="rs" title="${tooltip}" data-min="${min}" data-max="${max}">
+      <div class="rshead"><span class="rslabel">${label}</span><span class="rsval">${fmtRange(key)}</span></div>
+      <div class="rstrack"><span class="rsfill" style="left:${pct(lo)}%;width:${pct(hi) - pct(lo)}%"></span>
+        <input type="range" min="${min}" max="${max}" step="1" value="${lo}" style="z-index:${zMin}" data-range="${key}" data-end="0" aria-label="${label}, minimum" ${fixed ? 'disabled' : ''}>
+        <input type="range" min="${min}" max="${max}" step="1" value="${hi}" style="z-index:2" data-range="${key}" data-end="1" aria-label="${label}, maximum" ${fixed ? 'disabled' : ''}>
+      </div>
+      <div class="rsscale"><span>${min}</span><span>${max}</span></div>
+    </div>`;
+  }
+
+  // Settings → Backlog: jako v Cash Flow (Generate, profil výnosu, WIP, velikost) a tři posuvníky rozsahu.
+  // Posuvníky se projeví až po „Generate new backlog“ (stejně jako dnes).
+  function backlogSettings() {
+    const nA = Object.keys(S.areas).length, nS = S.skills.length, v = S.gen.size;
+    const seg = (name, opts, cur) => `<div class="seg2" role="group">${opts.map(([val, l]) => `<button data-act="${name}" data-v="${val}" aria-pressed="${cur === val}">${l}</button>`).join('')}</div>`;
+    const WIP = { 'reduce-wip': 'WIP: people finish in-progress features before pulling new ones.', 'min-units': 'WIP: people stay on features their team already knows and avoid features other teams are working on.' };
+    return `<div class="accBody bset">
+      <button class="strong full" data-act="regen">Generate new backlog</button>
+      <div class="fld"><span class="rslabel">Revenue profile</span>${seg('profile', [['flat', 'Flat'], ['j-curve', 'J-curve'], ['s-curve', 'S-curve']], S.profile)}</div>
+      <div class="fld"><span class="rslabel">Work in progress</span>${seg('wip', [['reduce-wip', 'Reduce WIP'], ['min-units', 'Min units']], S.wip)}<span class="fhint">${WIP[S.wip]}</span></div>
+      <div class="rs" title="Number of features generated when clicking 'Generate new backlog'.">
+        <div class="rshead"><span class="rslabel">Backlog size</span><span class="rsval">${v} items</span></div>
+        <div class="rstrack"><span class="rsfill" style="left:0;width:${(v - 10) / 990 * 100}%"></span><input type="range" min="10" max="1000" step="10" value="${v}" data-size-slider aria-label="Backlog size"></div>
+      </div>
+      ${rangeSlider('areas', 'Areas per feature', 1, nA, 'How many different areas each generated feature touches.')}
+      ${rangeSlider('skills', 'Skills per area', 1, nS, 'How many different skills each area of a feature needs. Each skill is one task.')}
+      ${rangeSlider('effort', 'Effort per skill', 1, 20, 'Effort of one task in working days (man-days).')}
+    </div>`;
+  }
+
+  function tile([label, value, hint, delta, cls, details, higherBetter]) {
+    // „live“ a „finished“ určují, co je u popisku: tečka běžícího času, nebo ✓ Complete
+    const mark = cls.includes('live') ? '<span class="live"></span>' : cls.includes('finished') ? '<span class="complete">✓ Complete</span>' : '';
+    let dl = '';
+    if (typeof delta === 'number') {
+      const txt = fmtPct(Math.abs(delta));
+      const tone = txt === '0.0' ? 'flat' : (higherBetter ? delta > 0 : delta < 0) ? 'good' : 'bad';
+      dl = `<div class="dl ${tone}">${tone === 'flat' ? '→' : delta < 0 ? '↓' : '↑'} ${txt}% <em>vs prev run</em></div>`;
+    }
+    const det = details ? `<button class="dbtn" data-act="tdet" aria-expanded="${S.tdet}">Details ${S.tdet ? '▴' : '▾'}</button>${S.tdet ? `<div class="tdet">${details.map(l => `<div>${l}</div>`).join('')}</div>` : ''}` : '';
+    return `<div class="tile ${cls.replace('live', '').trim()}"><div class="tlabel"><span>${label}</span>${mark}</div><div class="tval">${value}</div>${hint ? `<div class="thint">${hint}</div>` : ''}${dl}${det}</div>`;
+  }
+
+  // Dlaždice po druhém běhu: skutečná hodnota tohoto běhu a procentní změna proti předchozímu běhu
+  function cmpTile(label, cur, prev, kind, cls, higherBetter = false, details = null) {
+    const show = { time: v => u(Math.floor(v / 5), 'w') + u(Math.round(v % 5), 'd'), days: v => u(fmt1(v), 'days'), pd: v => u(fmt1(v), 'days'), eur: fmtEuro }[kind] || fmt1;
+    return [label, show(cur), kind === 'pd' ? WAIT_HINT : '', (cur - prev) / prev * 100, cls === 'timer' ? 'timer finished' : cls, details, higherBetter];
+  }
+
+  // Dlaždice metrik; Revenue (time-matched) se sčítá z výnosů hotových featur jako v Cash Flow (feat-015, feat-018)
+  function metricTiles(d, T) {
+    const tiles = S.view === 'finished'
+      ? d.metrics.finished.map(([label, cur, prev, kind, cls]) => cmpTile(label, cur, prev, kind, cls))
+      : d.metrics[S.view].map(x => [...x]);
+    const total = S.feats.reduce((n, f) => n + earnedAt(f, T), 0);
+    let rev = ['Revenue (time-matched)', fmtEuro(total), '', '', '', null];
+    if (S.view === 'running') rev = ['Revenue (time-matched)', fmtEuro(total), 'live total', '', '', [`Total ${fmtEuro(total)} in ${fmtTime(T)}`]];
+    if (S.view === 'finished') {
+      // Vzorový předchozí běh: ve stejném čase vydělal méně, celkem za delší dobu o něco víc
+      const prevAt = total * 0.79, prevTotal = total * 1.08;
+      rev = cmpTile('Revenue (time-matched)', total, prevAt, 'eur', '', true, [`Total ${fmtEuro(total)} in ${fmtTime(T)}`, `Previous run @ ${fmtTime(T)}: ${fmtEuro(prevAt)}`, `Previous total ${fmtEuro(prevTotal)} in ${fmtTime(d.times.prev)}`]);
+      // Výnos se srovnává ve stejném čase obou běhů (jako hint v Cash Flow)
+      rev[2] = `@ ${fmtTime(T)}`;
+    }
+    tiles.splice(3, 0, rev);
+    return tiles;
+  }
+
+  // Timeline zpracování hotové featury: nadpis oblasti s týmem, který ji zpracoval, a pod ním řádek pro každý úkol
+  // s názvem skillu. Úseky jsou jen práce a čekání (čekání ve frontě i na volného člověka se slučuje).
+  function timeline(f) {
+    const s = f.start, ct = +f.ct;
+    const pct = x => (x / ct * 100).toFixed(2);
+    // Sousední úseky čekání spojí do jednoho, aby tooltip ukázal celé čekání
+    const merged = r => r.segs.reduce((out, x) => {
+      const last = out[out.length - 1];
+      if (x.k !== 'w' && last && last.k !== 'w' && Math.abs(last.to - x.from) < 1e-9) last.to = x.to;
+      else out.push({ ...x, k: x.k === 'w' ? 'w' : 'wait' });
+      return out;
+    }, []);
+    const total = k => f.tl.rows.reduce((n, r) => n + merged(r).filter(x => x.k === k).reduce((m, x) => m + x.to - x.from, 0), 0);
+    let prev = null;
+    const rows = f.tl.rows.map(r => {
+      // Celý název oblasti je v tooltipu štítku; text vedle něj říká, který tým oblast zpracoval
+      const head = r.area !== prev ? `<div class="tlg">${tag(r.area)}<span>${r.team ? `done by ${r.team}` : 'no team'}</span></div>` : '';
+      prev = r.area;
+      const s0 = sk(r.skill);
+      const label = s0 ? s0.label : 'Removed skill';
+      const color = s0 ? s0.color : 'var(--ink-3)';
+      const segs = merged(r).map(x => {
+        const pos = `left:${pct(x.from - s)}%;width:${pct(x.to - x.from)}%`;
+        if (x.k === 'w') return `<span class="tlw" style="${pos};--role:${color}" title="${label} · ${x.whoName} · day ${fmt1(x.from)}–${fmt1(x.to)}">${(x.to - x.from) / ct > 0.16 ? x.who : ''}</span>`;
+        return `<span class="tlm" style="${pos}" title="${label} · waiting ${fmt1(x.to - x.from)} d"></span>`;
+      }).join('');
+      return `${head}<div class="tlr"><span class="tls" title="${label}"><i style="--role:${color}"></i><span class="tln">${label}</span></span><span class="tlt">${segs}</span></div>`;
+    }).join('');
+    // Týmy v pořadí, v jakém začaly na featuře pracovat
+    const teams = [...new Set([...f.tl.rows].map(r => [r.team, r.segs.find(x => x.k === 'w').from]).sort((a, b) => a[1] - b[1]).map(x => x[0]).filter(Boolean))];
+    const ticks = [s, s + ct / 2, s + ct].map(x => `<span>d${fmt1(x)}</span>`).join('');
+    return `<div class="tl">
+      <div class="tlmeta">Started day ${fmt1(s)} · done day ${fmt1(f.finish)} · <b>cycle time ${f.ct} d</b></div>
+      ${rows}
+      <div class="tlr"><span></span><span class="tlticks">${ticks}</span></div>
+      <div class="tlsum">Task time: work ${fmt1(total('w'))} d · waiting ${fmt1(total('wait'))} d</div>
+      <div class="tlsum">Teams: ${teams.join(' → ')}</div>
+      <div class="tlleg"><span><i class="tlt"><span class="tlw" style="left:0;width:100%;--role:var(--ink-3)"></span></i>work</span><span><i class="tlt"><span class="tlm" style="left:0;width:100%"></span></i>waiting</span></div>
+    </div>`;
+  }
+
+  // Hotová featura: výnos za týden a cycle time, vpravo dosud vydělaný výnos, pod tím odpočet do dalšího týdne
+  function doneRow(f, T) {
+    const open = S.openD.has(f.id);
+    const since = T - f.finish;
+    const pulse = since >= 5 && since % 5 < 1 ? `<span class="ddelta">+${fmtEuro(f.rev)}</span>` : '';
+    const head = `<button class="dhead" data-act="done" data-id="${f.id}" aria-expanded="${open}" title="Show or hide the timeline"><span class="swatch"></span><span class="dmain"><span class="dname">${f.id} ${f.name}</span><span class="ddet">${fmtEuro(f.rev)}/week · ${f.ct} d</span></span><span class="daside"><span class="dval">${fmtEuro(earnedAt(f, T))}</span>${pulse}</span></button>`;
+    return `<div class="dcard" style="--hue:${f.hue}">${head}<span class="dcd"><i style="width:${Math.min(100, (since % 5) / 5 * 100)}%"></i></span>${open ? timeline(f) : ''}</div>`;
+  }
+
+  function render() {
+    clampGen();
+    const D = derive(), d = DATA[S.size], F = S.feats;
+    // Největší pracnost featury v backlogu – měřítko pruhů pracnosti
+    S.maxW = Math.max(1, ...F.map(f => f.areas.reduce((n, a) => n + a.tasks.reduce((m, t) => m + t.w, 0), 0)));
+    const done = S.view === 'setup' ? [] : D.run ? F.filter(f => f.st === 'done') : F;
+    const wip = D.run ? F.filter(f => f.st !== 'done' && D.started.has(f.id)) : [];
+    const backlog = S.view === 'setup' ? F : D.run ? F.filter(f => f.st === 'todo' && !D.started.has(f.id)) : [];
+    const waitIds = new Set(D.tasks.filter(t => t.blocked.length).map(t => t.f.id));
+    const shown = S.onlyWait ? wip.filter(f => waitIds.has(f.id)) : wip;
+    // Den simulace, ve kterém pohled je (pro výnosy a odpočty)
+    const T = D.run ? d.times.run : S.view === 'finished' ? d.times.fin : 0;
+
+    const bar =`<div class="bar">
+      <div class="brand"><span class="mark"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#fff" stroke-width="1.5"><rect x="1.5" y="1.5" width="4" height="4"/><rect x="10.5" y="1.5" width="4" height="4"/><rect x="6" y="10.5" width="4" height="4"/><path d="M3.5 5.5v2.5h9V5.5M8 8v2.5"/></svg></span><span class="wordmark"><span class="wname">Org Flow Simulator</span><span class="tagline">Same backlog · different team</span></span></div>
+      <div class="tabs" role="tablist">${['Compare', 'Advanced', 'Cash Flow', 'Organization'].map(t => `<button class="tab" role="tab" aria-selected="${t === 'Organization'}" tabindex="-1">${t}</button>`).join('')}</div>
+      <div class="controls"><button class="bbtn" tabindex="-1">?</button><button class="bbtn" tabindex="-1">↺ Reset</button><span class="speed"><button tabindex="-1">0.5×</button><button class="on" tabindex="-1">1×</button><button tabindex="-1">10×</button></span><button class="run" tabindex="-1" ${S.view === 'setup' && validate().length ? 'disabled title="Fix the warnings in the Organization panel first"' : ''}>${D.run ? '❚❚ Pause' : '▶ Run'}</button></div>
+    </div>`;
+
+    const areasBody = S.acc.areas ? areasEditor() : '';
+    const side = `<aside class="side">
+      <div class="ph"><span><span class="t">Backlog</span><span class="c">${backlog.length}</span></span><span class="h">sorted by revenue</span></div>
+      <div class="blist">${backlog.length ? backlog.map(backlogCard).join('') : '<p class="empty" style="padding:0">Backlog is empty.</p>'}</div>
+      <div class="settings">
+        <div class="ph"><span class="t">Settings</span></div>
+        <div class="acc"><button class="accHead" data-act="acc" data-key="backlog"><span>Backlog</span><span>${S.acc.backlog ? '▾' : '▸'}</span></button>${S.acc.backlog ? backlogSettings() : ''}</div>
+        <div class="acc"><button class="accHead" data-act="acc" data-key="skills"><span>Skills<em>${S.skills.length}</em></span><span>${S.acc.skills ? '▾' : '▸'}</span></button>${S.acc.skills ? skillsEditor() : ''}</div>
+        <div class="acc"><button class="accHead" data-act="acc" data-key="areas"><span>Areas<em>${Object.keys(S.areas).length}</em></span><span>${S.acc.areas ? '▾' : '▸'}</span></button>${areasBody}</div>
+      </div>
+    </aside>`;
+
+    const chip = waitIds.size ? `<button class="fchip" data-act="onlywait" aria-pressed="${S.onlyWait}" title="Show only features with waiting tasks">${waitIds.size} waiting</button>` : '';
+    const center = `<main class="center">
+      <section class="inprog">
+        <div class="ph"><span><span class="t">In progress</span><span class="c">${wip.length}</span></span><span class="r">${chip}<span class="h">Click a feature to see its tasks</span></span></div>
+        ${shown.length ? `<div class="flist">${shown.map(f => featItem(f, D)).join('')}</div>` : `<p class="empty">${S.view === 'finished' ? 'All features are done.' : 'Nothing in flight.'}</p>`}
+      </section>
+      ${orgPanel(D)}
+    </main>`;
+
+    const aside = `<aside class="aside">
+      <div class="ph"><span class="t">Metrics</span><span class="h">${done.length} features sampled</span></div>
+      <div class="tiles">${metricTiles(d, T).map(tile).join('')}</div>
+      <div class="donebox"><div class="ph"><span><span class="t">Done</span><span class="c">${done.length}</span></span><span class="h">Click for timeline</span></div>
+        ${done.length ? `<div class="dlist">${[...done].sort((a, b) => b.finish - a.finish).map(f => doneRow(f, T)).join('')}</div>` : '<p class="empty">No completed features yet.</p>'}
+      </div>
+    </aside>`;
+
+    // Rolování seznamů přežije překreslení (kliknutí na tlačítko v seznamu nesmí seznam odrolovat nahoru)
+    const keep = ['.blist', '.settings', '.flist', '.mbody', '.donebox'].map(sel => [sel, document.querySelector('#screen ' + sel)?.scrollTop || 0]);
+    document.getElementById('screen').innerHTML = bar + side + center + aside;
+    keep.forEach(([sel, top]) => { const el = document.querySelector('#screen ' + sel); if (el) el.scrollTop = top; });
+    // Featura vybraná kliknutím na štítek u týmu se posune do viditelné části seznamu
+    const hl = document.querySelector('#screen .fitem.hl');
+    const list = document.querySelector('#screen .flist');
+    if (hl && list) list.scrollTop += hl.getBoundingClientRect().top - list.getBoundingClientRect().top - 4;
+    renderLegend();
+  }
+
+  // Legenda pod obrazovkou používá stejné prvky jako obrazovka
+  function renderLegend() {
+    const j = sk('J') || S.skills[0];
+    document.getElementById('legend').innerHTML = `
+      <span class="grpname">Před během – nastavení</span>
+      <span class="k"><span class="mtags"><span class="atag">BIL<span class="ax">×</span></span><span class="atag">WEB<span class="ax">×</span></span><span class="addm">+</span></span></span>
+      <span><b>Název týmu</b> jde přepsat kliknutím na něj. <b>Mandát týmu:</b> štítky oblastí, do kterých tým smí zasahovat. + otevře výběr dalších oblastí, × mandát odebere – stejně jako skill u člověka. Oblasti se zakládají v nastavení Areas, skilly v nastavení Skills.</span>
+      <span class="k"><span class="chip" style="--role:${j.color}"><span class="cl">${j.label}</span><span class="aib">AI</span><span class="crm">×</span></span><span class="chip" style="--role:${j.color}"><span class="cl">${j.label}</span><span class="aib on">${aiBadge(2)}</span><span class="crm">×</span></span></span>
+      <span><b>Skill člověka:</b> tlačítko AI přepíná 1× → 2× → 5× → 1×, × skill odebere, + vedle čipů přidá další. Stejné ovládání jako u jednotky v Advanced.</span>
+      <span class="k"><span class="aicount">${BOLT}2</span></span>
+      <span><b>Souhrn u týmu:</b> kolik jeho lidí má AI aspoň na jednom skillu.</span>
+      <span class="k"><span class="rsval">1–3 areas</span></span>
+      <span><b>Settings → Backlog:</b> posuvníky min–max pro počet oblastí ve featuře (1 až počet oblastí), počet skillů v oblasti (1 až počet skillů, každý skill je jeden úkol) a pracnost skillu (1–20 dní). Projeví se po „Generate new backlog“.</span>
+      <span class="k"><span class="warn" style="margin:0"><span class="eb">Run is disabled</span></span></span>
+      <span><b>Kontrola před během:</b> když oblast z backlogu nemá tým s mandátem nebo v týmech s mandátem chybí potřebný skill, panel organizace vypíše problémy a Run je neaktivní.</span>
+      <span class="grpname">Za běhu – jen čtení</span>
+      <span class="k"><span class="wchip" style="--hue:140"><span class="swatch"></span>F-041<em>×2</em></span></span>
+      <span><b>Featura, na které tým pracuje.</b> „×2“ znamená dva lidi z týmu. Kliknutím se featura ukáže a rozbalí v In progress.</span>
+      <span class="k"><span class="pb"><i class="w" style="flex:3"></i><i class="n" style="flex:2"></i><i style="flex:1"></i></span></span>
+      <span><b>Lidé týmu:</b> tmavá část pracuje, zbytek je idle. Šrafovaná část jsou idle lidé, pro jejichž skill čeká práce v oblasti, kam tým nezasahuje; jejich karta je žlutá.</span>
+      <span class="k"><span class="trk" style="width:70px"><span class="seg blocked" style="--w:3;--role:${j.color}"><span class="wash"></span><span class="hatch"></span></span></span></span>
+      <span><b>Waiting:</b> úkol čeká, i když lidé s potřebným skillem jsou v jiném týmu idle. Ostatní nezahájené úkoly jsou jen světlé (to do).</span>
+      <span class="k"><span class="tai">${aiBadge(2)}</span></span>
+      <span><b>AI u rozpracovaného úkolu:</b> člověk pracuje na skillu, který má s AI.</span>
+      <span class="k"><span class="atag done">✓ MOB</span><span class="atag wait">WEB</span></span>
+      <span><b>Štítky na řádku featury:</b> zelený je hotová oblast, žlutý oblast s čekajícím úkolem. Pruh dole je celkový postup featury.</span>
+      <span class="grpname">Výsledky po druhém běhu</span>
+      <span class="k"><span class="dl good">↓ 21% <em>vs prev run</em></span></span>
+      <span><b>Srovnání s předchozím během</b> stejně jako v Cash Flow: velké číslo je skutečná hodnota tohoto běhu, pod ní procentní změna. Zelená je zlepšení, červená zhoršení, šipka ukazuje směr. Dlaždice času po doběhnutí zezelená a ukáže ✓ Complete.</span>
+      <span class="grpname">Výnosy a hotové featury</span>
+      <span class="k"><span class="frev">€480/week</span></span>
+      <span><b>Výnos featury za týden po dodání</b>, stejně jako v Cash Flow: u položek backlogu (seřazeného podle výnosu) i u rozpracovaných featur. Celkový výnos je v dlaždici Revenue (time-matched), Details ukáže celkový součet a srovnání s předchozím během.</span>
+      <span class="k"><span class="frev">€3.4k</span><span class="dcd" style="width:60px;margin:0"><i style="width:60%"></i></span></span>
+      <span><b>Hotová featura:</b> vpravo dosud vydělaný výnos, pruh pod ní odpočet do dalšího týdenního výnosu. Kliknutím se rozbalí timeline zpracování.</span>
+      <span class="k"><span class="tls" style="width:64px"><i style="--role:${j.color}"></i><span class="tln">${j.label}</span></span><span class="tlt" style="width:80px"><span class="tlm" style="left:0;width:40%"></span><span class="tlw" style="left:40%;width:60%;--role:${j.color}">BH</span></span></span>
+      <span><b>Timeline:</b> nadpis oblasti s týmem, který ji zpracoval („done by Payments“), pod ním řádek pro každý úkol s názvem skillu. Šrafa je čekání, barevný úsek práce s iniciálami člověka. Pod ní součty práce a čekání a pořadí týmů.</span>`;
+  }
+
+  // Obrazovka má pevných 1440 px jako laptop; do užšího okna se zmenší celá
+  function fit() {
+    const w = document.getElementById('wrap').clientWidth;
+    document.getElementById('screen').style.zoom = Math.min(1, w / 1440);
+  }
+
+  const press = (sel, b) => document.querySelectorAll(sel).forEach(x => x.setAttribute('aria-pressed', x === b));
+  const flip = (set, id) => { set.has(id) ? set.delete(id) : set.add(id); };
+  const person = uid => S.teams.flatMap(t => t.people).find(p => p.uid === uid);
+
+  // Smazání skillu: zmizí z lidí (i jeho AI) a z úkolů featur; prázdné oblasti featury se odeberou
+  function deleteSkill(key) {
+    S.skills = S.skills.filter(s => s.key !== key);
+    S.teams.forEach(t => t.people.forEach(p => { p.skills = p.skills.filter(k => k !== key); delete p.ai[key]; }));
+    S.feats.forEach(f => { f.areas = f.areas.map(a => ({ ...a, tasks: a.tasks.filter(t => t.skill !== key) })).filter(a => a.tasks.length); });
+    S.feats = S.feats.filter(f => f.areas.length);
+  }
+
+  function addSkill() {
+    const input = document.getElementById('newSkill');
+    const label = input.value.trim();
+    if (!label) { S.skillErr = 'Enter a name.'; return; }
+    if (S.skills.some(s => s.label.toLowerCase() === label.toLowerCase())) { S.skillErr = `${label} already exists.`; return; }
+    const key = 'S' + Date.now();
+    S.skills.push({ key, label, color: S.newColor, level: 1, req: false });
+    S.skillErr = '';
+    // Další nový skill dostane barvu, kterou ještě žádný skill nemá
+    S.newColor = (PALETTE.find(([, c]) => !S.skills.some(s => s.color === c)) || PALETTE[0])[1];
+  }
+
+  document.addEventListener('click', e => {
+    const b = e.target.closest('button');
+    if (!b || b.disabled) return;
+    const team = S.teams.find(t => t.id === b.dataset.team);
+    const act = b.dataset.act;
+    if (act !== 'jump') S.hl = null;
+    if (act !== 'spick' && act !== 'scolor') S.cpick = null;
+    if (b.dataset.size) { S.size = b.dataset.size; S.onlyWait = false; Object.assign(S, build(S.size)); press('[data-size]', b); }
+    else if (b.dataset.view) { S.view = b.dataset.view; S.pick = null; S.sdel = null; S.apick = null; S.adel = null; press('[data-view]', b); }
+    else if (b.dataset.themeBtn) { document.documentElement.dataset.theme = b.dataset.themeBtn; press('[data-theme-btn]', b); }
+    else if (b.id === 'resetOrg') { S.onlyWait = false; Object.assign(S, build(S.size)); }
+    else if (act === 'toggle') team.open = !team.open;
+    else if (act === 'expandall') { const open = !S.teams.every(t => t.open); S.teams.forEach(t => { t.open = open; }); }
+    else if (act === 'cell') { const a = b.dataset.area; team.mandates = team.mandates.includes(a) ? team.mandates.filter(x => x !== a) : [...team.mandates, a]; }
+    else if (act === 'feat') flip(S.openF, b.dataset.id);
+    else if (act === 'back') flip(S.openB, b.dataset.id);
+    else if (act === 'jump') { S.onlyWait = false; S.openF.add(b.dataset.id); S.hl = b.dataset.id; }
+    else if (act === 'onlywait') S.onlyWait = !S.onlyWait;
+    else if (act === 'done') flip(S.openD, b.dataset.id);
+    else if (act === 'apick') S.apick = S.apick === b.dataset.team ? null : b.dataset.team;
+    else if (act === 'aadd') { team.mandates.push(b.dataset.area); S.apick = null; }
+    else if (act === 'arm') team.mandates = team.mandates.filter(x => x !== b.dataset.area);
+    else if (act === 'apclose') S.apick = null;
+    else if (act === 'adel') S.adel = b.dataset.key;
+    else if (act === 'adelok') { deleteArea(b.dataset.key); S.adel = null; }
+    else if (act === 'adelno') S.adel = null;
+    else if (act === 'areaadd') addArea();
+    else if (act === 'tdet') S.tdet = !S.tdet;
+    else if (act === 'acc') S.acc[b.dataset.key] = !S.acc[b.dataset.key];
+    else if (act === 'regen') regenerateBacklog();
+    else if (act === 'wip') S.wip = b.dataset.v;
+    else if (act === 'profile') S.profile = b.dataset.v;
+    else if (act === 'ai') { const p = person(b.dataset.p), k = b.dataset.k, next = { 1: 2, 2: 5, 5: 1 }[p.ai[k] || 1]; if (next === 1) delete p.ai[k]; else p.ai[k] = next; }
+    else if (act === 'prm') { const p = person(b.dataset.p); p.skills = p.skills.filter(k => k !== b.dataset.k); delete p.ai[b.dataset.k]; }
+    else if (act === 'ppick') S.pick = S.pick === b.dataset.p ? null : b.dataset.p;
+    else if (act === 'padd') { person(b.dataset.p).skills.push(b.dataset.k); S.pick = null; }
+    else if (act === 'pclose') S.pick = null;
+    else if (act === 'spick') S.cpick = S.cpick === b.dataset.key ? null : b.dataset.key;
+    else if (act === 'scolor') { if (b.dataset.key === '__new') S.newColor = b.dataset.color; else sk(b.dataset.key).color = b.dataset.color; S.cpick = null; }
+    else if (act === 'lvl') { const s = sk(b.dataset.key); s.level = Math.min(10, Math.max(1, s.level + +b.dataset.d)); }
+    else if (act === 'sdel') S.sdel = b.dataset.key;
+    else if (act === 'sdelok') { deleteSkill(b.dataset.key); S.sdel = null; }
+    else if (act === 'sdelno') S.sdel = null;
+    else if (act === 'sadd') addSkill();
+    else return;
+    render();
+  });
+
+  // Přejmenování skillu a povinnost (pole a checkbox nejsou tlačítka, mají vlastní událost)
+  // Tažení posuvníků: jen se přepíše výplň a hodnota (celé překreslení by jezdce při tažení „pustilo“)
+  document.addEventListener('input', e => {
+    const el = e.target;
+    if (el.dataset.range) {
+      const key = el.dataset.range, end = +el.dataset.end, g = S.gen[key];
+      // Jezdci se nemohou překřížit: minimum nejde nad maximum a maximum pod minimum
+      const v = end === 0 ? Math.min(+el.value, g[1]) : Math.max(+el.value, g[0]);
+      g[end] = v;
+      el.value = v;
+      const box = el.closest('.rs'), min = +box.dataset.min, max = +box.dataset.max;
+      const pct = x => (max === min ? 0 : (x - min) / (max - min) * 100);
+      Object.assign(box.querySelector('.rsfill').style, { left: pct(g[0]) + '%', width: (pct(g[1]) - pct(g[0])) + '%' });
+      box.querySelector('.rsval').textContent = fmtRange(key);
+    } else if (el.dataset.sizeSlider !== undefined) {
+      S.gen.size = +el.value;
+      const box = el.closest('.rs');
+      box.querySelector('.rsfill').style.width = ((S.gen.size - 10) / 990 * 100) + '%';
+      box.querySelector('.rsval').textContent = `${S.gen.size} items`;
+    }
+  });
+
+  document.addEventListener('change', e => {
+    const el = e.target;
+    if (el.dataset.skillInput) { const label = el.value.trim(); if (label) sk(el.dataset.skillInput).label = label; render(); }
+    else if (el.dataset.skillReq) { sk(el.dataset.skillReq).req = el.checked; render(); }
+    else if (el.dataset.teamInput) { const v = el.value.trim(), t = S.teams.find(x => x.id === el.dataset.teamInput); if (v && t) t.name = v; render(); }
+    else if (el.dataset.areaInput) { const v = el.value.trim(); if (v) S.areas[el.dataset.areaInput] = v; render(); }
+  });
+  document.addEventListener('keydown', e => {
+    if (e.key !== 'Enter') return;
+    // Enter v názvu týmu potvrdí přejmenování (pole ztratí fokus a vyvolá change)
+    if (e.target.dataset.teamInput) e.target.blur();
+    if (e.target.id === 'newSkill') { addSkill(); render(); }
+    if (e.target.id === 'newAreaName' || e.target.id === 'newAreaCode') { addArea(); render(); }
+  });
+
+  window.addEventListener('resize', fit);
+  render();
+  fit();
+</script>
+</body>
+</html>

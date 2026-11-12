@@ -1,0 +1,25 @@
+/* Tón featury podle jejího odstínu (feat-021): stejný vzorec jako karta featury (FeatureCard) a řádek Done
+   (DoneRow). Komponenta nastaví jen --hue (inline), barvy se dopočítají tady, včetně tmavého tématu.
+   Používá ho mód Organization (feat-028), jehož vlastní CSS bere barvy jen z tokenů. */
+
+/* Podklad a obrys řádku v odstínu featury */
+.tone {
+  background: oklch(97.5% 0.02 var(--hue));
+  border: var(--border-hair) solid oklch(86% 0.05 var(--hue));
+}
+
+/* Tmavé téma: tmavší tón stejného odstínu, aby řádek nesvítil */
+:global([data-theme='dark']) .tone {
+  background: oklch(28% 0.03 var(--hue));
+  border-color: oklch(42% 0.05 var(--hue));
+}
+
+/* Čtvereček v odstínu featury — stejný jako v řádku Done */
+.swatch {
+  background: oklch(68% 0.13 var(--hue));
+}
+
+/* Výplň pruhu postupu v odstínu featury */
+.fill {
+  background: oklch(62% 0.14 var(--hue));
+}

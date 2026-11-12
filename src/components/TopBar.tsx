@@ -30,6 +30,7 @@ const MODE_TABS: ModeTab[] = [
   { mode: 'compare', label: MODE_LABELS.compare, tutorialTarget: 'mode-tab-compare' },
   { mode: 'experiment', label: MODE_LABELS.experiment, tutorialTarget: 'mode-tab-advanced' },
   { mode: 'cashflow', label: MODE_LABELS.cashflow, tutorialTarget: 'mode-tab-cashflow' },
+  { mode: 'organization', label: MODE_LABELS.organization, tutorialTarget: 'mode-tab-organization' },
 ]
 
 /** Props horní lišty. */
@@ -38,7 +39,7 @@ interface TopBarProps {
   mode: AppMode
   /** Kliknutí na záložku; Simulator rozhodne, co přepnutí módu obnáší (např. reset Compare). */
   onSelectMode: (mode: AppMode) => void
-  /** Ovládání běhu vpravo — ve všech módech stejný SpeedControl (Cash Flow bez „?“), liší se jen obsluha Resetu. */
+  /** Ovládání běhu vpravo — ve všech módech stejný SpeedControl (Organization zatím bez „?“), liší se jen obsluha Resetu. */
   children: ReactNode
   /** Kliknutí na ikonu bubliny — Simulator otevře dialog zpětné vazby (feat-024). */
   onOpenFeedback: () => void
@@ -48,7 +49,7 @@ interface TopBarProps {
  * Antracitová horní lišta aplikace (design system Org Flow, feat-021): značka a název vlevo,
  * záložky módů uprostřed (role="tablist", aktivní má aria-selected) a vpravo ikona zpětné vazby,
  * přepínač tématu a ovládání běhu.
- * Existuje, aby všechny tři módy měly stejnou lištu a lišily se jen ovládáním.
+ * Existuje, aby všechny módy měly stejnou lištu a lišily se jen ovládáním.
  *
  * @param props - Aktuální mód, callback přepnutí módu, otevření zpětné vazby a ovládání vpravo
  * @returns Vykreslená lišta

@@ -204,3 +204,4 @@ Model je **pedagogický, ne prediktivní**. Konstanty (25 % / 20 % / 50 %) jsou 
 ## Related Features
 - **feat-021-prevod-design-system-org-flow:** tokeny reworku se přejmenují (`--rework-ink` → `--rework`, `--rework-bg` → `--rework-soft`); čipy ⇄/↺ se přestylují podle design systému, chování beze změny.
 - **feat-027-cas-simulace-pracovni-dny:** tooltip dlaždice Coordination overhead místo „work-seconds“ říká „man-days of work“; „person-seconds“ v Open Questions se čte jako person-days. Výpočet beze změny.
+- **feat-032-min-units-po-tymech (draft, mód Organization):** režim Min units (zavedený touto feature) se v módu Organization vyhodnocuje po **týmech**: člověk dá přednost featuře, na které pracoval někdo z jeho týmu, a vyhne se featurám jiných týmů. Koordinační režie v módu Organization není (Out of Scope feat-028).

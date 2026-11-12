@@ -195,3 +195,4 @@ Bezplatná verze poprvé posílá data mimo prohlížeč, a to přes třetí str
 - **feat-021-prevod-design-system-org-flow:** horní lišta dostane ikonu vlevo od přepínače tématu; šířka 1024 px (Příklad 11) se musí dál vejít. Dialog vychází ze vzoru `ConfirmOverlay`.
 - **feat-022-sjednoceni-designu, feat-023-jednotne-pismo-textu:** nový dialog dodržuje jejich pravidla (CSS moduly, bez emoji, JetBrains Mono).
 - **feat-025-revize-tutorialu (draft):** mění Příklad 14: krok se zpětnou vazbou je krok 5 prohlídky Compare, prohlídka Advanced ho nemá. Úvodní karta tutoriálu navíc říká, proč je zpětná vazba vítaná.
+- **feat-028-tymy-slozene-z-lidi (draft):** ikona zpětné vazby je i v módu Organization; otevření dialogu pozastaví běh tohoto módu a dialog dostane název módu „Organization“.

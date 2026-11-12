@@ -27,6 +27,10 @@ interface SpeedControlProps {
   onRestartTutorial?: () => void
   /** Tooltip tlačítka Reset; bez něj tlačítko tooltip nemá. */
   resetTitle?: string
+  /** Run nejde spustit (mód Organization s varováním v panelu, feat-028); tlačítko je neaktivní a nepulzuje. */
+  runDisabled?: boolean
+  /** Tooltip neaktivního Run, který říká, co je potřeba opravit. */
+  runDisabledTitle?: string
 }
 
 /**
@@ -41,6 +45,7 @@ interface SpeedControlProps {
  */
 export function SpeedControl({
   speed, paused, hasStarted, finished, onSpeedChange, onTogglePause, onReset, runButtonTarget, onRestartTutorial, resetTitle,
+  runDisabled = false, runDisabledTitle,
 }: SpeedControlProps) {
   return (
     <>
@@ -63,8 +68,17 @@ export function SpeedControl({
       {finished ? (
         <Button variant="done" disabled data-tutorial-target={runButtonTarget}>✓ Done</Button>
       ) : paused ? (
-        // „Run“ i po pauze (bez „Resume“); pulzuje jen před prvním spuštěním
-        <Button variant="primary" pulse={!hasStarted} onClick={onTogglePause} data-tutorial-target={runButtonTarget}>▶ Run</Button>
+        // „Run“ i po pauze (bez „Resume“); pulzuje jen před prvním spuštěním, neaktivní nepulzuje
+        <Button
+          variant="primary"
+          pulse={!hasStarted && !runDisabled}
+          disabled={runDisabled}
+          title={runDisabled ? runDisabledTitle : undefined}
+          onClick={onTogglePause}
+          data-tutorial-target={runButtonTarget}
+        >
+          ▶ Run
+        </Button>
       ) : (
         <Button variant="running" onClick={onTogglePause} data-tutorial-target={runButtonTarget}>❙❙ Pause</Button>
       )}

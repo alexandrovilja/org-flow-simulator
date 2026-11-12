@@ -73,13 +73,15 @@ export const PRESETS: UnitPreset[] = [
 ]
 
 /** Paleta 9 barevných odstínů pro vizuální rozlišení features v UI.
- *  Features cyklují přes tyto odstíny podle svého ID. */
-const FEATURE_HUES = [12, 45, 90, 140, 180, 215, 260, 300, 335]
+ *  Features cyklují přes tyto odstíny podle svého ID. Exportováno, aby featury módu Organization
+ *  (feat-028) měly stejné barvy jako v ostatních módech. */
+export const FEATURE_HUES = [12, 45, 90, 140, 180, 215, 260, 300, 335]
 
 /** 30 realistických názvů features — cyklují se podle ID featury.
  *  Záměrně nejsou generovány náhodně, aby bylo snazší features identifikovat
- *  ve workshopu ("podívejte se na Login flow"). */
-const FEATURE_NAMES = [
+ *  ve workshopu ("podívejte se na Login flow"). Exportováno, aby featury módu Organization
+ *  (feat-028) měly stejné názvy jako v ostatních módech. */
+export const FEATURE_NAMES = [
   'Login flow', 'Search filters', 'Export CSV', 'Dark mode', 'Onboarding',
   'Notifications', 'API rate limits', 'Audit log', 'Billing portal', 'SSO',
   'Bulk actions', 'Webhooks', 'Mobile nav', 'Empty states', 'Settings page',

@@ -38,6 +38,12 @@ import { FeedbackDialog } from '@/components/FeedbackDialog'
 import { EMPTY_FEEDBACK_DRAFT, buildFeedbackFields, formatFeedbackDate, sendFeedback, validateFeedback } from '@/lib/feedback'
 import { MODE_LABELS } from '@/lib/modeLabels'
 import type { FeedbackDraft, FeedbackErrors, FeedbackStatus } from '@/types/feedback'
+import { OrganizationView } from '@/components/OrganizationView'
+import {
+  DEFAULT_ORG_BACKLOG_SETTINGS, generateOrgBacklog, makeDefaultOrgSetup, makeOrgState, resetOrgState, snapshotOrgRun,
+  tickOrg, validateOrgSetup,
+} from '@/simulation/organizationEngine'
+import type { OrgRunSnapshot, OrgSetup, OrgSimState } from '@/types/organization'
 import styles from './Simulator.module.css'
 
 // ── Types ────────────────────────────────────────────────────────────────────
@@ -62,6 +68,13 @@ const DEFAULT_SETTINGS: SimSettings = {
 // (feat-015, Příklad 2). Vlastní konstanta zůstává jako místo pro budoucí výchozí hodnoty,
 // které by se týkaly jen Cash Flow.
 const CASHFLOW_SETTINGS: SimSettings = { ...DEFAULT_SETTINGS }
+
+// ── Organization mode (feat-028) ────────────────────────────────────────────
+// Seed generátoru backlogu — stejný jako v ostatních módech, takže backlog je při každém načtení stejný
+const ORG_BACKLOG_SEED = 42
+
+/** Tooltip neaktivního Run v módu Organization, dokud panel organizace ukazuje varování (feat-028). */
+const ORG_RUN_BLOCKED_TITLE = 'Fix the warnings in the Organization panel first'
 
 // ── Simulator component ───────────────────────────────────────────────────────
 
@@ -171,6 +184,25 @@ export function Simulator() {
   const [cashFlowPrevStats, setCashFlowPrevStats] = useState<CashFlowRunSnapshot | null>(null)
   const cashFlowLastFinishedRef = useRef<CashFlowRunSnapshot | null>(null)
 
+  // ── Organization mode state (feat-028) ──────────────────────────────────────
+  // Organizace žije v Reactu (mění se jen před během a mění se vždy celým novým objektem), stav běhu
+  // v refu jako u ostatních módů — engine ho mění na místě a smyčka RAF ho překresluje. Nic se neukládá:
+  // po obnovení stránky je zase výchozí organizace (spec, Výchozí stav).
+  const [orgSetup, setOrgSetup] = useState<OrgSetup>(makeDefaultOrgSetup)
+  const orgStateRef = useRef<OrgSimState | null>(null)
+  if (orgStateRef.current === null) {
+    orgStateRef.current = makeOrgState(orgSetup, generateOrgBacklog(mulberry32(ORG_BACKLOG_SEED), DEFAULT_ORG_BACKLOG_SETTINGS, orgSetup))
+  }
+  const [orgPaused, setOrgPaused] = useState(true)
+  // Od prvního Run je organizace zamčená (i v pauze a po doběhnutí) až do Resetu
+  const [orgHasStarted, setOrgHasStarted] = useState(false)
+  const { speed: orgSpeed, speedRef: orgSpeedRef, setSpeed: setOrgSpeed } = useSimSpeed()
+  const orgPausedRef = useRef(true)
+  useEffect(() => { orgPausedRef.current = orgPaused }, [orgPaused])
+  // Srovnání s předchozím během jako v Cash Flow: doběhnutý běh se uloží a po Resetu se stane předchozím
+  const [orgPrevRun, setOrgPrevRun] = useState<OrgRunSnapshot | null>(null)
+  const orgLastFinishedRef = useRef<OrgRunSnapshot | null>(null)
+
   // ── Zpětná vazba (feat-024) ───────────────────────────────────────────────
   // Simulator je vždy připojený, takže rozepsaný koncept přežije zavření dialogu i přepnutí módu;
   // drží se jen v paměti, po obnovení stránky je formulář prázdný (Příklad 12)
@@ -244,6 +276,8 @@ export function Simulator() {
     // Vlastní accumulator pro Cash Flow — oddělený od `accumulated` výše, aby zbytková
     // hodnota z Compare/Advanced při přepnutí tabu neovlivnila Cash Flow ticking.
     let cashFlowAccumulated = 0
+    // Vlastní accumulator i pro Organization (feat-028) ze stejného důvodu
+    let orgAccumulated = 0
     const TARGET_DT_MS = 1000 / 60
 
     const step = (t: number) => {
@@ -335,6 +369,25 @@ export function Simulator() {
         } else {
           cashFlowAccumulated = 0
         }
+      } else if (modeRef.current === 'organization') {
+        if (!orgPausedRef.current && orgStateRef.current) {
+          const state = orgStateRef.current
+          if (!state.finished) {
+            orgAccumulated += elapsed * orgSpeedRef.current
+            while (orgAccumulated >= TARGET_DT_MS && !state.finished) {
+              tickOrg(state, TARGET_DT_MS / 1000, 'reduce-wip')
+              orgAccumulated -= TARGET_DT_MS
+            }
+            // Po doběhnutí se běh sám zastaví a uloží pro srovnání s dalším během (po Resetu)
+            if (state.finished) {
+              setOrgPaused(true)
+              orgLastFinishedRef.current = snapshotOrgRun(state)
+            }
+          }
+          flushSync(() => { forceUpdate(n => (n + 1) & 0xFFFF) })
+        } else {
+          orgAccumulated = 0
+        }
       }
 
       raf = requestAnimationFrame(step)
@@ -384,6 +437,16 @@ export function Simulator() {
       setTutorialMode('cashflow')
       setShowTutorial(true)
     }
+  }, [])
+
+  /**
+   * Přepne na mód Organization (feat-028). Běh se při přepnutí pozastaví a stav zůstane zachovaný:
+   * po návratu z jiného módu ukazuje lišta „▶ Run“ a čas stojí, dokud ho kouč znovu nespustí.
+   * Prohlídka (tutoriál) pro tento mód zatím není.
+   */
+  const handleSwitchToOrganization = useCallback(() => {
+    setOrgPaused(true)
+    setMode('organization')
   }, [])
 
   // ── Compare mode handlers ──────────────────────────────────────────────────
@@ -742,13 +805,46 @@ export function Simulator() {
 
   const bothFinished = sA.finished && sB.finished
 
+  // ── Organization mode handlers and derived values (feat-028) ───────────────
+
+  const orgState = orgStateRef.current!
+
+  /**
+   * Úprava organizace před během (mandáty). Nová organizace platí hned i pro stav běhu, který ještě nezačal;
+   * za běhu se změna nepřijme — panel je tehdy jen ke čtení, tohle je pojistka.
+   *
+   * @param next - Nová organizace
+   */
+  const handleOrgSetupChange = useCallback((next: OrgSetup) => {
+    if (orgHasStarted || !orgStateRef.current) return
+    orgStateRef.current.setup = next
+    setOrgSetup(next)
+  }, [orgHasStarted])
+
+  /** Reset: doběhnutý běh se stane předchozím, backlog se vrátí do stavu před během a organizace zůstane. */
+  const handleOrgReset = useCallback(() => {
+    if (orgLastFinishedRef.current) setOrgPrevRun(orgLastFinishedRef.current)
+    if (orgStateRef.current) resetOrgState(orgStateRef.current)
+    setOrgPaused(true)
+    setOrgHasStarted(false)
+    forceUpdate(n => n + 1)
+  }, [])
+
+  // Kontrola před během (spec, Pravidla chování): varování v panelu zablokuje Run. Za běhu se organizace
+  // nemění, takže se kontrola počítá jen před ním
+  const orgWarnings = useMemo(
+    () => (orgHasStarted ? [] : validateOrgSetup(orgSetup, orgState.backlogSnapshot)),
+    [orgHasStarted, orgSetup, orgState.backlogSnapshot],
+  )
+
   // ── Shared header ──────────────────────────────────────────────────────────
 
   /** Přepne mód podle kliknuté záložky — každý mód má vlastní přípravu (Compare se resetuje). */
   const handleSelectMode = (next: AppMode) => {
     if (next === 'compare') handleSwitchToCompare()
     else if (next === 'experiment') handleSwitchToExperiment()
-    else handleSwitchToCashFlow()
+    else if (next === 'cashflow') handleSwitchToCashFlow()
+    else handleSwitchToOrganization()
   }
 
   /** Run / Pause v Compare: první kliknutí spustí obě simulace, další je pozastaví a znovu rozběhne. */
@@ -767,7 +863,8 @@ export function Simulator() {
   const handleOpenFeedback = () => {
     if (mode === 'compare') setComparePaused(true)
     else if (mode === 'experiment') setPaused(true)
-    else setCashFlowPaused(true)
+    else if (mode === 'cashflow') setCashFlowPaused(true)
+    else setOrgPaused(true)
     // Staré hlášky kontroly by mátly. Fáze zůstává: odeslání, které doběhlo, když byl dialog zavřený,
     // ukáže svůj výsledek (poděkování nebo chybu) až teď — uživatel se tak dozví, jak dopadlo
     setFeedbackErrors({})
@@ -832,11 +929,28 @@ export function Simulator() {
     setFeedbackStatus(status => (status === 'sending' ? status : 'editing'))
   }
 
-  // Ovládání běhu je ve všech třech módech stejné (SpeedControl, feat-021 Příklad 14); liší se jen
-  // tím, co Reset vrací. Od feat-025 má prohlídku i Cash Flow, a tak i tlačítko „?“.
+  // Ovládání běhu je ve všech módech stejné (SpeedControl, feat-021 Příklad 14); liší se jen
+  // tím, co Reset vrací. Od feat-025 má prohlídku i Cash Flow, a tak i tlačítko „?“. Organization (feat-028)
+  // „?“ zatím nemá, protože jeho prohlídka přibude později; Run v něm blokují varování panelu organizace.
   const header = (
     <TopBar mode={mode} onSelectMode={handleSelectMode} onOpenFeedback={handleOpenFeedback}>
-      {mode === 'cashflow' ? (
+      {mode === 'organization' ? (
+        // Bez „?“: prohlídka módu Organization přibude později (spec, Out of Scope)
+        <div className={styles.controls}>
+          <SpeedControl
+            speed={orgSpeed}
+            paused={orgPaused}
+            hasStarted={orgHasStarted}
+            finished={orgState.finished}
+            onSpeedChange={setOrgSpeed}
+            onTogglePause={() => { setOrgPaused(p => !p); setOrgHasStarted(true) }}
+            onReset={handleOrgReset}
+            resetTitle={RESET_BACKLOG_TITLE}
+            runDisabled={orgWarnings.length > 0}
+            runDisabledTitle={ORG_RUN_BLOCKED_TITLE}
+          />
+        </div>
+      ) : mode === 'cashflow' ? (
         // data-tutorial-target lets the spotlight overlay focus on the whole control row, including „?“ (feat-025)
         <div data-tutorial-target="cashflow-controls" className={styles.controls}>
           <SpeedControl
@@ -914,7 +1028,7 @@ export function Simulator() {
 
   /**
    * Přidá k rozložení módu kartu tutoriálu (zobrazenou při první návštěvě módu nebo po „?“).
-   * Karta je jen na tomto jednom místě pro všechny tři módy (review feat-025) a leží mimo mřížku
+   * Karta je jen na tomto jednom místě pro všechny módy (review feat-025) a leží mimo mřížku
    * rozložení (position: fixed). key = mód: prohlídka jiného módu vždy začne krokem 1, i když se
    * přepnutí módu sejde s přeskočením předchozí prohlídky v jednom překreslení.
    *
@@ -980,6 +1094,24 @@ export function Simulator() {
             />
           </div>
         </div>
+      </div>
+    )
+  }
+
+  // ── Organization layout (feat-028): tři sloupce jako Cash Flow, celou plochu kreslí OrganizationView ──
+
+  if (mode === 'organization') {
+    return withTutorial(
+      <div className={styles.threeColumns}>
+        {header}
+        {feedbackDialog}
+        <OrganizationView
+          setup={orgSetup}
+          onSetupChange={handleOrgSetupChange}
+          state={orgState}
+          locked={orgHasStarted}
+          previousRun={orgPrevRun}
+        />
       </div>
     )
   }

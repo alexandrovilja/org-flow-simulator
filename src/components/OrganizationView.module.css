@@ -1,0 +1,569 @@
+/* Mód Organization (feat-028, inkrement 1): tři sloupce jako Cash Flow — vlevo Backlog, uprostřed
+   In progress a Organization, vpravo Metrics a Done (ResultsAside). Barvy jen z tokenů globals.css (J10);
+   tón featury podle odstínu je ve FeatureTone.module.css. Rozložení musí projít projektorem 1024 × 768
+   bez vodorovného rolování (J9), proto mají sloupce i buňky min-width: 0 a texty se zalamují nebo zkracují. */
+
+/* ── Levý sloupec: backlog ─────────────────────────────────────────────── */
+
+.side {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+  background: var(--surface-panel);
+  border-right: var(--border-hair) solid var(--line);
+}
+
+.backlogList {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+  padding: 0 var(--space-16) var(--space-12);
+}
+
+/* Položka backlogu: neutrální karta s jedním řádkem názvu a pruhem pracnosti */
+.backlogItem {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+  padding: var(--space-6) var(--space-8);
+  border: var(--border-hair) solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--surface-panel);
+}
+
+/* Řádek s názvem featury a štítky oblastí (backlog i In progress) */
+.itemTop {
+  display: flex;
+  align-items: center;
+  gap: var(--space-6);
+  min-width: 0;
+}
+
+/* Styl „code“: v úzkém místě se zkrátí jen slovní část názvu, číslo featury a štítky oblastí zůstanou celé */
+.featureName {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  gap: 0.6ch;
+  white-space: nowrap;
+  font-size: 11px;
+  line-height: 16px;
+  font-weight: 500;
+  color: var(--ink-2);
+}
+
+.featureCode {
+  flex-shrink: 0;
+}
+
+.featureTitle {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tags {
+  display: flex;
+  gap: 3px;
+  flex-shrink: 0;
+}
+
+/* Štítek oblasti: obrysový a textový, aby se nepletl s plnými barevnými čipy skillů */
+.areaTag {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  height: 16px;
+  padding: 0 var(--space-4);
+  border: var(--border-hair) solid var(--line-control);
+  border-radius: var(--radius-xs);
+  background: var(--surface-panel);
+  color: var(--ink);
+  font-size: 10px;
+  line-height: 1;
+  font-weight: 700;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+/* Hotová oblast rozpracované featury */
+.areaTagDone {
+  border-color: var(--done);
+  background: var(--done-soft);
+  color: var(--done);
+}
+
+/* Pruh pracnosti: skupiny úkolů po oblastech s mezerou, uvnitř segmenty v barvách skillů */
+.effort {
+  display: flex;
+  gap: var(--space-6);
+  height: 6px;
+  min-width: 0;
+}
+
+.effortGroup {
+  display: flex;
+  flex: 1 1 0;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.effortSegment {
+  display: block;
+  flex: 1 1 0;
+  min-width: 2px;
+  height: 6px;
+  border-radius: 1px;
+  background: var(--role);
+  opacity: 0.45;
+}
+
+/* ── Prostřední sloupec: In progress nahoře, organizace dole ───────────── */
+
+.center {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+  background: var(--surface-page);
+}
+
+.inProgress {
+  /* Kontejner pro dotaz na šířku: počet sloupců řádků se řídí šířkou prostředního sloupce, ne okna */
+  container-type: inline-size;
+  flex: 1 1 0;
+  min-height: 150px;
+  display: flex;
+  flex-direction: column;
+  background: var(--surface-panel);
+  border-bottom: var(--border-hair) solid var(--line);
+}
+
+/* Dva sloupce řádků; výška řádků podle obsahu, aby se v omezené výšce nepřekrývaly */
+.featureList {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-auto-rows: max-content;
+  gap: var(--space-6) var(--space-8);
+  align-content: start;
+  padding: var(--space-2) var(--space-16) var(--space-12);
+}
+
+/* Na projektoru 1024 px má prostřední sloupec ~420 px: dva řádky vedle sebe by zkrátily názvy featur
+   skoro celé, proto je tam jeden sloupec */
+@container (max-width: 479px) {
+  .featureList {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* Řádek rozpracované featury; podklad a obrys v odstínu featury dodá FeatureTone.module.css */
+.featureRow {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding: var(--space-6) var(--space-8) 0;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+/* Čtvereček v odstínu featury (barva z FeatureTone.module.css) */
+.swatch {
+  width: 8px;
+  height: 8px;
+  flex-shrink: 0;
+  border-radius: var(--radius-xs);
+}
+
+/* Pruh postupu přes celou šířku řádku, přilepený ke spodní hraně */
+.progress {
+  height: 6px;
+  margin: 0 calc(-1 * var(--space-8));
+  overflow: hidden;
+  background: var(--track);
+}
+
+.progressFill {
+  display: block;
+  height: 100%;
+}
+
+/* Panel organizace: zabere jen tolik výšky, kolik potřebuje, nejvýš dvě třetiny sloupce */
+.org {
+  flex: 0 1 auto;
+  max-height: 68%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  padding-bottom: var(--space-12);
+  background: var(--surface-panel);
+}
+
+/* Poznámka pod hlavičkou (co jde dělat, nebo proč je panel zamčený); smí se zalomit */
+.note {
+  margin: calc(-1 * var(--space-4)) var(--space-16) var(--space-8);
+  font-size: 11px;
+  line-height: 16px;
+  color: var(--ink-3);
+}
+
+/* Kontrola před během: seznam problémů, kvůli kterým je Run neaktivní */
+.warn {
+  margin: 0 var(--space-16) var(--space-8);
+  padding: var(--space-6) 10px;
+  border: var(--border-hair) solid var(--rework);
+  border-radius: var(--radius-sm);
+  background: var(--rework-soft);
+}
+
+.warnTitle {
+  font-size: 10px;
+  line-height: 12px;
+  font-weight: 600;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  color: var(--rework);
+}
+
+.warnList {
+  max-height: 96px;
+  overflow-y: auto;
+  margin: var(--space-2) 0 0;
+  padding-left: var(--space-16);
+  font-size: 11px;
+  line-height: 16px;
+  color: var(--ink-2);
+}
+
+/* Řádky před během: Team | People | Mandate. Sloupec People má pevnou šířku, aby hlavička sloupců
+   (samostatná mřížka) lícovala s řádky týmů */
+.setupLine {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 64px minmax(0, 1fr);
+  column-gap: var(--space-8);
+  align-items: center;
+}
+
+/* Řádky za běhu: Team | Mandate | People (pruh 64 px a „12/12“) */
+.runLine {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 104px;
+  column-gap: var(--space-8);
+  align-items: center;
+}
+
+/* Hlavička sloupců: styl „label“ */
+.columns {
+  padding: 0 var(--space-16) var(--space-4);
+  font-size: 10px;
+  line-height: 12px;
+  font-weight: 600;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+
+.teams {
+  flex: 0 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 0 var(--space-16);
+}
+
+.teamRow {
+  border-top: var(--border-hair) solid var(--line-2);
+}
+
+.teamRow > .setupLine,
+.teamRow > .runLine {
+  min-height: 30px;
+}
+
+.teamRow > .setupLine:hover,
+.teamRow > .runLine:hover {
+  background: var(--surface-subtle);
+}
+
+.teamCell {
+  display: flex;
+  align-items: center;
+  gap: var(--space-6);
+  min-width: 0;
+}
+
+/* Šipka pro rozbalení lidí týmu */
+.chevron {
+  width: 16px;
+  height: 18px;
+  flex-shrink: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--ink-3);
+  font-size: 10px;
+  line-height: 1;
+}
+
+.chevron:hover {
+  color: var(--ink);
+}
+
+.chevron:focus-visible,
+.mandateRemove:focus-visible,
+.addMandate:focus-visible,
+.pickerItem:focus-visible,
+.pickerClose:focus-visible {
+  outline: var(--border-active) solid var(--focus);
+  outline-offset: 1px;
+}
+
+.teamName {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+/* Tečky skillů lidí týmu */
+.skillDots {
+  display: flex;
+  gap: var(--space-2);
+  flex-shrink: 0;
+}
+
+.skillDot {
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-xs);
+  background: var(--role);
+}
+
+/* Počet lidí (před během) a „pracuje / celkem“ (za běhu): styl „micro“ */
+.peopleCount {
+  font-size: 10px;
+  line-height: 12px;
+  font-weight: 600;
+  color: var(--ink-3);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.mandates {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 3px;
+  min-width: 0;
+  padding: var(--space-4) 0;
+}
+
+/* Štítek mandátu: stejný vzhled jako štítek oblasti, před během s × */
+.mandateTag {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  height: 16px;
+  padding: 0 var(--space-4);
+  border: var(--border-hair) solid var(--line-control);
+  border-radius: var(--radius-xs);
+  background: var(--surface-panel);
+  color: var(--ink);
+  font-size: 10px;
+  line-height: 1;
+  font-weight: 700;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.mandateRemove {
+  width: 12px;
+  height: 12px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--ink-3);
+  font-size: 10px;
+  line-height: 1;
+}
+
+.mandateRemove:hover {
+  color: var(--rework);
+}
+
+/* Tým bez mandátu před během: červeně, protože jeho lidé nemohou nic dělat */
+.noMandate {
+  font-size: 10px;
+  line-height: 12px;
+  font-weight: 600;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  color: var(--rework);
+}
+
+/* Tým bez mandátu za běhu: jen tlumená informace */
+.none {
+  font-size: 10px;
+  line-height: 12px;
+  font-weight: 600;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  color: var(--ink-4);
+}
+
+/* Tlačítko + pro přidání mandátu: čárkovaný obrys jako přidání skillu */
+.addMandate {
+  height: 16px;
+  min-width: 16px;
+  padding: 0 var(--space-4);
+  border: var(--border-hair) dashed var(--line-control);
+  border-radius: var(--radius-xs);
+  background: transparent;
+  color: var(--ink-3);
+  font-size: 10px;
+  line-height: 1;
+  font-weight: 600;
+}
+
+.addMandate:hover,
+.addMandate[aria-expanded='true'] {
+  border-style: solid;
+  color: var(--ink);
+}
+
+/* Nabídka oblastí pod řádkem týmu (v toku stránky, aby ji neořízlo rolování panelu) */
+.picker {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-4);
+  margin: 0 0 var(--space-6) 22px;
+  padding: var(--space-4) var(--space-6);
+  border: var(--border-hair) solid var(--line-2);
+  border-radius: var(--radius-sm);
+  background: var(--surface-subtle);
+}
+
+.pickerItems {
+  flex: 1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+  min-width: 0;
+}
+
+.pickerItem {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-4);
+  height: 18px;
+  padding: 0 var(--space-6);
+  border: var(--border-hair) solid var(--line-control);
+  border-radius: var(--radius-xs);
+  background: var(--surface-panel);
+  color: var(--ink);
+  font-size: 10px;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.pickerItem:hover {
+  border-color: var(--ink);
+}
+
+.pickerCode {
+  font-weight: 700;
+  letter-spacing: 0.6px;
+}
+
+.pickerName {
+  color: var(--ink-2);
+}
+
+.pickerClose {
+  flex-shrink: 0;
+  padding: 0 var(--space-2);
+  border: 0;
+  background: transparent;
+  color: var(--ink-3);
+  font-size: 11px;
+  line-height: 18px;
+}
+
+/* Rozbalení lidé týmu: karty jen ke čtení se jménem a čipy skillů */
+.people {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: var(--space-6);
+  padding: var(--space-4) 0 10px 22px;
+}
+
+.person {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-4) var(--space-6);
+  min-width: 0;
+  padding: var(--space-6) var(--space-8);
+  border: var(--border-hair) solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--surface-panel);
+}
+
+.personName {
+  flex-shrink: 0;
+  font-size: 11px;
+  line-height: 16px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.personSkills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+  min-width: 0;
+}
+
+/* Pruh lidí týmu za běhu: tmavá část pracuje, prázdná je volná */
+.peopleCell {
+  display: flex;
+  align-items: center;
+  gap: var(--space-6);
+}
+
+.peopleBar {
+  display: flex;
+  flex-shrink: 0;
+  width: 64px;
+  height: 8px;
+  overflow: hidden;
+  border-radius: var(--radius-xs);
+  background: var(--track);
+}
+
+.peopleWorking {
+  display: block;
+  flex: 0 1 0;
+  height: 100%;
+  background: var(--ink);
+}
+
+.peopleIdle {
+  display: block;
+  flex: 0 1 0;
+  height: 100%;
+}
