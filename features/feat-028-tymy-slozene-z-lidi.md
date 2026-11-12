@@ -1,9 +1,9 @@
 # Feature: Týmy složené z lidí — inkrement 1: mandáty a tok práce
 
 ## Status
-in-progress
+done
 
-*2026-11-12: celá feature „Týmy složené z lidí“ (spec schválený 2026-11-11) se podle INVEST a SPIDR rozdělila na 9 inkrementů, viz „Plán inkrementů“. Tento spec popisuje jen inkrement 1; zúžený spec i jeho testy jsou schválené (2026-11-12) a implementace inkrementu 1 je hotová, čeká na review. Research, mockup v9 a testovací analýza zůstávají společné pro všechny inkrementy.*
+*2026-11-12: celá feature „Týmy složené z lidí“ (spec schválený 2026-11-11) se podle INVEST a SPIDR rozdělila na 9 inkrementů, viz „Plán inkrementů“. Tento spec popisuje jen inkrement 1, který je hotový: implementace je v main (PR #44) a smoke test produkce prošel. Inkrementy 2–9 (feat-029 až feat-036) jsou zatím drafty. Research, mockup v9 a testovací analýza zůstávají společné pro všechny inkrementy.*
 
 ## Plán inkrementů
 Každý inkrement přidá kouči jednu schopnost, kterou může ukázat na workshopu. Inkrementy 2–9 závisí jen na inkrementu 1, mezi sebou ne, takže jejich pořadí jde měnit.
