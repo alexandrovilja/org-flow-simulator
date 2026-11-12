@@ -1,0 +1,679 @@
+import { describe, it, expect } from 'vitest'
+import { mulberry32 } from '@/simulation/engine'
+import {
+  DEFAULT_ORG_BACKLOG_SETTINGS,
+  featureTimeline,
+  generateOrgBacklog,
+  makeOrgState,
+  orgMetrics,
+  orgPersonStatus,
+  orgTaskStatus,
+  resetOrgState,
+  snapshotOrgRun,
+  tickOrg,
+  validateOrgSetup,
+} from '@/simulation/organizationEngine'
+import { movePerson } from '@/simulation/organizationSetup'
+import type { OrgSetup, OrgSimState } from '@/types/organization'
+import type { WipMode } from '@/types/simulation'
+import {
+  featureOf, grant, makeSetup, orgB, orgB2, orgT, person, runToEnd, runUntil, segmentsOf, stateOf, taskOf, team,
+} from './feat028Fixtures'
+
+// feat-028 (Týmy složené z lidí) — engine módu Organization: přidělování práce, Waiting a Idle, metriky,
+// výnos, timeline hotové featury, Reset.
+//
+// Schválený kontrakt (spec features/feat-028-tymy-slozene-z-lidi.md, „Pravidla chování“; testovací analýza
+// docs/feat-028-test-analysis.md, skupiny D, E, F, G, I3 a J):
+//  - `makeOrgState(setup, backlog)` → stav před během; `tickOrg(state, dt, wipMode)` posune běh o `dt` pracovních dní
+//    (smí stav měnit na místě a vrací ho). Engine je deterministický (bez náhody).
+//  - Úkol smí vzít člověk se skillem úkolu, jehož tým má mandát na oblast úkolu; člověk pracuje na jednom úkolu.
+//  - Pořadí přidělování v jednom okamžiku: týmy shora dolů, lidé v týmu shora dolů; ve featuře úkoly v pořadí oblastí
+//    a úkolů; vyšší priorita (nižší číslo) má přednost.
+//  - Fáze platí v rámci oblasti: úkol fáze N čeká jen na nižší fáze v téže oblasti téže featury (R8).
+//  - Reduce WIP: rozpracované featury před backlogem. Min units: 1) featura, na které pracoval někdo z mého týmu,
+//    2) featura, na které nepracoval nikdo z jiného týmu, 3) priorita (R10).
+//  - AI 2× / 5× u dvojice člověk + skill zrychlí práci na úkolu tohoto skillu (feat-019).
+//  - Úkol si vede úseky práce `segments` (od, do, člověk, tým); featura `startedAt` (první přidělení) a `finishedAt`.
+//  - `state.idleByPerson[personId]`: Idle time člověka — roste, když nemá úkol a existuje nepřidělený úkol s jeho
+//    skillem kdekoli (bez ohledu na fázi a mandát, R1).
+//  - `orgTaskStatus(state, feature, task)`: 'done' | 'doing' | 'todo' | 'waiting' (R2: todo, fáze odemčená,
+//    rozpracovaná featura, existuje idle člověk se skillem, jehož tým nemá mandát na oblast).
+//  - `orgPersonStatus(state, personId)`: { kind: 'working', featureId, taskId } | { kind: 'idle' } |
+//    { kind: 'blocked', areas } (žlutý idle: odemčená práce s jeho skillem čeká v oblasti mimo mandát jeho týmu,
+//    v backlogu i v rozpracovaných featurách; `areas` = kódy těch oblastí).
+//  - `orgMetrics(state)`: totalTime, avgCycleTime (null bez hotových featur), avgWip (null v čase 0), idleTime,
+//    revenue (součet vydělaného výnosu), doneCount.
+//  - Výnos jako Cash Flow: hotová featura připíše `revenuePerTick` každých 5 pracovních dní od dokončení
+//    (`totalRevenue`, `lastRevenueTickAt`).
+//  - `featureTimeline(feature, setup)`: hlavička (startedAt, finishedAt, cycleTime), oblasti s týmy v pořadí prvního
+//    začátku práce (shoda → pořadí v panelu, R3), řádky úkolů s čekáním od začátku featury do začátku práce a úseky
+//    práce, součty workTotal / waitingTotal a pořadí týmů `teams`.
+//  - `resetOrgState(state)` vrátí backlog do stavu před během (stejné featury, priority, výnosy) a nechá organizaci;
+//    `snapshotOrgRun(state)` uloží doběhnutý běh pro srovnání.
+//
+// Časy se porovnávají s tolerancí ±0.05 dne (toBeCloseTo(x, 1)), krok simulace je 0.01 dne.
+
+/** Shodný úsek práce `[jméno, od, do]` s tolerancí ±0.05 dne. */
+function expectSegments(actual: Array<[string, number, number | null]>, expected: Array<[string, number, number]>): void {
+  expect(actual.map(s => s[0])).toEqual(expected.map(s => s[0]))
+  actual.forEach(([, from, to], i) => {
+    expect(from).toBeCloseTo(expected[i][1], 1)
+    expect(to).not.toBeNull()
+    expect(to as number).toBeCloseTo(expected[i][2], 1)
+  })
+}
+
+/** Cycle time hotové featury. */
+function cycleOf(state: OrgSimState, id: number): number {
+  const f = featureOf(state, id)
+  expect(f.finishedAt).not.toBeNull()
+  expect(f.startedAt).not.toBeNull()
+  return (f.finishedAt as number) - (f.startedAt as number)
+}
+
+/** Id člověka podle jména. */
+const pid = (setup: OrgSetup, name: string) => person(setup, name).id
+
+/** ORG-T, kde Team Mobile má mandáty MOB a WEB. */
+const orgTMobileWeb = () => grant(orgT(), 'Team Mobile', 'WEB')
+
+describe('feat-028 D1: skill a mandát', () => {
+  it('Frontend ve WEB zpracuje Hana 0.0–3.0, Eli nedostane úkol; Idle time 0.0', () => {
+    const s = runToEnd(stateOf(orgT(), 'F-1 (p1): WEB [Frontend 3]'))
+    expectSegments(segmentsOf(s, taskOf(s, 1, 'WEB', 'Frontend')), [['Hana', 0, 3]])
+    expect(cycleOf(s, 1)).toBeCloseTo(3, 1)
+    expect(orgMetrics(s).idleTime).toBeCloseTo(0, 1)
+  })
+})
+
+describe('feat-028 D2: umí, ale nesmí', () => {
+  const run = () => runToEnd(stateOf(orgT(),
+    'F-1 (p1): BIL [Java 1] | WEB [Frontend 3]',
+    'F-2 (p2): BIL [Java 1] | WEB [Frontend 3]'))
+
+  it('Ben dělá Java F-1 a F-2 za sebou, Hana Frontend F-1 a pak F-2; Eli Frontend nevezme', () => {
+    const s = run()
+    expectSegments(segmentsOf(s, taskOf(s, 1, 'BIL', 'Java')), [['Ben', 0, 1]])
+    expectSegments(segmentsOf(s, taskOf(s, 1, 'WEB', 'Frontend')), [['Hana', 0, 3]])
+    expectSegments(segmentsOf(s, taskOf(s, 2, 'BIL', 'Java')), [['Ben', 1, 2]])
+    expectSegments(segmentsOf(s, taskOf(s, 2, 'WEB', 'Frontend')), [['Hana', 3, 6]])
+  })
+
+  it('F-2 začne v 1.0; F-1 hotová v 3.0 (cycle 3.0), F-2 v 6.0 (cycle 5.0); Total time 6.0', () => {
+    const s = run()
+    expect(featureOf(s, 2).startedAt).toBeCloseTo(1, 1)
+    expect(featureOf(s, 1).finishedAt).toBeCloseTo(3, 1)
+    expect(cycleOf(s, 1)).toBeCloseTo(3, 1)
+    expect(featureOf(s, 2).finishedAt).toBeCloseTo(6, 1)
+    expect(cycleOf(s, 2)).toBeCloseTo(5, 1)
+    expect(orgMetrics(s).totalTime).toBeCloseTo(6, 1)
+  })
+
+  it('Idle time 4.0 person-days: Eli 3.0, Gus 1.0, ostatní 0', () => {
+    const s = run()
+    expect(orgMetrics(s).idleTime).toBeCloseTo(4, 1)
+    expect(s.idleByPerson[pid(s.setup, 'Eli')]).toBeCloseTo(3, 1)
+    expect(s.idleByPerson[pid(s.setup, 'Gus')]).toBeCloseTo(1, 1)
+    for (const name of ['Ada', 'Ben', 'Chen', 'Dani', 'Fae', 'Hana', 'Ivo']) {
+      expect(s.idleByPerson[pid(s.setup, name)] ?? 0).toBeCloseTo(0, 1)
+    }
+  })
+})
+
+describe('feat-028 D3: stejná data, širší mandát', () => {
+  it('Eli vezme F-1 Frontend, Hana F-2 Frontend (obě 0.0–3.0); obě hotové v 3.0; Idle time 1.0 (Gus)', () => {
+    const s = runToEnd(stateOf(orgTMobileWeb(),
+      'F-1 (p1): BIL [Java 1] | WEB [Frontend 3]',
+      'F-2 (p2): BIL [Java 1] | WEB [Frontend 3]'))
+    expectSegments(segmentsOf(s, taskOf(s, 1, 'WEB', 'Frontend')), [['Eli', 0, 3]])
+    expectSegments(segmentsOf(s, taskOf(s, 2, 'WEB', 'Frontend')), [['Hana', 0, 3]])
+    expectSegments(segmentsOf(s, taskOf(s, 2, 'BIL', 'Java')), [['Ben', 1, 2]])
+    expect(featureOf(s, 2).startedAt).toBeCloseTo(0, 1)
+    expect(cycleOf(s, 1)).toBeCloseTo(3, 1)
+    expect(cycleOf(s, 2)).toBeCloseTo(3, 1)
+    expect(orgMetrics(s).totalTime).toBeCloseTo(3, 1)
+    expect(orgMetrics(s).idleTime).toBeCloseTo(1, 1)
+    expect(s.idleByPerson[pid(s.setup, 'Gus')]).toBeCloseTo(1, 1)
+  })
+})
+
+describe('feat-028 D4: kapacita týmu jsou jeho lidé', () => {
+  it('Gus, Hana a Ivo pracují současně; vše hotové v 2.0; Avg WIP 3.0; Idle time 0.0', () => {
+    const s = runToEnd(stateOf(orgT(), 'F-1 (p1): WEB [Product 2]', 'F-2 (p2): WEB [Frontend 2]', 'F-3 (p3): WEB [QA 2]'))
+    expectSegments(segmentsOf(s, taskOf(s, 1, 'WEB', 'Product')), [['Gus', 0, 2]])
+    expectSegments(segmentsOf(s, taskOf(s, 2, 'WEB', 'Frontend')), [['Hana', 0, 2]])
+    // QA ve F-3 začne hned: v oblasti nemá nižší fázi
+    expectSegments(segmentsOf(s, taskOf(s, 3, 'WEB', 'QA')), [['Ivo', 0, 2]])
+    const m = orgMetrics(s)
+    expect(m.totalTime).toBeCloseTo(2, 1)
+    expect(m.avgWip as number).toBeCloseTo(3, 1)
+    expect(m.idleTime).toBeCloseTo(0, 1)
+  })
+})
+
+describe('feat-028 D5: jeden člověk, jeden úkol', () => {
+  it('Gus dělá F-1 Product 0.0–2.0 a pak F-2 Java 2.0–4.0; Ben je idle 2.0 (Team Billing nemá mandát na WEB)', () => {
+    const s = runToEnd(stateOf(orgT(), 'F-1 (p1): WEB [Product 2]', 'F-2 (p2): WEB [Java 2]'))
+    expectSegments(segmentsOf(s, taskOf(s, 1, 'WEB', 'Product')), [['Gus', 0, 2]])
+    expectSegments(segmentsOf(s, taskOf(s, 2, 'WEB', 'Java')), [['Gus', 2, 4]])
+    expect(featureOf(s, 2).startedAt).toBeCloseTo(2, 1)
+    expect(cycleOf(s, 2)).toBeCloseTo(2, 1)
+    expect(orgMetrics(s).totalTime).toBeCloseTo(4, 1)
+    expect(orgMetrics(s).idleTime).toBeCloseTo(2, 1)
+    expect(s.idleByPerson[pid(s.setup, 'Ben')]).toBeCloseTo(2, 1)
+  })
+})
+
+describe('feat-028 D6: fáze v rámci oblasti', () => {
+  it('BIL: Ada 0–2, Ben 2–5, Chen 5–7; MOB: Eli 0–3 (nečeká na BIL), Fae 3–4; hotová v 7.0', () => {
+    const s = runToEnd(stateOf(orgT(), 'F-1 (p1): BIL [Product 2 · Java 3 · QA 2] | MOB [Frontend 3 · QA 1]'))
+    expectSegments(segmentsOf(s, taskOf(s, 1, 'BIL', 'Product')), [['Ada', 0, 2]])
+    expectSegments(segmentsOf(s, taskOf(s, 1, 'BIL', 'Java')), [['Ben', 2, 5]])
+    expectSegments(segmentsOf(s, taskOf(s, 1, 'BIL', 'QA')), [['Chen', 5, 7]])
+    expectSegments(segmentsOf(s, taskOf(s, 1, 'MOB', 'Frontend')), [['Eli', 0, 3]])
+    expectSegments(segmentsOf(s, taskOf(s, 1, 'MOB', 'QA')), [['Fae', 3, 4]])
+    expect(cycleOf(s, 1)).toBeCloseTo(7, 1)
+  })
+})
+
+describe('feat-028 D7: Reduce WIP', () => {
+  it('v 3.0 Chen vezme rozpracovanou F-2 (p3) před F-3 z backlogu (p2); cycle 3/4/1, avg 2.7, total 5.0, WIP 1.6', () => {
+    const s = runToEnd(stateOf(orgB(), 'F-1 (p1): BIL [QA 3]', 'F-2 (p3): BIL [Java 1 · QA 1]', 'F-3 (p2): BIL [QA 1]'))
+    expectSegments(segmentsOf(s, taskOf(s, 2, 'BIL', 'Java')), [['Ben', 0, 1]])
+    expectSegments(segmentsOf(s, taskOf(s, 1, 'BIL', 'QA')), [['Chen', 0, 3]])
+    expectSegments(segmentsOf(s, taskOf(s, 2, 'BIL', 'QA')), [['Chen', 3, 4]])
+    expectSegments(segmentsOf(s, taskOf(s, 3, 'BIL', 'QA')), [['Chen', 4, 5]])
+    expect([cycleOf(s, 1), cycleOf(s, 2), cycleOf(s, 3)].map(x => Math.round(x * 10) / 10)).toEqual([3, 4, 1])
+    const m = orgMetrics(s)
+    expect(m.avgCycleTime as number).toBeCloseTo(2.67, 1)
+    expect(m.totalTime).toBeCloseTo(5, 1)
+    expect(m.avgWip as number).toBeCloseTo(1.6, 1)
+  })
+})
+
+describe('feat-028 D8: Min units počítá týmy, ne lidi', () => {
+  it('s jediným týmem vybírá Min units stejně jako Reduce WIP: Chen v 3.0 vezme F-2 (pracoval na ní Ben z jeho týmu)', () => {
+    const s = runToEnd(stateOf(orgB(), 'F-1 (p1): BIL [QA 3]', 'F-2 (p3): BIL [Java 1 · QA 1]', 'F-3 (p2): BIL [QA 1]'), 'min-units')
+    expectSegments(segmentsOf(s, taskOf(s, 2, 'BIL', 'QA')), [['Chen', 3, 4]])
+    expectSegments(segmentsOf(s, taskOf(s, 3, 'BIL', 'QA')), [['Chen', 4, 5]])
+    const m = orgMetrics(s)
+    expect(m.avgCycleTime as number).toBeCloseTo(2.67, 1)
+    expect(m.totalTime).toBeCloseTo(5, 1)
+    expect(m.avgWip as number).toBeCloseTo(1.6, 1)
+  })
+
+  it('ORG-B2 (jeden tým): Bara se v 0.0 přidá k F-1, kde už je Ben z jejího týmu — stejně jako v Reduce WIP', () => {
+    for (const mode of ['reduce-wip', 'min-units'] as WipMode[]) {
+      const s = runToEnd(stateOf(orgB2(), 'F-1 (p1): BIL [Java 2 · Frontend 2]', 'F-2 (p2): BIL [Java 3]'), mode)
+      expectSegments(segmentsOf(s, taskOf(s, 1, 'BIL', 'Java')), [['Ben', 0, 2]])
+      expectSegments(segmentsOf(s, taskOf(s, 1, 'BIL', 'Frontend')), [['Bara', 0, 2]])
+      expectSegments(segmentsOf(s, taskOf(s, 2, 'BIL', 'Java')), [['Ben', 2, 5]])
+    }
+  })
+})
+
+describe('feat-028 D9: Min units drží člověka u featury jeho týmu', () => {
+  const backlog = ['F-1 (p1): WEB [Java 2 · QA 1]', 'F-2 (p2): MOB [Frontend 2 · QA 1]']
+
+  it('0.0 v obou režimech: Eli F-2 Frontend 0–2, Gus F-1 Java 0–2', () => {
+    for (const mode of ['reduce-wip', 'min-units'] as WipMode[]) {
+      const s = runToEnd(stateOf(orgTMobileWeb(), ...backlog), mode)
+      expectSegments(segmentsOf(s, taskOf(s, 2, 'MOB', 'Frontend')), [['Eli', 0, 2]])
+      expectSegments(segmentsOf(s, taskOf(s, 1, 'WEB', 'Java')), [['Gus', 0, 2]])
+    }
+  })
+
+  it('Reduce WIP: Fae v 2.0 vezme F-1 QA (vyšší priorita), pak F-2 QA; Ivo nic; cycle 3.0 / 4.0, total 4.0', () => {
+    const s = runToEnd(stateOf(orgTMobileWeb(), ...backlog), 'reduce-wip')
+    expectSegments(segmentsOf(s, taskOf(s, 1, 'WEB', 'QA')), [['Fae', 2, 3]])
+    expectSegments(segmentsOf(s, taskOf(s, 2, 'MOB', 'QA')), [['Fae', 3, 4]])
+    expect(cycleOf(s, 1)).toBeCloseTo(3, 1)
+    expect(cycleOf(s, 2)).toBeCloseTo(4, 1)
+    expect(orgMetrics(s).totalTime).toBeCloseTo(4, 1)
+  })
+
+  it('Min units: Fae v 2.0 vezme F-2 QA (pracuje na ní Eli z jejího týmu), Ivo F-1 QA; cycle 3.0 / 3.0, total 3.0', () => {
+    const s = runToEnd(stateOf(orgTMobileWeb(), ...backlog), 'min-units')
+    expectSegments(segmentsOf(s, taskOf(s, 2, 'MOB', 'QA')), [['Fae', 2, 3]])
+    expectSegments(segmentsOf(s, taskOf(s, 1, 'WEB', 'QA')), [['Ivo', 2, 3]])
+    expect(cycleOf(s, 1)).toBeCloseTo(3, 1)
+    expect(cycleOf(s, 2)).toBeCloseTo(3, 1)
+    expect(orgMetrics(s).totalTime).toBeCloseTo(3, 1)
+  })
+})
+
+describe('feat-028 D10: tým s více mandáty bere podle priority', () => {
+  it('Eli vezme F-1 (WEB, p1), Hana nic (Team Web nemá MOB); F-2 2.0–4.0; Idle time 2.0 (Hana)', () => {
+    const s = runToEnd(stateOf(orgTMobileWeb(), 'F-1 (p1): WEB [Frontend 2]', 'F-2 (p2): MOB [Frontend 2]'))
+    expectSegments(segmentsOf(s, taskOf(s, 1, 'WEB', 'Frontend')), [['Eli', 0, 2]])
+    expectSegments(segmentsOf(s, taskOf(s, 2, 'MOB', 'Frontend')), [['Eli', 2, 4]])
+    expect(cycleOf(s, 2)).toBeCloseTo(2, 1)
+    expect(orgMetrics(s).totalTime).toBeCloseTo(4, 1)
+    expect(orgMetrics(s).idleTime).toBeCloseTo(2, 1)
+    expect(s.idleByPerson[pid(s.setup, 'Hana')]).toBeCloseTo(2, 1)
+  })
+})
+
+describe('feat-028 D11: dva stejní lidé, jeden úkol', () => {
+  it('úkol vezme Hana (je v panelu dřív), Hugo nic; Idle time 0.0', () => {
+    const setup = orgT()
+    team(setup, 'Team Web').people.splice(2, 0, { id: 99, name: 'Hugo', skills: ['Frontend'] })
+    const s = runToEnd(stateOf(setup, 'F-1 (p1): WEB [Frontend 2]'))
+    expectSegments(segmentsOf(s, taskOf(s, 1, 'WEB', 'Frontend')), [['Hana', 0, 2]])
+    expect(orgMetrics(s).idleTime).toBeCloseTo(0, 1)
+  })
+})
+
+describe('feat-028 D12: AI zrychlí práci na skillu', () => {
+  it('Ben s Java 2× dokončí F-1 v 1.5, s 5× v 0.6', () => {
+    for (const [ai, done] of [[2, 1.5], [5, 0.6]] as const) {
+      const setup = orgT()
+      person(setup, 'Ben').aiBySkill = { Java: ai }
+      const s = runToEnd(stateOf(setup, 'F-1 (p1): BIL [Java 3]'))
+      expect(featureOf(s, 1).finishedAt).toBeCloseTo(done, 1)
+    }
+  })
+
+  it('Gus s Java 5× a Product 1×: Product 0.0–2.0, Java 2.0–3.0; F-1 hotová v 3.0', () => {
+    const setup = orgT()
+    person(setup, 'Gus').aiBySkill = { Java: 5, Product: 1 }
+    const s = runToEnd(stateOf(setup, 'F-1 (p1): WEB [Product 2 · Java 5]'))
+    expectSegments(segmentsOf(s, taskOf(s, 1, 'WEB', 'Product')), [['Gus', 0, 2]])
+    expectSegments(segmentsOf(s, taskOf(s, 1, 'WEB', 'Java')), [['Gus', 2, 3]])
+    expect(featureOf(s, 1).finishedAt).toBeCloseTo(3, 1)
+  })
+})
+
+describe('feat-028 D13: člověk bez skillů', () => {
+  it('Petr nedostane úkol a jeho Idle time zůstane 0.0', () => {
+    const setup = orgT()
+    team(setup, 'Team Web').people.push({ id: 99, name: 'Petr', skills: [] })
+    const s = runToEnd(stateOf(setup, 'F-1 (p1): WEB [Frontend 3]'))
+    expectSegments(segmentsOf(s, taskOf(s, 1, 'WEB', 'Frontend')), [['Hana', 0, 3]])
+    expect(s.idleByPerson[99] ?? 0).toBe(0)
+  })
+})
+
+describe('feat-028 D14: úkoly stejné fáze běží souběžně', () => {
+  it('Gus (Java) a Hana (Frontend) pracují oba 0.0–2.0; F-1 hotová v 2.0', () => {
+    const s = runToEnd(stateOf(orgT(), 'F-1 (p1): WEB [Java 2 · Frontend 2]'))
+    expectSegments(segmentsOf(s, taskOf(s, 1, 'WEB', 'Java')), [['Gus', 0, 2]])
+    expectSegments(segmentsOf(s, taskOf(s, 1, 'WEB', 'Frontend')), [['Hana', 0, 2]])
+    expect(featureOf(s, 1).finishedAt).toBeCloseTo(2, 1)
+  })
+})
+
+describe('feat-028 D15: Min units se vyhne featuře jiného týmu', () => {
+  const backlog = ['F-1 (p1): WEB [Java 2 · QA 1]', 'F-2 (p2): MOB [QA 2]', 'F-3 (p3): MOB [QA 1]']
+
+  it('0.0 v obou režimech: Fae F-2 QA 0–2 (QA ve F-1 čeká na Java), Gus F-1 Java 0–2', () => {
+    for (const mode of ['reduce-wip', 'min-units'] as WipMode[]) {
+      const s = runToEnd(stateOf(orgTMobileWeb(), ...backlog), mode)
+      expectSegments(segmentsOf(s, taskOf(s, 2, 'MOB', 'QA')), [['Fae', 0, 2]])
+      expectSegments(segmentsOf(s, taskOf(s, 1, 'WEB', 'Java')), [['Gus', 0, 2]])
+    }
+  })
+
+  it('Reduce WIP: Fae vezme rozpracovanou F-1 QA 2–3 a F-3 až 3–4; Ivo nic; total 4.0', () => {
+    const s = runToEnd(stateOf(orgTMobileWeb(), ...backlog), 'reduce-wip')
+    expectSegments(segmentsOf(s, taskOf(s, 1, 'WEB', 'QA')), [['Fae', 2, 3]])
+    expectSegments(segmentsOf(s, taskOf(s, 3, 'MOB', 'QA')), [['Fae', 3, 4]])
+    expect([cycleOf(s, 1), cycleOf(s, 2), cycleOf(s, 3)].map(x => Math.round(x * 10) / 10)).toEqual([3, 2, 1])
+    expect(orgMetrics(s).totalTime).toBeCloseTo(4, 1)
+  })
+
+  it('Min units: Fae vezme F-3 z backlogu 2–3 (na F-1 pracuje Team Web), F-1 QA vezme Ivo 2–3; total 3.0', () => {
+    const s = runToEnd(stateOf(orgTMobileWeb(), ...backlog), 'min-units')
+    expectSegments(segmentsOf(s, taskOf(s, 3, 'MOB', 'QA')), [['Fae', 2, 3]])
+    expectSegments(segmentsOf(s, taskOf(s, 1, 'WEB', 'QA')), [['Ivo', 2, 3]])
+    expect([cycleOf(s, 1), cycleOf(s, 2), cycleOf(s, 3)].map(x => Math.round(x * 10) / 10)).toEqual([3, 2, 1])
+    expect(orgMetrics(s).totalTime).toBeCloseTo(3, 1)
+  })
+})
+
+describe('feat-028 E1: Waiting a žlutý idle (engine)', () => {
+  const d2 = () => stateOf(orgT(),
+    'F-1 (p1): BIL [Java 1] | WEB [Frontend 3]',
+    'F-2 (p2): BIL [Java 1] | WEB [Frontend 3]')
+
+  it('v čase 1.5 je Frontend ve F-2 Waiting, Java ve F-2 rozpracovaná a Java ve F-1 hotová', () => {
+    const s = runUntil(d2(), 1.5)
+    const f1 = featureOf(s, 1)
+    const f2 = featureOf(s, 2)
+    expect(orgTaskStatus(s, f2, taskOf(s, 2, 'WEB', 'Frontend'))).toBe('waiting')
+    expect(orgTaskStatus(s, f2, taskOf(s, 2, 'BIL', 'Java'))).toBe('doing')
+    expect(taskOf(s, 2, 'BIL', 'Java').progress / taskOf(s, 2, 'BIL', 'Java').work).toBeCloseTo(0.5, 1)
+    expect(orgTaskStatus(s, f1, taskOf(s, 1, 'BIL', 'Java'))).toBe('done')
+    expect(orgTaskStatus(s, f1, taskOf(s, 1, 'WEB', 'Frontend'))).toBe('doing')
+  })
+
+  it('v čase 1.5 má Eli žlutý idle kvůli WEB; Dani, Fae a Gus obyčejný idle; Ben a Hana pracují', () => {
+    const s = runUntil(d2(), 1.5)
+    expect(orgPersonStatus(s, pid(s.setup, 'Eli'))).toEqual({ kind: 'blocked', areas: ['WEB'] })
+    for (const name of ['Dani', 'Fae', 'Gus']) expect(orgPersonStatus(s, pid(s.setup, name))).toEqual({ kind: 'idle' })
+    expect(orgPersonStatus(s, pid(s.setup, 'Ben'))).toMatchObject({ kind: 'working', featureId: 2 })
+    expect(orgPersonStatus(s, pid(s.setup, 'Hana'))).toMatchObject({ kind: 'working', featureId: 1 })
+  })
+
+  it('v čase 1.5 je Idle time 2.5 (Eli 1.5, Gus 1.0)', () => {
+    const s = runUntil(d2(), 1.5)
+    expect(orgMetrics(s).idleTime).toBeCloseTo(2.5, 1)
+  })
+
+  it('v čase 4.0 nic nečeká, Eli má obyčejný idle a Idle time zůstává 4.0', () => {
+    const s = runUntil(d2(), 4)
+    const waiting = s.inProgress.flatMap(f => f.tasks.filter(t => orgTaskStatus(s, f, t) === 'waiting'))
+    expect(waiting).toEqual([])
+    expect(orgPersonStatus(s, pid(s.setup, 'Eli'))).toEqual({ kind: 'idle' })
+    expect(orgMetrics(s).idleTime).toBeCloseTo(4, 1)
+  })
+})
+
+describe('feat-028 E2: úkol zamčený fází není Waiting', () => {
+  it('D6 v čase 1.0: Java a QA v BIL i QA v MOB jsou „todo“; Ben, Gus, Chen, Fae i Ivo mají obyčejný idle', () => {
+    const s = runUntil(stateOf(orgT(), 'F-1 (p1): BIL [Product 2 · Java 3 · QA 2] | MOB [Frontend 3 · QA 1]'), 1)
+    const f = featureOf(s, 1)
+    for (const [area, role] of [['BIL', 'Java'], ['BIL', 'QA'], ['MOB', 'QA']]) {
+      expect(orgTaskStatus(s, f, taskOf(s, 1, area, role))).toBe('todo')
+    }
+    for (const name of ['Ben', 'Gus', 'Chen', 'Fae', 'Ivo']) expect(orgPersonStatus(s, pid(s.setup, name))).toEqual({ kind: 'idle' })
+  })
+})
+
+describe('feat-028 E3: výpočet Idle time', () => {
+  it('D6 do konce: 18.0 person-days — Ben 2, Gus 2, Chen 5, Fae 4, Ivo 5, ostatní 0', () => {
+    const s = runToEnd(stateOf(orgT(), 'F-1 (p1): BIL [Product 2 · Java 3 · QA 2] | MOB [Frontend 3 · QA 1]'))
+    expect(orgMetrics(s).idleTime).toBeCloseTo(18, 1)
+    const expected: Record<string, number> = { Ben: 2, Gus: 2, Chen: 5, Fae: 4, Ivo: 5, Ada: 0, Dani: 0, Eli: 0, Hana: 0 }
+    for (const [name, idle] of Object.entries(expected)) expect(s.idleByPerson[pid(s.setup, name)] ?? 0).toBeCloseTo(idle, 1)
+  })
+})
+
+describe('feat-028 E4: idle bez odpovídající práce se nepočítá', () => {
+  it('D1: Eli je celou dobu bez úkolu, ale Idle time je 0.0 (Frontend byl od začátku přidělený Haně)', () => {
+    const s = runToEnd(stateOf(orgT(), 'F-1 (p1): WEB [Frontend 3]'))
+    expect(s.idleByPerson[pid(s.setup, 'Eli')] ?? 0).toBeCloseTo(0, 1)
+  })
+})
+
+describe('feat-028 E5: žlutý idle i kvůli práci v backlogu', () => {
+  it('D10 v čase 1.0: Hana má žlutý idle kvůli MOB, rozpracovaná je jen F-1 a nic není Waiting; Idle time 1.0', () => {
+    const s = runUntil(stateOf(orgTMobileWeb(), 'F-1 (p1): WEB [Frontend 2]', 'F-2 (p2): MOB [Frontend 2]'), 1)
+    expect(orgPersonStatus(s, pid(s.setup, 'Hana'))).toEqual({ kind: 'blocked', areas: ['MOB'] })
+    expect(s.inProgress.map(f => f.id)).toEqual([1])
+    const waiting = s.inProgress.flatMap(f => f.tasks.filter(t => orgTaskStatus(s, f, t) === 'waiting'))
+    expect(waiting).toEqual([])
+    expect(orgMetrics(s).idleTime).toBeCloseTo(1, 1)
+  })
+})
+
+describe('feat-028 F1–F3: cycle time, Total time a Avg WIP', () => {
+  const d7 = () => stateOf(orgB(), 'F-1 (p1): BIL [QA 3]', 'F-2 (p3): BIL [Java 1 · QA 1]', 'F-3 (p2): BIL [QA 1]')
+
+  it('F1: D7 — Avg cycle time 2.7 a doneCount 3; bez hotových featur je Avg cycle time null', () => {
+    expect(orgMetrics(d7()).avgCycleTime).toBeNull()
+    const m = orgMetrics(runToEnd(d7()))
+    expect(m.avgCycleTime as number).toBeCloseTo(2.67, 1)
+    expect(m.doneCount).toBe(3)
+  })
+
+  it('F2: D7 doběhne v 5.0 a stav je finished; v čase 0 je Avg WIP null', () => {
+    expect(orgMetrics(d7()).avgWip).toBeNull()
+    const s = runToEnd(d7())
+    expect(s.finished).toBe(true)
+    expect(orgMetrics(s).totalTime).toBeCloseTo(5, 1)
+  })
+
+  it('F3: Avg WIP — D7 1.6; D15 Reduce WIP 1.5, Min units 2.0', () => {
+    expect(orgMetrics(runToEnd(d7())).avgWip as number).toBeCloseTo(1.6, 1)
+    const d15 = () => stateOf(orgTMobileWeb(), 'F-1 (p1): WEB [Java 2 · QA 1]', 'F-2 (p2): MOB [QA 2]', 'F-3 (p3): MOB [QA 1]')
+    expect(orgMetrics(runToEnd(d15(), 'reduce-wip')).avgWip as number).toBeCloseTo(1.5, 1)
+    expect(orgMetrics(runToEnd(d15(), 'min-units')).avgWip as number).toBeCloseTo(2, 1)
+  })
+})
+
+describe('feat-028 F4: výnos hotové featury', () => {
+  const f4 = () => stateOf(orgB(), 'F-1 (p1, €300/week): BIL [Java 1]', 'F-2 (p2, €200/week): BIL [Java 12]')
+
+  it('F-1 připíše €300 v čase 6.0 a 11.0; v čase 7.0 je výnos €300', () => {
+    const at7 = runUntil(f4(), 7)
+    expect(featureOf(at7, 1).totalRevenue).toBe(300)
+    expect(featureOf(at7, 1).lastRevenueTickAt).toBeCloseTo(6, 1)
+    expect(orgMetrics(at7).revenue).toBe(300)
+  })
+
+  it('po doběhnutí (13.0) je výnos €600, F-2 nevydělala nic', () => {
+    const s = runToEnd(f4())
+    expect(orgMetrics(s).totalTime).toBeCloseTo(13, 1)
+    expect(featureOf(s, 1).totalRevenue).toBe(600)
+    expect(featureOf(s, 1).lastRevenueTickAt).toBeCloseTo(11, 1)
+    expect(featureOf(s, 2).totalRevenue).toBe(0)
+    expect(orgMetrics(s).revenue).toBe(600)
+  })
+
+  it('done má nejnověji dokončenou featuru jako poslední prvek (UI ji zobrazí nahoře)', () => {
+    const s = runToEnd(f4())
+    expect(s.done.map(f => f.id)).toEqual([1, 2])
+  })
+})
+
+describe('feat-028 G1: záznam zpracování (timeline D6)', () => {
+  const tl = () => {
+    const s = runToEnd(stateOf(orgT(), 'F-1 (p1): BIL [Product 2 · Java 3 · QA 2] | MOB [Frontend 3 · QA 1]'))
+    return featureTimeline(featureOf(s, 1), s.setup)
+  }
+
+  it('hlavička: začátek 0.0, konec 7.0, cycle time 7.0', () => {
+    const t = tl()
+    expect(t.startedAt).toBeCloseTo(0, 1)
+    expect(t.finishedAt).toBeCloseTo(7, 1)
+    expect(t.cycleTime).toBeCloseTo(7, 1)
+  })
+
+  it('oblasti BIL (Team Billing) a MOB (Team Mobile) s řádky úkolů v pořadí úkolů', () => {
+    const t = tl()
+    expect(t.areas.map(a => [a.area, a.teams])).toEqual([['BIL', ['Team Billing']], ['MOB', ['Team Mobile']]])
+    expect(t.areas[0].rows.map(r => r.role)).toEqual(['Product', 'Java', 'QA'])
+    expect(t.areas[1].rows.map(r => r.role)).toEqual(['Frontend', 'QA'])
+  })
+
+  it('čekání od začátku featury a úseky práce s lidmi a týmy', () => {
+    const [bil, mob] = tl().areas
+    const [product, java, qa] = bil.rows
+    expect(product.waiting).toBeNull()
+    expect(product.work).toHaveLength(1)
+    expect(product.work[0]).toMatchObject({ personName: 'Ada', teamName: 'Team Billing' })
+    expect(product.work[0].from).toBeCloseTo(0, 1)
+    expect(product.work[0].to).toBeCloseTo(2, 1)
+    expect(java.waiting!.from).toBeCloseTo(0, 1)
+    expect(java.waiting!.to).toBeCloseTo(2, 1)
+    expect(java.work[0]).toMatchObject({ personName: 'Ben' })
+    expect(java.work[0].to).toBeCloseTo(5, 1)
+    expect(qa.waiting!.to).toBeCloseTo(5, 1)
+    expect(qa.work[0]).toMatchObject({ personName: 'Chen' })
+    expect(mob.rows[0].waiting).toBeNull()
+    expect(mob.rows[0].work[0]).toMatchObject({ personName: 'Eli', teamName: 'Team Mobile' })
+    expect(mob.rows[1].waiting!.to).toBeCloseTo(3, 1)
+    expect(mob.rows[1].work[0]).toMatchObject({ personName: 'Fae' })
+    expect(mob.rows[1].work[0].to).toBeCloseTo(4, 1)
+  })
+
+  it('součty: práce 11.0, čekání 10.0; týmy Team Billing → Team Mobile (shoda v 0.0 → pořadí v panelu)', () => {
+    const t = tl()
+    expect(t.workTotal).toBeCloseTo(11, 1)
+    expect(t.waitingTotal).toBeCloseTo(10, 1)
+    expect(t.teams).toEqual(['Team Billing', 'Team Mobile'])
+  })
+})
+
+describe('feat-028 G2: čekání na volného člověka', () => {
+  it('D2, F-2: začátek 1.0, konec 6.0; Frontend čeká 1.0–3.0, práce Hana 3.0–6.0; práce 4.0, čekání 2.0', () => {
+    const s = runToEnd(stateOf(orgT(),
+      'F-1 (p1): BIL [Java 1] | WEB [Frontend 3]',
+      'F-2 (p2): BIL [Java 1] | WEB [Frontend 3]'))
+    const t = featureTimeline(featureOf(s, 2), s.setup)
+    expect(t.startedAt).toBeCloseTo(1, 1)
+    expect(t.finishedAt).toBeCloseTo(6, 1)
+    expect(t.cycleTime).toBeCloseTo(5, 1)
+    expect(t.areas.map(a => [a.area, a.teams])).toEqual([['BIL', ['Team Billing']], ['WEB', ['Team Web']]])
+    const fe = t.areas[1].rows[0]
+    expect(fe.waiting!.from).toBeCloseTo(1, 1)
+    expect(fe.waiting!.to).toBeCloseTo(3, 1)
+    expect(fe.work[0]).toMatchObject({ personName: 'Hana', teamName: 'Team Web' })
+    expect(t.workTotal).toBeCloseTo(4, 1)
+    expect(t.waitingTotal).toBeCloseTo(2, 1)
+    expect(t.teams).toEqual(['Team Billing', 'Team Web'])
+  })
+})
+
+describe('feat-028 G3: oblast zpracovaná více týmy', () => {
+  it('WEB done by Team Mobile, Team Web (oba začali v 0.0 → pořadí v panelu); práce 5.0, čekání 0.0', () => {
+    const s = runToEnd(stateOf(orgTMobileWeb(), 'F-1 (p1): WEB [Java 2 · Frontend 3]'))
+    expectSegments(segmentsOf(s, taskOf(s, 1, 'WEB', 'Frontend')), [['Eli', 0, 3]])
+    expectSegments(segmentsOf(s, taskOf(s, 1, 'WEB', 'Java')), [['Gus', 0, 2]])
+    const t = featureTimeline(featureOf(s, 1), s.setup)
+    expect(t.areas.map(a => [a.area, a.teams])).toEqual([['WEB', ['Team Mobile', 'Team Web']]])
+    expect(t.workTotal).toBeCloseTo(5, 1)
+    expect(t.waitingTotal).toBeCloseTo(0, 1)
+    expect(t.teams).toEqual(['Team Mobile', 'Team Web'])
+  })
+})
+
+describe('feat-028 G4: AI zkrátí úsek práce', () => {
+  it('D6 s Benem Java 2×: Java 2.0–3.5, QA v BIL čeká do 3.5 a pracuje 3.5–5.5; hotová 5.5; práce 9.5, čekání 8.5', () => {
+    const setup = orgT()
+    person(setup, 'Ben').aiBySkill = { Java: 2 }
+    const s = runToEnd(stateOf(setup, 'F-1 (p1): BIL [Product 2 · Java 3 · QA 2] | MOB [Frontend 3 · QA 1]'))
+    expectSegments(segmentsOf(s, taskOf(s, 1, 'BIL', 'Java')), [['Ben', 2, 3.5]])
+    expectSegments(segmentsOf(s, taskOf(s, 1, 'BIL', 'QA')), [['Chen', 3.5, 5.5]])
+    const t = featureTimeline(featureOf(s, 1), s.setup)
+    expect(t.finishedAt).toBeCloseTo(5.5, 1)
+    expect(t.workTotal).toBeCloseTo(9.5, 1)
+    expect(t.waitingTotal).toBeCloseTo(8.5, 1)
+  })
+})
+
+describe('feat-028 I3: Reset', () => {
+  it('backlog se vrátí do stavu před během, Done je prázdný, čas 0; organizace beze změny', () => {
+    const before = stateOf(orgT(), 'F-1 (p1, €300/week): BIL [Java 1] | WEB [Frontend 3]', 'F-2 (p2, €200/week): BIL [Java 1] | WEB [Frontend 3]')
+    const backlogBefore = structuredClone(before.backlog)
+    const setupBefore = structuredClone(before.setup)
+    const finished = runToEnd(before)
+    const reset = resetOrgState(finished)
+    expect(reset.simTime).toBe(0)
+    expect(reset.finished).toBe(false)
+    expect(reset.done).toEqual([])
+    expect(reset.inProgress).toEqual([])
+    expect(reset.backlog).toEqual(backlogBefore)
+    expect(reset.setup).toEqual(setupBefore)
+    expect(orgMetrics(reset).idleTime).toBe(0)
+  })
+
+  it('snapshot doběhnutého běhu nese metriky a výnosová data pro srovnání', () => {
+    const s = runToEnd(stateOf(orgB(), 'F-1 (p1, €300/week): BIL [Java 1]', 'F-2 (p2, €200/week): BIL [Java 12]'))
+    const snap = snapshotOrgRun(s)
+    expect(snap.totalTime).toBeCloseTo(13, 1)
+    expect(snap.totalRevenue).toBe(600)
+    expect(snap.avgCycleTime as number).toBeCloseTo(6.5, 1)
+    expect(snap.avgWip as number).toBeCloseTo(orgMetrics(s).avgWip as number, 5)
+    expect(snap.idleTime).toBeCloseTo(orgMetrics(s).idleTime, 5)
+    expect(snap.doneFeatures.map(f => f.revenuePerTick)).toEqual([300, 200])
+  })
+})
+
+describe('feat-028 J1: jeden tým se vším', () => {
+  it('výchozí backlog: žádný úkol není nikdy Waiting a nikdo nemá žlutý idle', () => {
+    const setup = makeSetup([['Team All', ['BIL', 'MOB', 'WEB'], [['Ada', ['Product']], ['Ben', ['Java']], ['Cyril', ['Frontend']], ['Chen', ['QA']]]]])
+    let s = makeOrgState(setup, generateOrgBacklog(mulberry32(42), DEFAULT_ORG_BACKLOG_SETTINGS, setup, 'flat'))
+    const ids = setup.teams[0].people.map(p => p.id)
+    while (!s.finished) {
+      s = tickOrg(s, 0.1, 'reduce-wip')
+      for (const f of s.inProgress) for (const t of f.tasks) expect(orgTaskStatus(s, f, t)).not.toBe('waiting')
+      for (const id of ids) expect(orgPersonStatus(s, id).kind).not.toBe('blocked')
+    }
+  })
+})
+
+describe('feat-028 J2: jeden člověk se všemi skilly', () => {
+  it('úkoly jdou za sebou 0–2, 2–5, 5–7; Total time 7.0', () => {
+    const setup = makeSetup([['Team Solo', ['BIL'], [['Ada', ['Product', 'Java', 'QA']]]]])
+    const s = runToEnd(stateOf(setup, 'F-1 (p1): BIL [Product 2 · Java 3 · QA 2]'))
+    expectSegments(segmentsOf(s, taskOf(s, 1, 'BIL', 'Product')), [['Ada', 0, 2]])
+    expectSegments(segmentsOf(s, taskOf(s, 1, 'BIL', 'Java')), [['Ada', 2, 5]])
+    expectSegments(segmentsOf(s, taskOf(s, 1, 'BIL', 'QA')), [['Ada', 5, 7]])
+    expect(orgMetrics(s).totalTime).toBeCloseTo(7, 1)
+  })
+})
+
+describe('feat-028 J3: velká organizace', () => {
+  /** 15 týmů po 6 lidech, 8 oblastí; každý tým má všechny 4 skilly a mandát na 1–2 oblasti. */
+  function bigSetup(): OrgSetup {
+    const codes = ['BIL', 'PAY', 'MOB', 'WEB', 'CRM', 'API', 'DWH', 'IDN']
+    const skillCycle = ['Product', 'Java', 'Frontend', 'QA', 'Java', 'QA']
+    const setup = makeSetup(Array.from({ length: 15 }, (_, i) => [
+      `Team ${i + 1}`,
+      i < 8 ? [codes[i]] : [codes[i % 8], codes[(i + 3) % 8]],
+      skillCycle.map((sk, j) => [`P${i + 1}-${j + 1}`, [sk]] as [string, string[]]),
+    ]))
+    setup.areas = codes.map(code => ({ code, name: code }))
+    return setup
+  }
+
+  it('100 featur doběhne do 2 s strojového času s dt = 0.1 a výsledek je při stejném seedu stejný', () => {
+    const runOnce = () => {
+      const setup = bigSetup()
+      const backlog = generateOrgBacklog(mulberry32(1), DEFAULT_ORG_BACKLOG_SETTINGS, setup, 'flat')
+      expect(validateOrgSetup(setup, backlog)).toEqual([])
+      let s = makeOrgState(setup, backlog)
+      while (!s.finished) s = tickOrg(s, 0.1, 'reduce-wip')
+      return orgMetrics(s)
+    }
+    const t0 = performance.now()
+    const first = runOnce()
+    const elapsed = performance.now() - t0
+    expect(first.doneCount).toBe(100)
+    expect(elapsed).toBeLessThan(2000)
+    expect(runOnce()).toEqual(first)
+  })
+})
+
+describe('feat-028 J7: featura s jedním úkolem', () => {
+  it('timeline má jednu oblast MOB (Team Mobile) s QA prací Fae 0.0–2.0; práce 2.0, čekání 0.0', () => {
+    const s = runToEnd(stateOf(orgT(), 'F-1 (p1): MOB [QA 2]'))
+    const t = featureTimeline(featureOf(s, 1), s.setup)
+    expect(t.areas.map(a => [a.area, a.teams, a.rows.map(r => r.role)])).toEqual([['MOB', ['Team Mobile'], ['QA']]])
+    expect(t.areas[0].rows[0].work[0]).toMatchObject({ personName: 'Fae' })
+    expect(t.workTotal).toBeCloseTo(2, 1)
+    expect(t.waitingTotal).toBeCloseTo(0, 1)
+  })
+})
+
+describe('feat-028 J8: přesunutý člověk bere práci podle nového týmu', () => {
+  it('Eli v Team Web vezme F-2 Frontend 0.0–3.0; obě featury hotové v 3.0; Idle time 1.0 (Gus)', () => {
+    const base = orgT()
+    const setup = movePerson(base, person(base, 'Eli').id, team(base, 'Team Web').id)
+    const s = runToEnd(stateOf(setup,
+      'F-1 (p1): BIL [Java 1] | WEB [Frontend 3]',
+      'F-2 (p2): BIL [Java 1] | WEB [Frontend 3]'))
+    expectSegments(segmentsOf(s, taskOf(s, 1, 'WEB', 'Frontend')), [['Hana', 0, 3]])
+    expectSegments(segmentsOf(s, taskOf(s, 2, 'WEB', 'Frontend')), [['Eli', 0, 3]])
+    expectSegments(segmentsOf(s, taskOf(s, 2, 'BIL', 'Java')), [['Ben', 1, 2]])
+    expect(featureOf(s, 1).finishedAt).toBeCloseTo(3, 1)
+    expect(featureOf(s, 2).finishedAt).toBeCloseTo(3, 1)
+    expect(orgMetrics(s).idleTime).toBeCloseTo(1, 1)
+  })
+})
+
+describe('feat-028 J11: nejvyšší fáze a mezery ve fázích', () => {
+  it('Product fáze 1, QA fáze 10 (fáze 2–9 nikdo): Ada 0.0–2.0, Chen 2.0–3.0; hotová v 3.0', () => {
+    const setup = orgB()
+    setup.roleConfig.QA.level = 10
+    setup.roleConfig.Java.level = 1
+    setup.roleConfig.Frontend.level = 1
+    const s = runToEnd(stateOf(setup, 'F-1 (p1): BIL [Product 2 · QA 1]'))
+    expectSegments(segmentsOf(s, taskOf(s, 1, 'BIL', 'Product')), [['Ada', 0, 2]])
+    expectSegments(segmentsOf(s, taskOf(s, 1, 'BIL', 'QA')), [['Chen', 2, 3]])
+    expect(featureOf(s, 1).finishedAt).toBeCloseTo(3, 1)
+  })
+})

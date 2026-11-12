@@ -211,3 +211,4 @@ Model je **pedagogický, ne prediktivní**. Tvar křivek vychází z literatury,
 ## Related Features
 - **feat-021-prevod-design-system-org-flow:** přepínač křivky a náhled tvaru se přestylují podle design systému; tokeny `--done` a `--ink-3` zůstávají, popisek „Flat level“ bude mít 10 px.
 - **feat-027-cas-simulace-pracovni-dny:** tik výnosu je 1 týden (5 pracovních dnů), takže konstanty křivek (p, q, střed J-curve 6.5 tiků…) jsou nově v týdnech a mění se jen popisek náhledu (`Revenue per week after delivery · 0–16 weeks`). Horizont z Open Questions (J-curve dohání Flat po 11 tiků) je nově 11 týdnů (55 pracovních dnů), ne 33 s. Příklady jsou v původních jednotkách.
+- **feat-033-vynosy-organizace (draft, mód Organization):** přepínač profilu výnosu (Flat / J-curve / S-curve) s náhledem bude i v módu Organization; výpočet beze změny.

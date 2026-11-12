@@ -1,0 +1,124 @@
+import { describe, it, expect } from 'vitest'
+import { mulberry32 } from '@/simulation/engine'
+import { DEFAULT_ORG_BACKLOG_SETTINGS, generateOrgBacklog, validateOrgSetup } from '@/simulation/organizationEngine'
+import { feat, grant, orgDef, orgT, person, team } from './feat028Fixtures'
+
+// feat-028 (Týmy složené z lidí) — kontrola před během (R6, R7).
+//
+// Schválený kontrakt (spec, Pravidla chování „Kontrola před během“; analýza C1–C11):
+//  - `validateOrgSetup(setup, backlog)` je čistá funkce a vrací seznam varování (prázdný = Run je povolený).
+//  - Prázdný backlog → jediné varování „Backlog is empty“.
+//  - Pro každou oblast použitou v backlogu (v pořadí oblastí v organizaci):
+//      • žádný tým s mandátem → „No team has a mandate for WEB“,
+//      • jinak chybějící skilly (v týmech s mandátem nikdo nemá skill, který úkoly v oblasti potřebují) v jednom
+//        řádku: „No one with QA can work in BIL“, „No one with Frontend or QA can work in BIL“,
+//        „No one with Frontend, Data or DevOps can work in BIL“ (skilly v pořadí editoru).
+//  - Nepoužitá oblast bez mandátu ani tým bez mandátu a bez lidí varování nevyvolají.
+
+describe('feat-028 C1–C2: oblast bez mandátu', () => {
+  it('C1: WEB bez mandátu → „No team has a mandate for WEB“', () => {
+    const setup = orgT()
+    team(setup, 'Team Web').mandates = []
+    expect(validateOrgSetup(setup, [feat('F-1 (p1): WEB [Frontend 3]')])).toEqual(['No team has a mandate for WEB'])
+  })
+
+  it('C2: když Team Mobile dostane mandát WEB (Eli má Frontend), varování zmizí', () => {
+    const setup = orgT()
+    team(setup, 'Team Web').mandates = []
+    grant(setup, 'Team Mobile', 'WEB')
+    expect(validateOrgSetup(setup, [feat('F-1 (p1): WEB [Frontend 3]')])).toEqual([])
+  })
+})
+
+describe('feat-028 C3–C4: chybí skill v týmech s mandátem', () => {
+  it('C3: Chen bez QA → „No one with QA can work in BIL“, přestože QA mají Fae a Ivo v týmech bez mandátu na BIL', () => {
+    const setup = orgT()
+    person(setup, 'Chen').skills = []
+    expect(validateOrgSetup(setup, [feat('F-1 (p1): BIL [QA 2]')])).toEqual(['No one with QA can work in BIL'])
+  })
+
+  it('C4: skill Data existuje, ale nikdo ho nemá → „No one with Data can work in BIL“', () => {
+    const setup = orgT()
+    setup.roleConfig.Data = { label: 'Data', color: 'var(--role-violet)', level: 2, required: false }
+    expect(validateOrgSetup(setup, [feat('F-1 (p1): BIL [Data 2]')])).toEqual(['No one with Data can work in BIL'])
+  })
+
+  it('varování používá aktuální název skillu z editoru, ne jeho klíč', () => {
+    const setup = orgT()
+    person(setup, 'Chen').skills = []
+    setup.roleConfig.QA.label = 'QA automation'
+    expect(validateOrgSetup(setup, [feat('F-1 (p1): BIL [QA 2]')])).toEqual(['No one with QA automation can work in BIL'])
+  })
+})
+
+describe('feat-028 C5: více problémů najednou', () => {
+  it('dvě varování v pořadí oblastí: BIL před WEB', () => {
+    const setup = orgT()
+    team(setup, 'Team Web').mandates = []
+    person(setup, 'Chen').skills = []
+    // Featury záměrně v opačném pořadí, než jsou oblasti — rozhoduje pořadí oblastí, ne backlogu
+    const backlog = [feat('F-1: WEB [Frontend 3]'), feat('F-2: BIL [QA 2]')]
+    expect(validateOrgSetup(setup, backlog)).toEqual(['No one with QA can work in BIL', 'No team has a mandate for WEB'])
+  })
+})
+
+describe('feat-028 C6–C7: co varování nevyvolá', () => {
+  it('C6: přidaná oblast OPS bez mandátu, kterou žádný úkol nepoužívá', () => {
+    const setup = orgDef()
+    setup.areas.push({ code: 'OPS', name: 'Operations' })
+    expect(validateOrgSetup(setup, [feat('F-1: BIL [Java 2]')])).toEqual([])
+  })
+
+  it('C7: prázdný „Team 4“ bez mandátu', () => {
+    const setup = orgDef()
+    setup.teams.push({ id: 4, name: 'Team 4', mandates: [], people: [] })
+    expect(validateOrgSetup(setup, [feat('F-1: BIL [Java 2]'), feat('F-2: WEB [QA 1]')])).toEqual([])
+  })
+})
+
+describe('feat-028 C8: prázdný backlog', () => {
+  it('→ jediné varování „Backlog is empty“', () => {
+    expect(validateOrgSetup(orgDef(), [])).toEqual(['Backlog is empty'])
+  })
+})
+
+describe('feat-028 C10: chybějící skilly jedné oblasti v jednom řádku', () => {
+  it('dva skilly → „No one with Frontend or QA can work in BIL“', () => {
+    const setup = orgT()
+    person(setup, 'Chen').skills = []
+    expect(validateOrgSetup(setup, [feat('F-1 (p1): BIL [Frontend 2 · QA 2]')])).toEqual([
+      'No one with Frontend or QA can work in BIL',
+    ])
+  })
+
+  it('tři skilly → „No one with Frontend, Data or DevOps can work in BIL“ (pořadí editoru, ne úkolů)', () => {
+    const setup = orgT()
+    setup.roleConfig.Data = { label: 'Data', color: 'var(--role-violet)', level: 2, required: false }
+    setup.roleConfig.DevOps = { label: 'DevOps', color: 'var(--role-teal)', level: 3, required: false }
+    const backlog = [feat('F-1: BIL [DevOps 1 · Data 1]'), feat('F-2: BIL [Frontend 2]')]
+    expect(validateOrgSetup(setup, backlog)).toEqual(['No one with Frontend, Data or DevOps can work in BIL'])
+  })
+
+  it('kontroluje se jen skill, který oblast opravdu potřebuje (Ben s Java v BIL stačí)', () => {
+    expect(validateOrgSetup(orgT(), [feat('F-1: BIL [Product 1 · Java 2 · QA 1]')])).toEqual([])
+  })
+
+  it('stačí skill u člověka v jakémkoli týmu s mandátem na oblast', () => {
+    const setup = orgT()
+    grant(setup, 'Team Mobile', 'BIL')
+    // Team Billing nemá Frontend, ale Eli z Team Mobile (mandát BIL) ano
+    expect(validateOrgSetup(setup, [feat('F-1: BIL [Frontend 2]')])).toEqual([])
+  })
+})
+
+describe('feat-028 C11: kontrola po vygenerování backlogu', () => {
+  it('ORG-T (Team Mobile nemá nikoho s Java) a Skills per area 4–4 → mezi varováními „No one with Java can work in MOB“', () => {
+    const setup = orgT()
+    const settings = { ...DEFAULT_ORG_BACKLOG_SETTINGS, skillsPerArea: [4, 4] as [number, number], areasPerFeature: [1, 3] as [number, number] }
+    const warnings = validateOrgSetup(setup, generateOrgBacklog(mulberry32(11), settings, setup, 'flat'))
+    expect(warnings).toContain('No one with Java can work in MOB')
+    // Team Billing nemá Frontend a varování jedné oblasti jsou v jednom řádku → nejvýš jedno varování na oblast
+    expect(warnings).toContain('No one with Frontend can work in BIL')
+    expect(warnings.length).toBeLessThanOrEqual(3)
+  })
+})

@@ -314,3 +314,4 @@ Testy jsou kontrakt pro implementaci. Kromě tabulek v UI / Design z nich plyne:
 - **feat-011-compare-team-picker:** tutoriál nově zmiňuje přepínač typu týmu (krok 6 Compare), jak feat-011 požadoval.
 - **feat-016, feat-017, feat-018, feat-019:** texty prohlídek popisují coordination overhead, křivky výnosu, time-matched výnos a AI. Když se jejich chování změní, je potřeba upravit i texty.
 - **feat-027-cas-simulace-pracovni-dny:** texty kroků o Total Time, lead time, rychlosti a „every 3 s of simulation time“ (`tutorialSteps.ts` řádky 36, 153, 162, 182, 310, 351 a tabulka výše, řádky 72 a 108) se přepisují na pracovní dny a týdny; test tutoriálních textů a E2E feat-025 je potřeba aktualizovat.
+- **feat-028-tymy-slozene-z-lidi (draft):** mód Organization v první verzi tutoriál nemá; prohlídka se přidá později samostatnou změnou.

@@ -20,7 +20,7 @@ Jako agilní kouč chci nastavit název, pořadí fáze (level) a povinnost kaž
   - Pro každou specializaci jeden řádek se čtyřmi prvky:
     - **Barevný bod** — vizuální identifikátor (fixní, není editovatelný)
     - **Name** — textový input; výchozí hodnoty: Frontend, Backend, Design, QA, DevOps, Data
-    - **Phase** — stepper s tlačítky `−` a `+` (rozsah 1–5); zobrazuje aktuální číslo
+    - **Phase** — stepper s tlačítky `−` a `+` (rozsah 1–5; feat-036 ho zvedá na 1–10 ve všech módech); zobrazuje aktuální číslo
     - **Req.** — checkbox; pokud zaškrtnuto, každá feature musí obsahovat právě jeden úkol dané specializace
   - Pod tabulkou nápověda: `Phase: 1 = first phase, 2 = second, … Same phase = parallel. Req.: always in every backlog item (takes effect on regenerate).`
 
@@ -71,3 +71,6 @@ Jako agilní kouč chci nastavit název, pořadí fáze (level) a povinnost kaž
 
 ## Open Questions
 —
+
+## Related Features
+- **feat-036-vlastni-skilly-a-oblasti (draft, inkrement 9 módu Organization, feat-028):** editor skillů bude sdílený i s módem Organization. Rozsah fáze se zvedne z 1–5 na **1–10 ve všech módech** (`MAX_LEVEL` v `RoleSettings`); `+` bude neaktivní na fázi 10. Sémantika fází se v Advanced a Cash Flow nemění, v Organization platí fáze v rámci oblasti featury.

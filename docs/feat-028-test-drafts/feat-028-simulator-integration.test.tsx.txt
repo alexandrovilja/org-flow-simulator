@@ -1,0 +1,645 @@
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
+import { render, screen, fireEvent, act, within } from '@testing-library/react'
+import { Simulator } from '@/components/Simulator'
+import { markTutorialCompleted, markModeSeen, resetTutorial } from '@/lib/storage'
+
+// feat-028 (Týmy složené z lidí) — mód Organization v aplikaci: záložka, úpravy organizace před během,
+// nastavení backlogu, kontrola před během, Run, zamčení, Reset a zpětná vazba.
+//
+// Schválený kontrakt (spec features/feat-028-tymy-slozene-z-lidi.md, UI / Design; analýza A1, A6, A11, B1–B4,
+// B6–B14, B16–B22, C9, I1, I3, I5, I7):
+//  - Záložka „Organization“ (role tab) za Cash Flow; mód má stejné ovládání běhu jako ostatní (? / ↺ Reset / rychlost /
+//    ▶ Run). Run je neaktivní s tooltipem „Fix the warnings in the Organization panel first“, dokud panel varuje.
+//  - Panel organizace před během: řádek týmu `data-testid="org-team-row"` s polem „Team name“ (Enter nebo opuštění
+//    pole uloží; okolní mezery se ořežou; prázdný název se neuloží), počtem „4 people“, tlačítky „Remove mandate BIL“
+//    (štítek „BIL ×“, title = název oblasti), „Add mandate“ (role menu, položky „BIL Billing“), „Show or hide people“,
+//    „Remove Team Web“ (potvrzení „Remove Team Web? 4 people will be removed.“ s Remove / Cancel), červeným „No mandate“
+//    a souhrnem AI (title „1 person with AI“). Pod týmy „+ Add team“ a nahoře „Expand all“ / „Collapse all“.
+//  - Karta člověka `data-testid="org-person"`: čipy skillů s tlačítkem AI (názvy jako feat-019: „AI speed-up for Java“,
+//    se zapnutým AI „…: 2×“) a „Remove skill Java“; „Add skill“ (menu chybějících skillů); „Person actions“ (menu
+//    „Move to Team Web“ a „Remove person“); pod kartami „+ Add person“. Nabídky (role menu) zavře Escape.
+//  - Region „Backlog“ obsahuje jen seznam backlogu (Settings jsou mimo něj).
+//  - Settings: rozbalovací tlačítka „Backlog“, „Skills“, „Areas“. Backlog: „Generate new backlog“, přepínač
+//    Reduce WIP / Min units s hintem, posuvník „Backlog size“ a posuvníky min–max „Areas per feature“, „Skills per
+//    area“, „Effort per skill“ (RangeSlider). Skills: sdílený `RoleSettings`; potvrzení smazání
+//    „Delete QA? 3 people lose it and tasks requiring it will be removed.“. Areas: přidání polí „New area code“ a
+//    „New area name“ + tlačítko „Add area“, řádky s polem „Area name“ a tlačítkem „Delete <název>“; chyby „Code must be 2–3 letters.“,
+//    „BIL already exists.“, „Enter a name.“; potvrzení „Delete Web portal? 1 team loses the mandate and tasks in this
+//    area will be removed.“.
+//  - Organizace se nemění Resetem ani novým backlogem; doběhnutý běh se Resetem stane předchozím (delty „vs prev run“).
+//  - Otevření dialogu zpětné vazby pozastaví běh a dialog dostane název módu „Organization“ (feat-024).
+
+const TEST_KEY = 'test-access-key'
+
+/** Časový limit (reálný čas) testů, které nechávají simulaci doběhnout. */
+const SIM_RUN_TIMEOUT_MS = 30_000
+
+let fetchMock: ReturnType<typeof vi.fn>
+
+beforeEach(() => {
+  vi.useFakeTimers({ toFake: ['requestAnimationFrame', 'cancelAnimationFrame', 'performance'] })
+  localStorage.clear()
+  resetTutorial()
+  markTutorialCompleted()
+  markModeSeen('compare')
+  markModeSeen('experiment')
+  markModeSeen('cashflow')
+  vi.stubEnv('NEXT_PUBLIC_WEB3FORMS_ACCESS_KEY', TEST_KEY)
+  fetchMock = vi.fn(async () => new Response(JSON.stringify({ success: true }), { status: 200 }))
+  vi.stubGlobal('fetch', fetchMock)
+  Element.prototype.scrollIntoView = vi.fn()
+})
+
+afterEach(() => {
+  vi.useRealTimers()
+  vi.unstubAllEnvs()
+  vi.unstubAllGlobals()
+})
+
+/** Posune falešný čas o `ms` milisekund uvnitř act(). */
+async function advance(ms: number): Promise<void> {
+  await act(async () => { vi.advanceTimersByTime(ms) })
+}
+
+/** Vykreslí aplikaci a přepne na mód Organization. */
+function openOrganization(): void {
+  render(<Simulator />)
+  fireEvent.click(screen.getByRole('tab', { name: 'Organization' }))
+}
+
+const region = (name: string) => screen.getByRole('region', { name })
+const org = () => region('Organization')
+const tile = (label: string) => screen.getByTestId(`stat-tile-${label}`)
+/** Tlačítko běhu v liště podle konce názvu (glyf ▶ / ❙❙ / ✓ před ním). */
+const runButton = (label: 'Run' | 'Pause' | 'Done' = 'Run') => screen.getByRole('button', { name: new RegExp(`${label}$`) })
+/** Rozbalovací tlačítko sekce Settings. */
+const accordion = (name: 'Backlog' | 'Skills' | 'Areas') => screen.getByRole('button', { name })
+
+/** Otevře sekci Settings, pokud ještě není otevřená. */
+function openSettings(name: 'Backlog' | 'Skills' | 'Areas'): void {
+  if (accordion(name).getAttribute('aria-expanded') !== 'true') fireEvent.click(accordion(name))
+}
+
+/** Řádek týmu podle názvu (před během je název v poli „Team name“). */
+function teamRow(name: string): HTMLElement {
+  const row = within(org()).getAllByTestId('org-team-row').find(r =>
+    within(r).queryByDisplayValue(name) || within(r).queryByText(name))
+  if (!row) throw new Error(`Řádek týmu ${name} není`)
+  return row
+}
+
+/** Všechny řádky týmů. */
+const teamRows = () => within(org()).getAllByTestId('org-team-row')
+
+/** Názvy týmů v pořadí panelu (před během z polí „Team name“). */
+const teamNames = () => teamRows().map(r => (within(r).queryByRole('textbox', { name: 'Team name' }) as HTMLInputElement | null)?.value ?? '')
+
+/** Rozbalí lidi týmu a vrátí karty lidí. */
+function people(teamName: string): HTMLElement[] {
+  const toggle = within(teamRow(teamName)).getByRole('button', { name: 'Show or hide people' })
+  if (toggle.getAttribute('aria-expanded') !== 'true') fireEvent.click(toggle)
+  return within(teamRow(teamName)).queryAllByTestId('org-person')
+}
+
+/** Karta člověka podle jména. */
+function personCard(teamName: string, name: string): HTMLElement {
+  const card = people(teamName).find(c => within(c).queryByText(name))
+  if (!card) throw new Error(`Karta ${name} v ${teamName} není`)
+  return card
+}
+
+/** Názvy tlačítek odebrání mandátu v řádku týmu (pořadí štítků). */
+const mandateButtons = (teamName: string) =>
+  within(teamRow(teamName)).queryAllByRole('button', { name: /^Remove mandate / }).map(b => b.getAttribute('aria-label'))
+
+/** Přidá týmu mandát přes tlačítko + a nabídku. */
+function addMandate(teamName: string, item: string): void {
+  fireEvent.click(within(teamRow(teamName)).getByRole('button', { name: 'Add mandate' }))
+  fireEvent.click(screen.getByRole('menuitem', { name: item }))
+}
+
+/** Text varování v panelu organizace (prázdné pole = žádné varování). */
+function warnings(): string[] {
+  const alert = within(org()).queryByRole('alert')
+  return alert ? within(alert).getAllByRole('listitem').map(li => li.textContent ?? '') : []
+}
+
+/** Položky backlogu. */
+const backlogItems = () => within(region('Backlog')).queryAllByTestId('org-backlog-item')
+
+/** Rozbalí položku backlogu a vrátí ji. */
+function expandItem(item: HTMLElement): HTMLElement {
+  const toggle = within(item).getAllByRole('button').find(b => b.hasAttribute('aria-expanded'))!
+  if (toggle.getAttribute('aria-expanded') !== 'true') fireEvent.click(toggle)
+  return item
+}
+
+/** Nechá běh doběhnout při 10× (každý krok 1 s = 10 pracovních dní). */
+async function runToDone(): Promise<void> {
+  fireEvent.click(screen.getByRole('button', { name: '10×' }))
+  fireEvent.click(runButton('Run'))
+  for (let i = 0; i < 120 && !screen.queryByRole('button', { name: /Done$/ }); i++) await advance(1000)
+  expect(runButton('Done')).toBeInTheDocument()
+}
+
+/** Zmenší backlog na 10 featur a vygeneruje nový (kratší běh v testech). */
+function smallBacklog(): void {
+  openSettings('Backlog')
+  fireEvent.change(screen.getByRole('slider', { name: 'Backlog size' }), { target: { value: '10' } })
+  fireEvent.click(screen.getByRole('button', { name: 'Generate new backlog' }))
+}
+
+describe('feat-028 A1: otevření módu', () => {
+  it('záložka je aktivní; 3 týmy po 4 lidech s mandáty BIL, MOB, WEB', () => {
+    openOrganization()
+    expect(screen.getByRole('tab', { name: 'Organization' })).toHaveAttribute('aria-selected', 'true')
+    expect(teamNames()).toEqual(['Team Billing', 'Team Mobile', 'Team Web'])
+    expect(teamRows().map(r => within(r).getByText(/^\d+ people$/).textContent)).toEqual(['4 people', '4 people', '4 people'])
+    expect(['Team Billing', 'Team Mobile', 'Team Web'].map(mandateButtons)).toEqual([
+      ['Remove mandate BIL'], ['Remove mandate MOB'], ['Remove mandate WEB'],
+    ])
+    expect(within(org()).getByText('3 teams · 12 people')).toBeInTheDocument()
+  })
+
+  it('Settings: skilly Product 1, Java 2, Frontend 2, QA 3; oblasti BIL Billing, MOB Mobile app, WEB Web portal', () => {
+    openOrganization()
+    openSettings('Skills')
+    const names = screen.getAllByRole('textbox', { name: 'Skill name' }).map(i => (i as HTMLInputElement).value)
+    expect(names).toEqual(['Product', 'Java', 'Frontend', 'QA'])
+    openSettings('Areas')
+    const areaNames = screen.getAllByRole('textbox', { name: 'Area name' }).map(i => (i as HTMLInputElement).value)
+    expect(areaNames).toEqual(['Billing', 'Mobile app', 'Web portal'])
+    for (const code of ['BIL', 'MOB', 'WEB']) expect(screen.getAllByText(code).length).toBeGreaterThan(0)
+  })
+
+  it('backlog má 100 featur „sorted by revenue“; metriky na začátku; Run je aktivní a bez varování', () => {
+    openOrganization()
+    expect(backlogItems()).toHaveLength(100)
+    expect(within(region('Backlog')).getByText('sorted by revenue')).toBeInTheDocument()
+    expect(tile('Total Time')).toHaveTextContent('0.0 days')
+    expect(tile('Revenue (time-matched)')).toHaveTextContent('€0')
+    expect(screen.getByText('No completed features yet.')).toBeInTheDocument()
+    expect(warnings()).toEqual([])
+    expect(runButton()).toBeEnabled()
+  })
+})
+
+describe('feat-028 A6: posuvníky backlogu a jejich meze', () => {
+  const slider = (name: string) => screen.getByRole('slider', { name })
+
+  it('výchozí hodnoty a rozsahy', () => {
+    openOrganization()
+    openSettings('Backlog')
+    expect(slider('Backlog size')).toHaveValue('100')
+    expect(screen.getByText('100 items')).toBeInTheDocument()
+    expect(screen.getByText('1–3 areas')).toBeInTheDocument()
+    expect(slider('Areas per feature maximum')).toHaveAttribute('max', '3')
+    expect(screen.getByText('1–3 skills')).toBeInTheDocument()
+    expect(slider('Skills per area maximum')).toHaveAttribute('max', '4')
+    expect(screen.getByText('1–5 days')).toBeInTheDocument()
+    expect(slider('Effort per skill maximum')).toHaveAttribute('max', '20')
+  })
+
+  it('přidání oblasti zvětší rozsah, smazání oblastí stáhne mez; s jedinou oblastí je posuvník neaktivní', () => {
+    openOrganization()
+    openSettings('Areas')
+    fireEvent.change(screen.getByRole('textbox', { name: 'New area code' }), { target: { value: 'OPS' } })
+    fireEvent.change(screen.getByRole('textbox', { name: 'New area name' }), { target: { value: 'Operations' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Add area' }))
+    openSettings('Backlog')
+    expect(slider('Areas per feature maximum')).toHaveAttribute('max', '4')
+    expect(screen.getByText('1–3 areas')).toBeInTheDocument()
+
+    fireEvent.change(slider('Areas per feature maximum'), { target: { value: '4' } })
+    fireEvent.change(slider('Areas per feature minimum'), { target: { value: '2' } })
+    for (const name of ['Web portal', 'Operations']) {
+      fireEvent.click(screen.getByRole('button', { name: `Delete ${name}` }))
+      fireEvent.click(screen.getByRole('button', { name: 'Delete' }))
+    }
+    expect(slider('Areas per feature maximum')).toHaveAttribute('max', '2')
+    expect(screen.getByText('2 areas')).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Delete Mobile app' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Delete' }))
+    expect(slider('Areas per feature minimum')).toBeDisabled()
+    expect(slider('Areas per feature maximum')).toBeDisabled()
+    expect(screen.getByText('1 area')).toBeInTheDocument()
+  })
+})
+
+describe('feat-028 A11: posuvníky se projeví až po vygenerování', () => {
+  it('Effort per skill 10–10 backlog nezmění; po „Generate new backlog“ mají všechny úkoly 10 dní', () => {
+    openOrganization()
+    const firstBefore = backlogItems()[0].textContent
+    openSettings('Backlog')
+    fireEvent.change(screen.getByRole('slider', { name: 'Effort per skill maximum' }), { target: { value: '10' } })
+    fireEvent.change(screen.getByRole('slider', { name: 'Effort per skill minimum' }), { target: { value: '10' } })
+    expect(screen.getByText('10 days')).toBeInTheDocument()
+    expect(backlogItems()[0].textContent).toBe(firstBefore)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Generate new backlog' }))
+    for (const item of backlogItems().slice(0, 5)) {
+      const chips = within(expandItem(item)).getAllByText(/ · \d+ d$/).map(c => c.textContent)
+      expect(chips.length).toBeGreaterThan(0)
+      for (const chip of chips) expect(chip).toMatch(/ · 10 d$/)
+    }
+  })
+})
+
+describe('feat-028 B1–B4: mandáty', () => {
+  it('B1: + v Team Mobile nabídne BIL a WEB v pořadí oblastí; po výběru WEB má tým štítky MOB a WEB', () => {
+    openOrganization()
+    fireEvent.click(within(teamRow('Team Mobile')).getByRole('button', { name: 'Add mandate' }))
+    const menu = screen.getByRole('menu')
+    expect(within(menu).getAllByRole('menuitem').map(i => i.textContent?.replace(/\s+/g, ' ').trim())).toEqual(['BIL Billing', 'WEB Web portal'])
+    fireEvent.click(within(menu).getByRole('menuitem', { name: 'WEB Web portal' }))
+    expect(mandateButtons('Team Mobile')).toEqual(['Remove mandate MOB', 'Remove mandate WEB'])
+    expect(screen.queryByRole('menu')).toBeNull()
+  })
+
+  it('B2: mandáty jsou v pořadí oblastí (Team Web + BIL → BIL, WEB); štítek má title s názvem oblasti', () => {
+    openOrganization()
+    addMandate('Team Web', 'BIL Billing')
+    expect(mandateButtons('Team Web')).toEqual(['Remove mandate BIL', 'Remove mandate WEB'])
+    expect(within(teamRow('Team Web')).getByTitle('Billing')).toBeInTheDocument()
+  })
+
+  it('B3: se všemi oblastmi tlačítko + v řádku není', () => {
+    openOrganization()
+    addMandate('Team Web', 'BIL Billing')
+    addMandate('Team Web', 'MOB Mobile app')
+    expect(within(teamRow('Team Web')).queryByRole('button', { name: 'Add mandate' })).toBeNull()
+  })
+
+  it('B4: odebrání posledního mandátu → „No mandate“, varování a neaktivní Run s tooltipem', () => {
+    openOrganization()
+    fireEvent.click(within(teamRow('Team Web')).getByRole('button', { name: 'Remove mandate WEB' }))
+    expect(within(teamRow('Team Web')).getByText('No mandate')).toBeInTheDocument()
+    expect(warnings()).toEqual(['No team has a mandate for WEB'])
+    expect(within(org()).getByRole('alert')).toHaveTextContent('Run is disabled')
+    expect(runButton()).toBeDisabled()
+    expect(runButton()).toHaveAttribute('title', 'Fix the warnings in the Organization panel first')
+  })
+
+  it('C2: vrácení mandátu varování zruší a Run je zase aktivní', () => {
+    openOrganization()
+    fireEvent.click(within(teamRow('Team Web')).getByRole('button', { name: 'Remove mandate WEB' }))
+    addMandate('Team Mobile', 'WEB Web portal')
+    expect(warnings()).toEqual([])
+    expect(runButton()).toBeEnabled()
+  })
+})
+
+describe('feat-028 B6–B7: přejmenování týmu', () => {
+  it('B6: „  Mobile Apple “ + Enter → „Mobile Apple“, také v detailu backlogu a za běhu', () => {
+    openOrganization()
+    const input = within(teamRow('Team Mobile')).getByRole('textbox', { name: 'Team name' })
+    fireEvent.change(input, { target: { value: '  Mobile Apple ' } })
+    fireEvent.keyDown(input, { key: 'Enter' })
+    expect(teamNames()).toEqual(['Team Billing', 'Mobile Apple', 'Team Web'])
+    const withMob = backlogItems().find(i => within(i).queryByText('MOB'))!
+    expect(within(expandItem(withMob)).getByText(/^Mandate: Mobile Apple$/)).toBeInTheDocument()
+    fireEvent.click(runButton())
+    expect(within(org()).getByText('Mobile Apple')).toBeInTheDocument()
+  })
+
+  it('B7: prázdný název se neuloží; shodný název se uloží', () => {
+    openOrganization()
+    const input = within(teamRow('Team Web')).getByRole('textbox', { name: 'Team name' })
+    fireEvent.change(input, { target: { value: '   ' } })
+    fireEvent.blur(input)
+    expect(teamNames()[2]).toBe('Team Web')
+    const again = within(teamRows()[2]).getByRole('textbox', { name: 'Team name' })
+    fireEvent.change(again, { target: { value: 'Team Mobile' } })
+    fireEvent.blur(again)
+    expect(teamNames()).toEqual(['Team Billing', 'Team Mobile', 'Team Mobile'])
+  })
+})
+
+describe('feat-028 B8–B11: týmy a lidé', () => {
+  it('B8: „+ Add team“ přidá rozbalený „Team 4“ bez lidí a mandátu; Run zůstane aktivní', () => {
+    openOrganization()
+    fireEvent.click(within(org()).getByRole('button', { name: '+ Add team' }))
+    expect(teamNames()).toEqual(['Team Billing', 'Team Mobile', 'Team Web', 'Team 4'])
+    const row = teamRow('Team 4')
+    expect(within(row).getByText('0 people')).toBeInTheDocument()
+    expect(within(row).getByText('No mandate')).toBeInTheDocument()
+    expect(within(row).getByRole('button', { name: 'Show or hide people' })).toHaveAttribute('aria-expanded', 'true')
+    expect(runButton()).toBeEnabled()
+  })
+
+  it('B8: odebrání Team Web po potvrzení → varování „No team has a mandate for WEB“', () => {
+    openOrganization()
+    fireEvent.click(within(teamRow('Team Web')).getByRole('button', { name: 'Remove Team Web' }))
+    expect(screen.getByText('Remove Team Web? 4 people will be removed.')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Remove' }))
+    expect(teamNames()).toEqual(['Team Billing', 'Team Mobile'])
+    expect(warnings()).toEqual(['No team has a mandate for WEB'])
+    expect(runButton()).toBeDisabled()
+  })
+
+  it('B8: Cancel tým neodebere', () => {
+    openOrganization()
+    fireEvent.click(within(teamRow('Team Web')).getByRole('button', { name: 'Remove Team Web' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
+    expect(teamNames()).toHaveLength(3)
+  })
+
+  it('B9: „+ Add person“ přidá člověka bez skillů (jen +); „Remove person“ ho odebere', () => {
+    openOrganization()
+    people('Team Web')
+    fireEvent.click(within(teamRow('Team Web')).getByRole('button', { name: '+ Add person' }))
+    const cards = people('Team Web')
+    expect(cards).toHaveLength(5)
+    expect(within(teamRow('Team Web')).getByText('5 people')).toBeInTheDocument()
+    const added = cards[4]
+    expect(within(added).queryAllByRole('button', { name: /^AI speed-up for/ })).toHaveLength(0)
+    expect(within(added).getByRole('button', { name: 'Add skill' })).toBeInTheDocument()
+    fireEvent.click(within(added).getByRole('button', { name: 'Person actions' }))
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Remove person' }))
+    expect(people('Team Web')).toHaveLength(4)
+    expect(within(teamRow('Team Web')).getByText('4 people')).toBeInTheDocument()
+  })
+
+  it('B10: Hana — nabídka + má Product, Java, QA; přidání a odebrání Java', () => {
+    openOrganization()
+    const hana = personCard('Team Web', 'Hana')
+    fireEvent.click(within(hana).getByRole('button', { name: 'Add skill' }))
+    const menu = screen.getByRole('menu')
+    expect(within(menu).getAllByRole('menuitem').map(i => i.textContent?.trim())).toEqual(['Product', 'Java', 'QA'])
+    fireEvent.click(within(menu).getByRole('menuitem', { name: 'Java' }))
+    const card = personCard('Team Web', 'Hana')
+    expect(within(card).getAllByRole('button', { name: /^AI speed-up for/ }).map(b => b.getAttribute('aria-label'))).toEqual([
+      'AI speed-up for Frontend', 'AI speed-up for Java',
+    ])
+    fireEvent.click(within(card).getByRole('button', { name: 'Remove skill Java' }))
+    expect(within(personCard('Team Web', 'Hana')).queryByRole('button', { name: 'Remove skill Java' })).toBeNull()
+    expect(within(personCard('Team Web', 'Hana')).getByRole('button', { name: 'Remove skill Frontend' })).toBeInTheDocument()
+  })
+
+  it('B11: Eli s Frontend 2× přesunutá do Team Web je poslední i s AI; Team Mobile má 3 lidi', () => {
+    openOrganization()
+    fireEvent.click(within(personCard('Team Mobile', 'Eli')).getByRole('button', { name: 'AI speed-up for Frontend' }))
+    fireEvent.click(within(personCard('Team Mobile', 'Eli')).getByRole('button', { name: 'Person actions' }))
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Move to Team Web' }))
+    const web = people('Team Web')
+    expect(within(web[web.length - 1]).getByText('Eli')).toBeInTheDocument()
+    expect(within(web[web.length - 1]).getByRole('button', { name: 'AI speed-up for Frontend: 2×' })).toBeInTheDocument()
+    expect(within(teamRow('Team Mobile')).getByText('3 people')).toBeInTheDocument()
+    expect(within(teamRow('Team Web')).getByText('5 people')).toBeInTheDocument()
+  })
+})
+
+describe('feat-028 B12–B13: AI na skillu člověka', () => {
+  it('B12: tři kliknutí na AI u Java: 2× → 5× → 1×; tooltip říká další krok; souhrn týmu „1 person with AI“', () => {
+    openOrganization()
+    const ai = () => within(personCard('Team Billing', 'Ben')).getByRole('button', { name: /^AI speed-up for Java/ })
+    expect(ai()).toHaveAttribute('aria-label', 'AI speed-up for Java')
+    expect(within(teamRow('Team Billing')).queryByTitle('1 person with AI')).toBeNull()
+    fireEvent.click(ai())
+    expect(ai()).toHaveAttribute('aria-label', 'AI speed-up for Java: 2×')
+    expect(ai()).toHaveAttribute('title', 'AI speed-up for Java: 2× – click for 5×')
+    expect(within(teamRow('Team Billing')).getByTitle('1 person with AI')).toHaveTextContent('1')
+    fireEvent.click(ai())
+    expect(ai()).toHaveAttribute('aria-label', 'AI speed-up for Java: 5×')
+    expect(ai()).toHaveAttribute('title', 'AI speed-up for Java: 5× – click to turn off')
+    fireEvent.click(ai())
+    expect(ai()).toHaveAttribute('aria-label', 'AI speed-up for Java')
+    expect(within(teamRow('Team Billing')).queryByTitle('1 person with AI')).toBeNull()
+  })
+
+  it('B13: AI patří dvojici člověk + skill; po odebrání a znovupřidání je skill zpět na 1×', () => {
+    openOrganization()
+    const gus = () => personCard('Team Web', 'Gus')
+    fireEvent.click(within(gus()).getByRole('button', { name: 'Add skill' }))
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Java' }))
+    fireEvent.click(within(gus()).getByRole('button', { name: 'AI speed-up for Java' }))
+    fireEvent.click(within(gus()).getByRole('button', { name: 'AI speed-up for Java: 2×' }))
+    expect(within(gus()).getByRole('button', { name: 'AI speed-up for Java: 5×' })).toBeInTheDocument()
+    expect(within(gus()).getByRole('button', { name: 'AI speed-up for Product' })).toBeInTheDocument()
+    fireEvent.click(within(gus()).getByRole('button', { name: 'Remove skill Java' }))
+    fireEvent.click(within(gus()).getByRole('button', { name: 'Add skill' }))
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Java' }))
+    expect(within(gus()).getByRole('button', { name: 'AI speed-up for Java' })).toBeInTheDocument()
+  })
+})
+
+describe('feat-028 B14–B17: editor skillů', () => {
+  it('B14: přidání skillu Security (fáze 1, bez Req.), který je pak v nabídce u lidí; chyby duplicitního a prázdného názvu', () => {
+    openOrganization()
+    openSettings('Skills')
+    const nameField = screen.getByPlaceholderText('Name…')
+    fireEvent.change(nameField, { target: { value: 'Security' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Add' }))
+    expect(screen.getAllByRole('textbox', { name: 'Skill name' }).map(i => (i as HTMLInputElement).value)).toEqual([
+      'Product', 'Java', 'Frontend', 'QA', 'Security',
+    ])
+    fireEvent.click(within(personCard('Team Web', 'Hana')).getByRole('button', { name: 'Add skill' }))
+    expect(within(screen.getByRole('menu')).getByRole('menuitem', { name: 'Security' })).toBeInTheDocument()
+    fireEvent.keyDown(screen.getByRole('menu'), { key: 'Escape' })
+
+    fireEvent.change(screen.getByPlaceholderText('Name…'), { target: { value: 'java' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Add' }))
+    expect(screen.getByText('"java" already exists')).toBeInTheDocument()
+    fireEvent.change(screen.getByPlaceholderText('Name…'), { target: { value: '' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Add' }))
+    expect(screen.getByText('Name is required')).toBeInTheDocument()
+  })
+
+  it('B15: přejmenování QA na „QA automation“ je vidět na čipech lidí', () => {
+    openOrganization()
+    openSettings('Skills')
+    const qa = screen.getAllByRole('textbox', { name: 'Skill name' }).find(i => (i as HTMLInputElement).value === 'QA')!
+    fireEvent.change(qa, { target: { value: 'QA automation' } })
+    fireEvent.blur(qa)
+    expect(within(personCard('Team Billing', 'Chen')).getByRole('button', { name: 'AI speed-up for QA automation' })).toBeInTheDocument()
+  })
+
+  it('B16: smazání QA s potvrzením odebere skill lidem i úkolům v backlogu', () => {
+    openOrganization()
+    const withQa = backlogItems().find(i => within(expandItem(i)).queryAllByText(/^QA · /).length > 0)!
+    const label = within(withQa).getByText(/^F-\d+/).textContent!
+    openSettings('Skills')
+    fireEvent.click(screen.getByRole('button', { name: 'Delete QA' }))
+    expect(screen.getByText(/Delete QA\? 3 people lose it and tasks requiring it will be removed\./)).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Delete' }))
+    expect(screen.getAllByRole('textbox', { name: 'Skill name' }).map(i => (i as HTMLInputElement).value)).toEqual(['Product', 'Java', 'Frontend'])
+    for (const [teamName, name] of [['Team Billing', 'Chen'], ['Team Mobile', 'Fae'], ['Team Web', 'Ivo']]) {
+      expect(within(personCard(teamName, name)).queryByRole('button', { name: /^AI speed-up for/ })).toBeNull()
+    }
+    const after = backlogItems().find(i => within(i).queryByText(label))
+    if (after) expect(within(expandItem(after)).queryAllByText(/^QA · /)).toHaveLength(0)
+  })
+
+  it('B17: poslední skill nejde smazat', () => {
+    openOrganization()
+    openSettings('Skills')
+    for (const name of ['Product', 'Java', 'Frontend']) {
+      fireEvent.click(screen.getByRole('button', { name: `Delete ${name}` }))
+      fireEvent.click(screen.getByRole('button', { name: 'Delete' }))
+    }
+    expect(screen.queryByRole('button', { name: 'Delete QA' })).toBeNull()
+  })
+})
+
+describe('feat-028 B18–B20: editor oblastí', () => {
+  const code = () => screen.getByRole('textbox', { name: 'New area code' })
+  const name = () => screen.getByRole('textbox', { name: 'New area name' })
+  const add = () => fireEvent.click(screen.getByRole('button', { name: 'Add area' }))
+
+  it('B18: přidání „ops“ / „Operations“ → „OPS Operations“, je v nabídce mandátů; chyby kódu a názvu', () => {
+    openOrganization()
+    openSettings('Areas')
+    fireEvent.change(code(), { target: { value: 'ops' } })
+    fireEvent.change(name(), { target: { value: 'Operations' } })
+    add()
+    expect(screen.getAllByRole('textbox', { name: 'Area name' }).map(i => (i as HTMLInputElement).value)).toEqual([
+      'Billing', 'Mobile app', 'Web portal', 'Operations',
+    ])
+    fireEvent.click(within(teamRow('Team Web')).getByRole('button', { name: 'Add mandate' }))
+    expect(within(screen.getByRole('menu')).getByRole('menuitem', { name: 'OPS Operations' })).toBeInTheDocument()
+    fireEvent.keyDown(screen.getByRole('menu'), { key: 'Escape' })
+
+    fireEvent.change(code(), { target: { value: 'O' } })
+    fireEvent.change(name(), { target: { value: 'Ops' } })
+    add()
+    expect(screen.getByText('Code must be 2–3 letters.')).toBeInTheDocument()
+    fireEvent.change(code(), { target: { value: 'BIL' } })
+    add()
+    expect(screen.getByText('BIL already exists.')).toBeInTheDocument()
+    fireEvent.change(code(), { target: { value: 'DAT' } })
+    fireEvent.change(name(), { target: { value: '' } })
+    add()
+    expect(screen.getByText('Enter a name.')).toBeInTheDocument()
+  })
+
+  it('B18: přejmenování „Web portal“ na „Customer portal“ se projeví v tooltipu štítku i v nabídce; kód zůstane WEB', () => {
+    openOrganization()
+    openSettings('Areas')
+    const web = screen.getAllByRole('textbox', { name: 'Area name' }).find(i => (i as HTMLInputElement).value === 'Web portal')!
+    fireEvent.change(web, { target: { value: 'Customer portal' } })
+    fireEvent.blur(web)
+    expect(within(teamRow('Team Web')).getByTitle('Customer portal')).toHaveTextContent('WEB')
+    fireEvent.click(within(teamRow('Team Billing')).getByRole('button', { name: 'Add mandate' }))
+    expect(within(screen.getByRole('menu')).getByRole('menuitem', { name: 'WEB Customer portal' })).toBeInTheDocument()
+  })
+
+  it('B19: smazání WEB s potvrzením → Team Web „No mandate“, v backlogu žádná oblast WEB', () => {
+    openOrganization()
+    openSettings('Areas')
+    fireEvent.click(screen.getByRole('button', { name: 'Delete Web portal' }))
+    expect(screen.getByText(/Delete Web portal\? 1 team loses the mandate and tasks in this area will be removed\./)).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Delete' }))
+    expect(within(teamRow('Team Web')).getByText('No mandate')).toBeInTheDocument()
+    expect(within(region('Backlog')).queryAllByText('WEB')).toHaveLength(0)
+    expect(backlogItems().length).toBeLessThan(100)
+    expect(warnings()).toEqual([])
+  })
+
+  it('B20: poslední oblast nejde smazat', () => {
+    openOrganization()
+    openSettings('Areas')
+    for (const n of ['Billing', 'Mobile app']) {
+      fireEvent.click(screen.getByRole('button', { name: `Delete ${n}` }))
+      fireEvent.click(screen.getByRole('button', { name: 'Delete' }))
+    }
+    expect(screen.queryByRole('button', { name: 'Delete Web portal' })).toBeNull()
+  })
+})
+
+describe('feat-028 B21–B22: přepínač výběru práce a sbalení týmů', () => {
+  it('B21: hint Reduce WIP a Min units', () => {
+    openOrganization()
+    openSettings('Backlog')
+    expect(screen.getByText('WIP: people finish in-progress features before pulling new ones.')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Min units' }))
+    expect(screen.getByText('WIP: people stay on features their team already knows and avoid features other teams are working on.')).toBeInTheDocument()
+  })
+
+  it('B22: „Expand all“ rozbalí všechny týmy a změní se na „Collapse all“; šipka přepíná jen svůj tým', () => {
+    openOrganization()
+    fireEvent.click(within(org()).getByRole('button', { name: 'Expand all' }))
+    for (const r of teamRows()) expect(within(r).getByRole('button', { name: 'Show or hide people' })).toHaveAttribute('aria-expanded', 'true')
+    expect(within(org()).getByRole('button', { name: 'Collapse all' })).toBeInTheDocument()
+    fireEvent.click(within(teamRow('Team Mobile')).getByRole('button', { name: 'Show or hide people' }))
+    expect(within(teamRow('Team Mobile')).getByRole('button', { name: 'Show or hide people' })).toHaveAttribute('aria-expanded', 'false')
+    expect(within(teamRow('Team Web')).getByRole('button', { name: 'Show or hide people' })).toHaveAttribute('aria-expanded', 'true')
+  })
+})
+
+describe('feat-028 C9: kontrola reaguje hned', () => {
+  it('odebrání QA Chenovi okamžitě ukáže „No one with QA can work in BIL“ a zablokuje Run', () => {
+    openOrganization()
+    fireEvent.click(within(personCard('Team Billing', 'Chen')).getByRole('button', { name: 'Remove skill QA' }))
+    expect(warnings()).toContain('No one with QA can work in BIL')
+    expect(runButton()).toBeDisabled()
+  })
+})
+
+describe('feat-028 I1: zamčení po spuštění', () => {
+  it('po Run i v pauze nejde organizace měnit a hlavička ukazuje zámek', async () => {
+    openOrganization()
+    fireEvent.click(runButton())
+    await advance(500)
+    expect(within(org()).getByText('Skills, AI and mandates are locked during the run')).toBeInTheDocument()
+    expect(within(org()).queryByRole('textbox', { name: 'Team name' })).toBeNull()
+    fireEvent.click(runButton('Pause'))
+    expect(within(org()).getByText('Skills, AI and mandates are locked during the run')).toBeInTheDocument()
+    expect(within(org()).queryByRole('button', { name: 'Add mandate' })).toBeNull()
+  })
+})
+
+describe('feat-028 I3 a I5: Reset a nový backlog', () => {
+  it('I3: Reset nechá organizaci, vrátí backlog a z doběhnutého běhu udělá předchozí', async () => {
+    openOrganization()
+    smallBacklog()
+    fireEvent.click(within(teamRow('Team Mobile')).getByRole('button', { name: 'Add mandate' }))
+    fireEvent.click(screen.getByRole('menuitem', { name: 'WEB Web portal' }))
+    const backlogBefore = backlogItems().map(i => i.textContent)
+    await runToDone()
+    expect(within(org()).getByText('Reset to change the organization')).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: /Reset$/ }))
+    expect(teamNames()).toEqual(['Team Billing', 'Team Mobile', 'Team Web'])
+    expect(mandateButtons('Team Mobile')).toEqual(['Remove mandate MOB', 'Remove mandate WEB'])
+    expect(backlogItems().map(i => i.textContent)).toEqual(backlogBefore)
+    expect(screen.getByText('No completed features yet.')).toBeInTheDocument()
+    expect(tile('Total Time')).toHaveTextContent('0.0 days')
+
+    await runToDone()
+    for (const label of ['Total Time', 'Avg Cycle Time', 'Avg WIP', 'Revenue (time-matched)', 'Idle Time']) {
+      expect(within(tile(label)).getByText('vs prev run')).toBeInTheDocument()
+    }
+  }, SIM_RUN_TIMEOUT_MS)
+
+  it('I5: „Generate new backlog“ po doběhnutí nechá organizaci a vyprázdní Done', async () => {
+    openOrganization()
+    smallBacklog()
+    await runToDone()
+    fireEvent.click(screen.getByRole('button', { name: 'Generate new backlog' }))
+    expect(teamNames()).toEqual(['Team Billing', 'Team Mobile', 'Team Web'])
+    expect(screen.getByText('No completed features yet.')).toBeInTheDocument()
+    expect(runButton()).toBeEnabled()
+  }, SIM_RUN_TIMEOUT_MS)
+})
+
+describe('feat-028 I7: zpětná vazba pozastaví běh', () => {
+  it('otevření dialogu zastaví běh (▶ Run) a čas stojí; dialog dostane název módu „Organization“', async () => {
+    openOrganization()
+    fireEvent.click(runButton())
+    await advance(1000)
+    expect(runButton('Pause')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Send feedback' }))
+    expect(screen.queryByRole('button', { name: /Pause$/ })).toBeNull()
+    const stopped = tile('Total Time').textContent
+    await advance(2000)
+    expect(tile('Total Time').textContent).toBe(stopped)
+
+    const dialog = screen.getByRole('dialog')
+    fireEvent.click(within(dialog).getByRole('button', { name: '1 – Not useful' }))
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Send' }))
+    await within(dialog).findByRole('heading', { name: 'Thanks for your feedback.' })
+    const [, init] = fetchMock.mock.calls[0] as [string, RequestInit]
+    expect(JSON.parse(init.body as string).Mode).toBe('Organization')
+  })
+})

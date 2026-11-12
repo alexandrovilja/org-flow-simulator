@@ -1,0 +1,546 @@
+import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { render, screen, fireEvent, within } from '@testing-library/react'
+import { OrganizationView, type OrganizationViewProps } from '@/components/OrganizationView'
+import tileStyles from '@/components/StatTile.module.css'
+import { DEFAULT_ORG_BACKLOG_SETTINGS, makeOrgFeature, makeOrgState } from '@/simulation/organizationEngine'
+import type { OrgFeature, OrgRunSnapshot, OrgSimState } from '@/types/organization'
+import { feat, grant, orgB, orgDef, orgT, runToEnd, runUntil, stateOf, team } from './feat028Fixtures'
+
+// feat-028 (Týmy složené z lidí) — zobrazení módu Organization nad daným stavem běhu.
+//
+// Schválený kontrakt (spec, UI / Design; mockup docs/feat-028-ui-mockup.html v9; analýza C1–C5, C8, E1, E5, E6,
+// F2, F4–F9, G1, G5, G6, H1–H8, I1, I2):
+//  - `OrganizationView` (`src/components/OrganizationView.tsx`) je celá plocha módu (tři sloupce). Props:
+//    setup, onSetupChange, state, locked, backlogSettings, onBacklogSettingsChange, onGenerateBacklog, wipMode,
+//    onWipModeChange, revenueProfile, onRevenueProfileChange, previousRun. `locked` = běh začal (i pauza a po doběhnutí)
+//    → panel organizace je jen ke čtení (pohled za běhu).
+//  - Featura se v UI označuje jako v ostatních módech „F-001“ (data v analýze píšou zkráceně F-1).
+//  - Sekce jsou regiony: „Backlog“ (jen seznam, Settings jsou mimo), „In progress“, „Organization“ (aria-label), dlaždice `data-testid="stat-tile-<název>"`
+//    (Total Time, Avg Cycle Time, Avg WIP, Revenue (time-matched), Idle Time).
+//  - Organization: hlavička „3 teams · 12 people“, za běhu „N idle“ a texty zámku; řádek týmu `data-testid="org-team-row"`;
+//    tlačítko „Show or hide people“ (aria-expanded); za běhu pruh lidí `data-testid="org-people-bar"` s textem „2/3“
+//    a atributy data-working / data-blocked / data-idle; štítky featur jsou tlačítka „F-001“, „F-002 ×2“; text „1 idle“
+//    má `data-tone` = "idle" | "blocked"; tým bez práce ukazuje „—“. Karta člověka `data-testid="org-person"`:
+//    úkol „F-001 · BIL · QA“ s progressbarem, nebo „Idle“ s `data-tone` a u žlutého idle tooltipem
+//    „Idle while work for their skills waits in Web portal“.
+//  - In progress: řádek `data-testid="org-feature-row"` (data-feature-id, data-highlighted), tlačítko řádku s názvem
+//    začínajícím „F-001“ (aria-expanded), štítky oblastí `data-testid="org-area-tag"` (data-state = done | waiting | open,
+//    hotová „✓ BIL“), progressbar (aria-valuenow = % hotové práce, zaokrouhleno), poznámka „Waiting · WEB“, úkoly
+//    `data-testid="org-task"` (data-status = done | doing | todo | waiting, data-progress u rozpracovaného, iniciála
+//    člověka, title u čekajícího „Frontend · waiting · 1 idle person with this skill in Team Mobile“), filtr
+//    „1 waiting“ (aria-pressed).
+//  - Backlog: položka `data-testid="org-backlog-item"` s tlačítkem (aria-expanded), výnos „€280/week“; detail
+//    „Priority 2 · €280/week · 3 tasks · 8 days of work“, čipy „Product · 2 d“, „Mandate: Team Billing“ nebo
+//    „No team has a mandate for this area“; prázdný backlog „Backlog is empty.“
+//  - Done: řádek `data-testid="org-done-row"` (nejnovější nahoře) s „€200/week · 12.0 d“, vydělanou částkou a odpočtem
+//    `[class*="countdownFill"]` (šířka v %); klik otevře/zavře `data-testid="org-timeline"` s hlavičkou, nadpisy oblastí
+//    „BIL done by Team Billing“, úseky `data-testid="org-timeline-segment"` (data-kind = work | wait, title),
+//    osou, součty a „Teams: …“.
+//  - Varování před během: `role="alert"` s „Run is disabled“ a položkami seznamu.
+
+beforeEach(() => {
+  // jsdom nemá scrollIntoView; skok na featuru (H3) ho volá
+  Element.prototype.scrollIntoView = vi.fn()
+})
+
+/**
+ * Vykreslí plochu módu nad daným stavem. Bez `locked` se bere, zda běh začal (čas > 0).
+ */
+function renderView(state: OrgSimState, overrides: Partial<OrganizationViewProps> = {}) {
+  const props: OrganizationViewProps = {
+    setup: state.setup,
+    onSetupChange: vi.fn(),
+    state,
+    locked: state.simTime > 0,
+    backlogSettings: DEFAULT_ORG_BACKLOG_SETTINGS,
+    onBacklogSettingsChange: vi.fn(),
+    onGenerateBacklog: vi.fn(),
+    wipMode: 'reduce-wip',
+    onWipModeChange: vi.fn(),
+    revenueProfile: 'flat',
+    onRevenueProfileChange: vi.fn(),
+    previousRun: null,
+    ...overrides,
+  }
+  return { ...render(<OrganizationView {...props} />), props }
+}
+
+const region = (name: string) => screen.getByRole('region', { name })
+/** Označení featury v UI jako v ostatních módech: F-001. */
+const label = (id: number) => `F-${String(id).padStart(3, '0')}`
+const tile = (label: string) => screen.getByTestId(`stat-tile-${label}`)
+
+/** Řádek týmu v panelu organizace podle názvu. */
+function teamRow(name: string): HTMLElement {
+  const rows = within(region('Organization')).getAllByTestId('org-team-row')
+  const row = rows.find(r => within(r).queryByText(name) || within(r).queryByDisplayValue(name))
+  if (!row) throw new Error(`Řádek týmu ${name} není`)
+  return row
+}
+
+/** Rozbalí lidi týmu (pokud ještě nejsou) a vrátí kartu člověka. */
+function personCard(teamName: string, personName: string): HTMLElement {
+  const row = teamRow(teamName)
+  const toggle = within(row).getByRole('button', { name: 'Show or hide people' })
+  if (toggle.getAttribute('aria-expanded') !== 'true') fireEvent.click(toggle)
+  const card = within(teamRow(teamName)).getAllByTestId('org-person').find(c => within(c).queryByText(personName))
+  if (!card) throw new Error(`Karta ${personName} není`)
+  return card
+}
+
+/** Řádek rozpracované featury. */
+function featureRow(id: number): HTMLElement {
+  const row = within(region('In progress')).getAllByTestId('org-feature-row').find(r => r.dataset.featureId === String(id))
+  if (!row) throw new Error(`F-${id} v In progress není`)
+  return row
+}
+
+/** Rozbalí řádek rozpracované featury a vrátí jeho úkoly. */
+function expandFeature(id: number): HTMLElement[] {
+  const toggle = within(featureRow(id)).getByRole('button', { name: new RegExp(`^${label(id)}\\b`) })
+  if (toggle.getAttribute('aria-expanded') !== 'true') fireEvent.click(toggle)
+  return within(featureRow(id)).getAllByTestId('org-task')
+}
+
+/** Štítky oblastí řádku featury jako `[text, stav]`. */
+function areaTags(id: number): Array<[string, string | undefined]> {
+  return within(featureRow(id)).getAllByTestId('org-area-tag').map(t => [t.textContent?.trim() ?? '', t.dataset.state])
+}
+
+/** Hodnota progressbaru v řádku featury. */
+const progressOf = (id: number) => within(featureRow(id)).getAllByRole('progressbar')[0].getAttribute('aria-valuenow')
+
+/** D2 v čase t: Umí, ale nesmí. */
+const d2At = (t: number) => runUntil(stateOf(orgT(),
+  'F-1 (p1): BIL [Java 1] | WEB [Frontend 3]',
+  'F-2 (p2): BIL [Java 1] | WEB [Frontend 3]'), t)
+
+/** D7 (ORG-B, Reduce WIP) v čase t. */
+const d7At = (t: number) => runUntil(stateOf(orgB(), 'F-1 (p1): BIL [QA 3]', 'F-2 (p3): BIL [Java 1 · QA 1]', 'F-3 (p2): BIL [QA 1]'), t)
+
+describe('feat-028 E1: Waiting a žlutý idle na obrazovce', () => {
+  it('In progress v čase 1.5: štítky, pruhy postupu, poznámka a filtr „1 waiting“', () => {
+    renderView(d2At(1.5))
+    expect(areaTags(1)).toEqual([['✓ BIL', 'done'], ['WEB', 'open']])
+    expect(progressOf(1)).toBe('63')
+    expect(areaTags(2)).toEqual([['BIL', 'open'], ['WEB', 'waiting']])
+    expect(progressOf(2)).toBe('13')
+    expect(within(featureRow(2)).getByText('Waiting · WEB')).toBeInTheDocument()
+    expect(within(region('In progress')).getByRole('button', { name: '1 waiting' })).toHaveAttribute('aria-pressed', 'false')
+  })
+
+  it('po rozbalení F-2: Java rozpracovaná Benem na 50 %, Frontend Waiting s tooltipem', () => {
+    renderView(d2At(1.5))
+    const [java, frontend] = expandFeature(2)
+    expect(java).toHaveAttribute('data-status', 'doing')
+    expect(java).toHaveAttribute('data-progress', '50')
+    expect(java).toHaveTextContent('B')
+    expect(frontend).toHaveAttribute('data-status', 'waiting')
+    expect(frontend).toHaveAttribute('title', 'Frontend · waiting · 1 idle person with this skill in Team Mobile')
+  })
+
+  it('panel organizace: Eli žlutý „Idle“ s tooltipem, Dani a Fae šedý; Team Mobile 0/3 a „3 idle“; hlavička „7 idle“', () => {
+    renderView(d2At(1.5))
+    const eli = within(personCard('Team Mobile', 'Eli')).getByText('Idle')
+    expect(eli).toHaveAttribute('data-tone', 'blocked')
+    expect(eli).toHaveAttribute('title', 'Idle while work for their skills waits in Web portal')
+    for (const name of ['Dani', 'Fae']) {
+      expect(within(personCard('Team Mobile', name)).getByText('Idle')).toHaveAttribute('data-tone', 'idle')
+    }
+    expect(within(personCard('Team Web', 'Gus')).getByText('Idle')).toHaveAttribute('data-tone', 'idle')
+    const bar = within(teamRow('Team Mobile')).getByTestId('org-people-bar')
+    expect(bar).toHaveTextContent('0/3')
+    expect(bar).toHaveAttribute('data-working', '0')
+    expect(bar).toHaveAttribute('data-blocked', '1')
+    expect(bar).toHaveAttribute('data-idle', '2')
+    expect(within(teamRow('Team Mobile')).getByText('3 idle')).toHaveAttribute('data-tone', 'blocked')
+    expect(within(region('Organization')).getByText('7 idle')).toBeInTheDocument()
+  })
+
+  it('Metrics v čase 1.5: Idle Time „2.5 days“', () => {
+    renderView(d2At(1.5))
+    expect(tile('Idle Time')).toHaveTextContent('2.5')
+    expect(tile('Idle Time')).toHaveTextContent('days')
+  })
+
+  it('v čase 4.0 filtr zmizí, Eli má šedý „Idle“ a Idle Time je „4.0 days“', () => {
+    renderView(d2At(4))
+    expect(within(region('In progress')).queryByRole('button', { name: /waiting$/ })).toBeNull()
+    expect(within(personCard('Team Mobile', 'Eli')).getByText('Idle')).toHaveAttribute('data-tone', 'idle')
+    expect(tile('Idle Time')).toHaveTextContent('4.0')
+  })
+})
+
+describe('feat-028 E5: žlutý idle i kvůli práci v backlogu', () => {
+  it('D10 v čase 1.0: Hana žlutý „Idle“ (Mobile app); In progress jen F-1 bez filtru; Idle Time 1.0', () => {
+    renderView(runUntil(stateOf(grant(orgT(), 'Team Mobile', 'WEB'), 'F-1 (p1): WEB [Frontend 2]', 'F-2 (p2): MOB [Frontend 2]'), 1))
+    const hana = within(personCard('Team Web', 'Hana')).getByText('Idle')
+    expect(hana).toHaveAttribute('data-tone', 'blocked')
+    expect(hana).toHaveAttribute('title', 'Idle while work for their skills waits in Mobile app')
+    expect(within(region('In progress')).getAllByTestId('org-feature-row').map(r => r.dataset.featureId)).toEqual(['1'])
+    expect(within(region('In progress')).queryByRole('button', { name: /waiting$/ })).toBeNull()
+    expect(tile('Idle Time')).toHaveTextContent('1.0')
+  })
+})
+
+describe('feat-028 E6: tým bez lidí za běhu', () => {
+  it('prázdný Team 4 s mandátem BIL ukazuje „0/0“ a ve sloupci Working on „—“', () => {
+    const setup = orgDef()
+    setup.teams.push({ id: 4, name: 'Team 4', mandates: ['BIL'], people: [] })
+    renderView(runUntil(makeOrgState(setup, [feat('F-1 (p1): BIL [Java 2]')]), 0.5))
+    expect(within(teamRow('Team 4')).getByTestId('org-people-bar')).toHaveTextContent('0/0')
+    expect(within(teamRow('Team 4')).getByText('—')).toBeInTheDocument()
+  })
+})
+
+describe('feat-028 H1–H4: panel organizace za běhu', () => {
+  it('H1: D7 v 0.5 — Team Billing: mandát BIL, pruh 2/3, štítky F-1 a F-2 (podle čísla), šedé „1 idle“', () => {
+    renderView(d7At(0.5))
+    const row = teamRow('Team Billing')
+    expect(within(row).getByText('BIL')).toBeInTheDocument()
+    expect(within(row).getByTestId('org-people-bar')).toHaveTextContent('2/3')
+    const chips = within(row).getAllByRole('button', { name: /^F-\d/ }).map(b => b.textContent?.trim())
+    expect(chips).toEqual(['F-001', 'F-002'])
+    expect(within(row).getByText('1 idle')).toHaveAttribute('data-tone', 'idle')
+    // Za běhu nejde nic měnit: bez pole názvu a bez tlačítek mandátů
+    expect(within(row).queryByRole('textbox', { name: 'Team name' })).toBeNull()
+    expect(within(row).queryByRole('button', { name: /mandate/i })).toBeNull()
+  })
+
+  it('H2: D14 v 1.0 — Gus a Hana na F-1 dají štítek „F-1 ×2“ v řádku Team Web', () => {
+    renderView(runUntil(stateOf(orgT(), 'F-1 (p1): WEB [Java 2 · Frontend 2]'), 1))
+    expect(within(teamRow('Team Web')).getByRole('button', { name: 'F-001 ×2' })).toBeInTheDocument()
+  })
+
+  it('H3: klik na „F-1“ v Team Web vypne filtr a F-1 rozbalí, zvýrazní a posune do viditelné části', () => {
+    renderView(d2At(1.5))
+    fireEvent.click(within(region('In progress')).getByRole('button', { name: '1 waiting' }))
+    expect(within(region('In progress')).getAllByTestId('org-feature-row').map(r => r.dataset.featureId)).toEqual(['2'])
+    fireEvent.click(within(teamRow('Team Web')).getByRole('button', { name: 'F-001' }))
+    expect(within(region('In progress')).getByRole('button', { name: '1 waiting' })).toHaveAttribute('aria-pressed', 'false')
+    const row = featureRow(1)
+    expect(row).toHaveAttribute('data-highlighted', 'true')
+    expect(within(row).getByRole('button', { name: /^F-001\b/ })).toHaveAttribute('aria-expanded', 'true')
+    expect(Element.prototype.scrollIntoView).toHaveBeenCalled()
+  })
+
+  it('H4: D7 v 1.0 — Chen „F-1 · BIL · QA“ s pruhem 33 %, Ada a Ben šedý „Idle“', () => {
+    renderView(d7At(1))
+    const chen = personCard('Team Billing', 'Chen')
+    expect(within(chen).getByText('F-001 · BIL · QA')).toBeInTheDocument()
+    expect(within(chen).getByRole('progressbar')).toHaveAttribute('aria-valuenow', '33')
+    for (const name of ['Ada', 'Ben']) {
+      expect(within(personCard('Team Billing', name)).getByText('Idle')).toHaveAttribute('data-tone', 'idle')
+    }
+  })
+})
+
+describe('feat-028 H5–H6: řádek rozpracované featury a filtr', () => {
+  const d6 = () => stateOf(orgT(), 'F-1 (p1, €280/week): BIL [Product 2 · Java 3 · QA 2] | MOB [Frontend 3 · QA 1]')
+
+  it('H5: v 2.5 ukazuje „€280/week“, štítky BIL a MOB a postup 45 %; v 4.0 je MOB zelený „✓ MOB“', () => {
+    const { unmount } = renderView(runUntil(d6(), 2.5))
+    expect(within(featureRow(1)).getByText('€280/week')).toBeInTheDocument()
+    expect(areaTags(1)).toEqual([['BIL', 'open'], ['MOB', 'open']])
+    expect(progressOf(1)).toBe('45')
+    unmount()
+    renderView(runUntil(d6(), 4))
+    expect(areaTags(1)).toEqual([['BIL', 'open'], ['✓ MOB', 'done']])
+  })
+
+  it('H6: „1 waiting“ ukáže jen F-2, další klik obě', () => {
+    renderView(d2At(1.5))
+    const filter = within(region('In progress')).getByRole('button', { name: '1 waiting' })
+    fireEvent.click(filter)
+    expect(filter).toHaveAttribute('aria-pressed', 'true')
+    expect(within(region('In progress')).getAllByTestId('org-feature-row').map(r => r.dataset.featureId)).toEqual(['2'])
+    fireEvent.click(filter)
+    expect(within(region('In progress')).getAllByTestId('org-feature-row').map(r => r.dataset.featureId)).toEqual(['1', '2'])
+  })
+
+  it('bez rozpracovaných featur ukazuje „Nothing in flight.“, po doběhnutí „All features are done.“', () => {
+    const { unmount } = renderView(stateOf(orgT(), 'F-1 (p1): WEB [Frontend 3]'))
+    expect(within(region('In progress')).getByText('Nothing in flight.')).toBeInTheDocument()
+    unmount()
+    renderView(runToEnd(stateOf(orgT(), 'F-1 (p1): WEB [Frontend 3]')))
+    expect(within(region('In progress')).getByText('All features are done.')).toBeInTheDocument()
+  })
+})
+
+describe('feat-028 H7–H8 a F5: backlog', () => {
+  it('H7: detail položky — priorita, výnos, počet úkolů a práce, úkoly po oblastech a týmy s mandátem', () => {
+    const state = makeOrgState(orgDef(), [feat('F-2 (p2, €280/week): BIL [Product 2 · Java 3] | WEB [QA 3]')])
+    const { rerender, props } = renderView(state)
+    const item = within(region('Backlog')).getAllByTestId('org-backlog-item')[0]
+    fireEvent.click(within(item).getByRole('button', { expanded: false }))
+    expect(within(item).getByText('Priority 2 · €280/week · 3 tasks · 8 days of work')).toBeInTheDocument()
+    for (const chip of ['Product · 2 d', 'Java · 3 d', 'QA · 3 d', 'Mandate: Team Billing', 'Mandate: Team Web']) {
+      expect(within(item).getByText(chip)).toBeInTheDocument()
+    }
+    // Před během kouč odebere Team Web mandát WEB → u WEB červené varování
+    const setup = structuredClone(state.setup)
+    team(setup, 'Team Web').mandates = []
+    rerender(<OrganizationView {...props} setup={setup} />)
+    expect(within(item).getByText('No team has a mandate for this area')).toBeInTheDocument()
+  })
+
+  it('B5: oblast s více týmy ukazuje „Mandate: Team Mobile, Team Web“', () => {
+    const state = makeOrgState(grant(orgDef(), 'Team Mobile', 'WEB'), [feat('F-1 (p1): WEB [QA 3]')])
+    renderView(state)
+    const item = within(region('Backlog')).getAllByTestId('org-backlog-item')[0]
+    fireEvent.click(within(item).getByRole('button', { expanded: false }))
+    expect(within(item).getByText('Mandate: Team Mobile, Team Web')).toBeInTheDocument()
+  })
+
+  it('H8: položky v pořadí priorit s klesajícím výnosem; hlavička „sorted by revenue“', () => {
+    const backlog = [3, 1, 5, 2, 4].map(p => makeOrgFeature({
+      id: p, priority: p, revenuePerTick: 550 - p * 50, areas: [{ area: 'BIL', tasks: [{ role: 'Java', work: 1 }] }],
+    }))
+    renderView(makeOrgState(orgDef(), backlog))
+    const items = within(region('Backlog')).getAllByTestId('org-backlog-item')
+    expect(items.map(i => within(i).getByText(/€\d+\/week/).textContent)).toEqual(['€500/week', '€450/week', '€400/week', '€350/week', '€300/week'])
+    expect(within(region('Backlog')).getByText('sorted by revenue')).toBeInTheDocument()
+  })
+
+  it('F5: částky jako formatEuro — €480, €1.2k, €2k, €15.3k', () => {
+    const backlog = [480, 1240, 2000, 15300].map((rev, i) => makeOrgFeature({
+      id: i + 1, priority: 4 - i, revenuePerTick: rev, areas: [{ area: 'BIL', tasks: [{ role: 'Java', work: 1 }] }],
+    }))
+    renderView(makeOrgState(orgDef(), backlog))
+    for (const text of ['€480/week', '€1.2k/week', '€2k/week', '€15.3k/week']) {
+      expect(within(region('Backlog')).getByText(text)).toBeInTheDocument()
+    }
+  })
+
+  it('C8: prázdný backlog ukazuje „Backlog is empty.“ a varování „Backlog is empty“', () => {
+    renderView(makeOrgState(orgDef(), []))
+    expect(within(region('Backlog')).getByText('Backlog is empty.')).toBeInTheDocument()
+    const alert = within(region('Organization')).getByRole('alert')
+    expect(within(alert).getByText('Run is disabled')).toBeInTheDocument()
+    expect(within(alert).getAllByRole('listitem').map(li => li.textContent)).toEqual(['Backlog is empty'])
+  })
+})
+
+describe('feat-028 C1–C5: varování v panelu organizace před během', () => {
+  it('C1: „No team has a mandate for WEB“ a tým bez mandátu ukazuje „No mandate“', () => {
+    const setup = orgT()
+    team(setup, 'Team Web').mandates = []
+    renderView(makeOrgState(setup, [feat('F-1 (p1): WEB [Frontend 3]')]))
+    const alert = within(region('Organization')).getByRole('alert')
+    expect(within(alert).getAllByRole('listitem').map(li => li.textContent)).toEqual(['No team has a mandate for WEB'])
+    expect(within(teamRow('Team Web')).getByText('No mandate')).toBeInTheDocument()
+  })
+
+  it('C5: dvě varování v pořadí oblastí', () => {
+    const setup = orgT()
+    team(setup, 'Team Web').mandates = []
+    setup.teams[0].people[2].skills = []
+    renderView(makeOrgState(setup, [feat('F-1: BIL [QA 2]'), feat('F-2: WEB [Frontend 3]')]))
+    const alert = within(region('Organization')).getByRole('alert')
+    expect(within(alert).getAllByRole('listitem').map(li => li.textContent)).toEqual([
+      'No one with QA can work in BIL', 'No team has a mandate for WEB',
+    ])
+  })
+
+  it('bez problémů není v panelu žádné varování', () => {
+    renderView(makeOrgState(orgDef(), [feat('F-1: BIL [Java 2]')]))
+    expect(within(region('Organization')).queryByRole('alert')).toBeNull()
+  })
+})
+
+describe('feat-028 F2 a F4: Metrics, výnos a Done', () => {
+  const f4 = () => stateOf(orgB(), 'F-1 (p1, €300/week): BIL [Java 1]', 'F-2 (p2, €200/week): BIL [Java 12]')
+
+  it('F2: D7 po doběhnutí — Total Time „1 week 0.0 days“ s „✓ Complete“, Avg Cycle Time „2.7“ a Avg WIP „1.6“', () => {
+    renderView(runToEnd(d7At(0)))
+    expect(tile('Total Time')).toHaveTextContent('1 week 0.0 days')
+    expect(within(tile('Total Time')).getByText('✓ Complete')).toBeInTheDocument()
+    expect(tile('Avg Cycle Time')).toHaveTextContent('2.7')
+    expect(tile('Avg WIP')).toHaveTextContent('1.6')
+  })
+
+  it('F4: v čase 7.0 je Revenue (time-matched) „€300“ s hintem „live total“', () => {
+    renderView(runUntil(f4(), 7))
+    expect(tile('Revenue (time-matched)')).toHaveTextContent('€300')
+    expect(within(tile('Revenue (time-matched)')).getByText('live total')).toBeInTheDocument()
+  })
+
+  it('F4: po doběhnutí €600, Details „Total €600 in 2 weeks 3.0 days“; Done má nahoře F-2', () => {
+    renderView(runToEnd(f4()))
+    expect(tile('Revenue (time-matched)')).toHaveTextContent('€600')
+    fireEvent.click(within(tile('Revenue (time-matched)')).getByRole('button', { name: /Details/ }))
+    expect(within(tile('Revenue (time-matched)')).getByText('Total €600 in 2 weeks 3.0 days')).toBeInTheDocument()
+    const rows = screen.getAllByTestId('org-done-row')
+    expect(rows[0]).toHaveTextContent('F-002')
+    expect(rows[0]).toHaveTextContent('€200/week · 12.0 d')
+    expect(rows[0]).toHaveTextContent('€0')
+    expect(rows[1]).toHaveTextContent('€300/week · 1.0 d')
+    expect(rows[1]).toHaveTextContent('€600')
+  })
+
+  it('F4: v čase 8.5 je odpočet u F-1 na 50 % ((8.5 − 1.0) mod 5 = 2.5 dne z 5)', () => {
+    renderView(runUntil(f4(), 8.5))
+    const row = screen.getAllByTestId('org-done-row').find(r => r.textContent?.includes('F-001'))!
+    const fill = row.querySelector<HTMLElement>('[class*="countdownFill"]')!
+    expect(parseFloat(fill.style.width)).toBeCloseTo(50, 0)
+  })
+
+  it('před během: Total Time „0.0 days“, Revenue „€0“, Done „No completed features yet.“', () => {
+    renderView(f4())
+    expect(tile('Total Time')).toHaveTextContent('0.0 days')
+    expect(tile('Revenue (time-matched)')).toHaveTextContent('€0')
+    expect(screen.getByText('No completed features yet.')).toBeInTheDocument()
+  })
+})
+
+describe('feat-028 F6–F9: srovnání s předchozím během', () => {
+  /** Doběhnutý běh: Total 9.0, Avg cycle 6.9, Avg WIP 4.6, Idle 3.0, výnos €450 (jedna featura €450 hotová v 3.0). */
+  function finishedRun(): OrgSimState {
+    const done = (id: number, startedAt: number, finishedAt: number, rev: number, earned: number): OrgFeature => {
+      const f = makeOrgFeature({ id, priority: id, revenuePerTick: rev, areas: [{ area: 'BIL', tasks: [{ role: 'Java', work: 1 }] }] })
+      f.tasks.forEach(t => { t.status = 'done'; t.progress = t.work })
+      return { ...f, status: 'done', startedAt, finishedAt, totalRevenue: earned, revenueTickCount: earned ? 1 : 0, lastRevenueTickAt: earned ? finishedAt + 5 : finishedAt }
+    }
+    const s = makeOrgState(orgB(), [])
+    s.done = [done(1, 0, 3, 450, 450), done(2, 0, 9, 100, 0), done(3, 0.3, 9, 100, 0)]
+    s.simTime = 9
+    s.wipIntegral = 4.6 * 9
+    s.idleByPerson = { 1: 3 }
+    s.startedAt = 0
+    s.finished = true
+    return s
+  }
+
+  /** Předchozí běh: Total 12.0, Avg cycle 8.7, Avg WIP 4.3, Idle 17.0; výnos €300 v čase 9.0, celkem €600. */
+  const previous: OrgRunSnapshot = {
+    totalTime: 12, avgCycleTime: 8.7, avgWip: 4.3, idleTime: 17, totalRevenue: 600,
+    doneFeatures: [{ finishedAt: 3.5, revenuePerTick: 300 }, { finishedAt: 6, revenuePerTick: 300 }],
+  }
+
+  /** Řádek delty pod hodnotou dlaždice. */
+  const deltaOf = (label: string) => within(tile(label)).getByText('vs prev run').parentElement!
+
+  it('F6: delty ve formátu Cash Flow s barvou podle toho, zda je změna dobrá', () => {
+    renderView(finishedRun(), { previousRun: previous })
+    expect(tile('Total Time')).toHaveTextContent('1 week 4.0 days')
+    expect(deltaOf('Total Time')).toHaveTextContent('↓ 25%')
+    expect(deltaOf('Total Time')).toHaveClass(tileStyles.deltaGood)
+    expect(tile('Avg Cycle Time')).toHaveTextContent('6.9')
+    expect(deltaOf('Avg Cycle Time')).toHaveTextContent('↓ 21%')
+    expect(deltaOf('Avg WIP')).toHaveTextContent('↑ 7.0%')
+    expect(deltaOf('Avg WIP')).toHaveClass(tileStyles.deltaBad)
+    expect(tile('Revenue (time-matched)')).toHaveTextContent('€450')
+    expect(within(tile('Revenue (time-matched)')).getByText('@ 1 week 4.0 days')).toBeInTheDocument()
+    expect(deltaOf('Revenue (time-matched)')).toHaveTextContent('↑ 50%')
+    expect(deltaOf('Revenue (time-matched)')).toHaveClass(tileStyles.deltaGood)
+    expect(tile('Idle Time')).toHaveTextContent('3.0')
+    expect(deltaOf('Idle Time')).toHaveTextContent('↓ 82%')
+    expect(deltaOf('Idle Time')).toHaveClass(tileStyles.deltaGood)
+  })
+
+  it('F6: Details výnosu ukazují vlastní celek a oba údaje předchozího běhu', () => {
+    renderView(finishedRun(), { previousRun: previous })
+    const revenue = tile('Revenue (time-matched)')
+    fireEvent.click(within(revenue).getByRole('button', { name: /Details/ }))
+    expect(within(revenue).getByText('Total €450 in 1 week 4.0 days')).toBeInTheDocument()
+    expect(within(revenue).getByText('Previous run @ 1 week 4.0 days: €300')).toBeInTheDocument()
+    expect(within(revenue).getByText('Previous total €600 in 2 weeks 2.0 days')).toBeInTheDocument()
+  })
+
+  it('F7: stejný Avg WIP → „→ 0.0% vs prev run“ šedě', () => {
+    renderView(finishedRun(), { previousRun: { ...previous, avgWip: 4.6 } })
+    expect(deltaOf('Avg WIP')).toHaveTextContent('→ 0.0%')
+    expect(deltaOf('Avg WIP')).toHaveClass(tileStyles.deltaFlat)
+  })
+
+  it('F8: bez předchozího běhu nemá žádná dlaždice „vs prev run“', () => {
+    renderView(finishedRun(), { previousRun: null })
+    expect(screen.queryByText('vs prev run')).toBeNull()
+  })
+
+  it('F9: za běhu ukazují delty Avg Cycle Time, Avg WIP a Idle Time, Total Time až po doběhnutí', () => {
+    const running = d7At(3.5)
+    renderView(running, { previousRun: previous })
+    for (const label of ['Avg Cycle Time', 'Avg WIP', 'Idle Time']) {
+      expect(within(tile(label)).getByText('vs prev run')).toBeInTheDocument()
+    }
+    expect(within(tile('Total Time')).queryByText('vs prev run')).toBeNull()
+  })
+})
+
+describe('feat-028 G1, G5, G6: timeline v Done', () => {
+  const d6Done = () => runToEnd(stateOf(orgT(), 'F-1 (p1): BIL [Product 2 · Java 3 · QA 2] | MOB [Frontend 3 · QA 1]'))
+
+  /** Otevře timeline hotové featury kliknutím na její řádek v Done. */
+  function openTimeline(id: number): HTMLElement {
+    const row = screen.getAllByTestId('org-done-row').find(r => r.textContent?.includes(label(id)))!
+    fireEvent.click(within(row).getByRole('button', { name: new RegExp(`${label(id)}\\b`) }))
+    return within(row).getByTestId('org-timeline')
+  }
+
+  it('G1: hlavička, nadpisy oblastí, osa, součty a pořadí týmů', () => {
+    renderView(d6Done())
+    const tl = openTimeline(1)
+    expect(tl).toHaveTextContent('Started day 0.0 · done day 7.0 · cycle time 7.0 d')
+    expect(within(tl).getByText('BIL done by Team Billing')).toBeInTheDocument()
+    expect(within(tl).getByText('MOB done by Team Mobile')).toBeInTheDocument()
+    for (const axis of ['d0.0', 'd3.5', 'd7.0']) expect(within(tl).getByText(axis)).toBeInTheDocument()
+    expect(tl).toHaveTextContent('Task time: work 11.0 d · waiting 10.0 d')
+    expect(tl).toHaveTextContent('Teams: Team Billing → Team Mobile')
+    // 5 úseků práce a 3 čekání (Java a QA v BIL, QA v MOB)
+    const segs = within(tl).getAllByTestId('org-timeline-segment')
+    expect(segs.filter(s => s.dataset.kind === 'work')).toHaveLength(5)
+    expect(segs.filter(s => s.dataset.kind === 'wait')).toHaveLength(3)
+  })
+
+  it('G5: tooltipy úseků — práce „Java · Ben, Team Billing · day 2.0–5.0“, čekání „QA · waiting 5.0 d“', () => {
+    renderView(d6Done())
+    const tl = openTimeline(1)
+    expect(within(tl).getByTitle('Java · Ben, Team Billing · day 2.0–5.0')).toHaveAttribute('data-kind', 'work')
+    expect(within(tl).getByTitle('QA · waiting 5.0 d')).toHaveAttribute('data-kind', 'wait')
+  })
+
+  it('G6: každá timeline se otevírá a zavírá sama; rozpracované featury timeline nemají', () => {
+    const s = runToEnd(stateOf(orgB(), 'F-1 (p1): BIL [QA 3]', 'F-2 (p3): BIL [Java 1 · QA 1]', 'F-3 (p2): BIL [QA 1]'))
+    renderView(s)
+    openTimeline(1)
+    openTimeline(2)
+    const row1 = screen.getAllByTestId('org-done-row').find(r => r.textContent?.includes('F-001'))!
+    fireEvent.click(within(row1).getByRole('button', { name: /F-001\b/ }))
+    expect(within(row1).queryByTestId('org-timeline')).toBeNull()
+    const row2 = screen.getAllByTestId('org-done-row').find(r => r.textContent?.includes('F-002'))!
+    expect(within(row2).getByTestId('org-timeline')).toBeInTheDocument()
+    expect(within(region('In progress')).queryByTestId('org-timeline')).toBeNull()
+  })
+})
+
+describe('feat-028 I1–I2: zamčení za běhu', () => {
+  it('I1: za běhu nejde nic měnit a hlavička ukazuje „Skills, AI and mandates are locked during the run“', () => {
+    renderView(d7At(1), { locked: true })
+    const org = region('Organization')
+    expect(within(org).getByText('Skills, AI and mandates are locked during the run')).toBeInTheDocument()
+    expect(within(org).queryByRole('textbox', { name: 'Team name' })).toBeNull()
+    expect(within(org).queryByRole('button', { name: 'Add mandate' })).toBeNull()
+    expect(within(org).queryByRole('button', { name: /^Remove mandate/ })).toBeNull()
+    expect(within(org).queryByRole('button', { name: '+ Add team' })).toBeNull()
+    personCard('Team Billing', 'Chen')
+    expect(within(org).queryByRole('button', { name: '+ Add person' })).toBeNull()
+    expect(within(org).queryByRole('button', { name: /^AI speed-up for/ })).toBeNull()
+    expect(within(org).queryByRole('button', { name: /^Remove skill/ })).toBeNull()
+  })
+
+  it('I1: editory Skills a Areas jsou zamčené s vysvětlením', () => {
+    renderView(d7At(1), { locked: true })
+    fireEvent.click(screen.getByRole('button', { name: 'Skills' }))
+    expect(screen.getByText('Skills are locked during the run. Reset to change them.')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Areas' }))
+    expect(screen.getByText('Areas are locked during the run. Reset to change them.')).toBeInTheDocument()
+    expect(screen.queryByRole('textbox', { name: 'Area code' })).toBeNull()
+  })
+
+  it('I2: po doběhnutí zůstává vše zamčené a hlavička ukazuje „Reset to change the organization“', () => {
+    renderView(runToEnd(d7At(0)), { locked: true })
+    expect(within(region('Organization')).getByText('Reset to change the organization')).toBeInTheDocument()
+    expect(within(region('Organization')).queryByRole('textbox', { name: 'Team name' })).toBeNull()
+  })
+})

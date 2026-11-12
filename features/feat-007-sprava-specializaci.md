@@ -122,3 +122,4 @@ Výsledek: simulace zůstane konzistentní, žádné osiřelé reference.
 
 ## Related Features
 - **feat-021-prevod-design-system-org-flow:** sada předvoleb barev pro specializace se zužuje na 8 role tokenů design systému (`role-rose` … `role-slate`), aby bílý text na čipu držel kontrast 4,5:1; oklch předvolby výše jsou historické.
+- **feat-036-vlastni-skilly-a-oblasti (draft, inkrement 9 módu Organization, feat-028):** přidávání, přejmenování, barva a mazání skillů bude fungovat stejně i v módu Organization. Smazání skillu tam odebere skill i lidem (s jejich AI) a úkolům v backlogu; featura bez úkolů zmizí. Rozsah fáze bude 1–10.

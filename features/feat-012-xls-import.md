@@ -141,6 +141,7 @@ export function parseXlsFile(buffer: ArrayBuffer): ImportResult
 ## Scope — co tato feature NEZAHRNUJE
 - Export simulace zpět do XLS (samostatná feature).
 - Import do Compare módu.
+- Import do módu Organization (feat-028): formát souboru nemá oblasti.
 - CSV podpora (možné rozšíření v budoucnu).
 - Serverová validace nebo ukládání souborů.
 - AI multiplikátor skillů jednotek (feat-019) — importovaný tým má vždy 1× u všech skillů (pole `aiBySkill` chybí); sloupec pro AI je možné budoucí rozšíření.
@@ -160,3 +161,4 @@ _Žádné — všechna rozhodnutí uzavřena._
 ## Related Features
 - **feat-021-prevod-design-system-org-flow:** role z importu dostanou barvy slotů 1–8 (`role-rose` … `role-slate`) v pořadí výskytu a pak znovu od 1, místo `ROLE_HUES`.
 - **feat-027-cas-simulace-pracovni-dny:** `Size` znamená man-days: `Size = 3` je úkol o 3 pracovních dnech (mapování 1:1 zůstává, dříve „sim-sekundy“). U importu přibude nápověda `Size = effort in working days (man-days)`; logika parsování se nemění.
+- **feat-028-tymy-slozene-z-lidi (draft):** mód Organization import z Excelu nemá (Out of Scope), protože featura tam zasahuje do oblastí a dnešní formát (`Feature, Skill, Unit, Size`) oblast nenese.

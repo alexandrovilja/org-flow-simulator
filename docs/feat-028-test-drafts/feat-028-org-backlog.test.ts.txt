@@ -1,0 +1,316 @@
+import { describe, it, expect } from 'vitest'
+import { mulberry32 } from '@/simulation/engine'
+import {
+  DEFAULT_ORG_BACKLOG_SETTINGS,
+  clampOrgBacklogSettings,
+  generateOrgBacklog,
+  makeDefaultOrgSetup,
+  pruneOrgBacklog,
+  validateOrgSetup,
+} from '@/simulation/organizationEngine'
+import { deleteOrgArea, deleteOrgSkill, movePerson } from '@/simulation/organizationSetup'
+import type { OrgBacklogSettings, OrgFeature, OrgSetup } from '@/types/organization'
+import { feat, orgDef, orgT, person, team } from './feat028Fixtures'
+
+// feat-028 (Týmy složené z lidí) — výchozí organizace, generátor backlogu a úpravy organizace v enginu.
+//
+// Schválený kontrakt (spec features/feat-028-tymy-slozene-z-lidi.md, testovací analýza
+// docs/feat-028-test-analysis.md, scénáře A1–A4, A6, A8–A10, B11, B16, B19, J5, J6):
+//  - `makeDefaultOrgSetup()` vrací ORG-DEF: Team Billing (BIL), Team Mobile (MOB), Team Web (WEB), každý se 4 lidmi
+//    (Product, Java, Frontend, QA) se jmény z analýzy; skilly Product 1, Java 2, Frontend 2, QA 3; oblasti BIL Billing,
+//    MOB Mobile app, WEB Web portal (R4).
+//  - `DEFAULT_ORG_BACKLOG_SETTINGS` = 100 featur, Areas per feature 1–3, Skills per area 1–3, Effort per skill 1–5 (R5).
+//  - `generateOrgBacklog(rng, settings, setup, profile)`: priority 1..N, různé oblasti ve featuře, různé skilly v oblasti,
+//    pracnost celé číslo v rozsahu, povinné skilly (Req.) zaberou místa jako první a smí překročit horní mez,
+//    výnos klesá s prioritou (jako Cash Flow), stejný seed = stejný backlog.
+//  - `clampOrgBacklogSettings(settings, areaCount, skillCount)` stáhne meze posuvníků na počet oblastí a skillů.
+//  - `pruneOrgBacklog(backlog, setup)` odebere úkoly, jejichž oblast nebo skill v organizaci už není, a featury bez úkolů.
+//  - `organizationSetup.ts`: `deleteOrgArea` (oblast zmizí i z mandátů), `deleteOrgSkill` (skill zmizí lidem i s AI),
+//    `movePerson` (člověk se přesune na konec cílového týmu i se skilly a AI).
+
+/** Skilly všech úkolů jedné oblasti featury v pořadí úkolů. */
+function rolesIn(f: OrgFeature, area: string): string[] {
+  return f.tasks.filter(t => t.area === area).map(t => t.role)
+}
+
+/** Kódy oblastí featury v pořadí, v jakém se poprvé objeví mezi úkoly. */
+function areasOf(f: OrgFeature): string[] {
+  return [...new Set(f.tasks.map(t => t.area))]
+}
+
+/** Názvy skillů podle klíčů výchozí organizace (klíče jsou interní, testy čtou názvy). */
+function labelsOf(setup: OrgSetup, keys: string[]): string[] {
+  return keys.map(k => setup.roleConfig[k].label)
+}
+
+/** Settings s danými rozsahy (ostatní hodnoty výchozí). */
+function settingsWith(patch: Partial<OrgBacklogSettings>): OrgBacklogSettings {
+  return { ...DEFAULT_ORG_BACKLOG_SETTINGS, ...patch }
+}
+
+describe('feat-028 A1/R4: výchozí organizace', () => {
+  it('má 3 týmy po 4 lidech s mandátem na jednu oblast a jmény z analýzy (ORG-DEF)', () => {
+    const setup = makeDefaultOrgSetup()
+    expect(setup.teams.map(t => t.name)).toEqual(['Team Billing', 'Team Mobile', 'Team Web'])
+    expect(setup.teams.map(t => t.mandates)).toEqual([['BIL'], ['MOB'], ['WEB']])
+    expect(setup.teams.map(t => t.people.map(p => p.name))).toEqual([
+      ['Ada', 'Ben', 'Cyril', 'Chen'],
+      ['Dani', 'Emil', 'Eli', 'Fae'],
+      ['Gus', 'Hugo', 'Hana', 'Ivo'],
+    ])
+    for (const t of setup.teams) {
+      expect(t.people.map(p => labelsOf(setup, p.skills))).toEqual([['Product'], ['Java'], ['Frontend'], ['QA']])
+    }
+  })
+
+  it('má skilly Product 1, Java 2, Frontend 2, QA 3 bez Req. a oblasti BIL, MOB, WEB', () => {
+    const setup = makeDefaultOrgSetup()
+    expect(Object.values(setup.roleConfig).map(m => [m.label, m.level, m.required])).toEqual([
+      ['Product', 1, false], ['Java', 2, false], ['Frontend', 2, false], ['QA', 3, false],
+    ])
+    expect(setup.areas).toEqual([
+      { code: 'BIL', name: 'Billing' }, { code: 'MOB', name: 'Mobile app' }, { code: 'WEB', name: 'Web portal' },
+    ])
+  })
+
+  it('id lidí jsou jedinečná napříč týmy a nikdo nemá AI', () => {
+    const people = makeDefaultOrgSetup().teams.flatMap(t => t.people)
+    expect(new Set(people.map(p => p.id)).size).toBe(12)
+    for (const p of people) expect(Object.values(p.aiBySkill ?? {}).every(v => v === 1)).toBe(true)
+  })
+
+  it('výchozí nastavení backlogu je 100 featur, 1–3 oblasti, 1–3 skilly, pracnost 1–5 (R5)', () => {
+    expect(DEFAULT_ORG_BACKLOG_SETTINGS).toEqual({
+      size: 100, areasPerFeature: [1, 3], skillsPerArea: [1, 3], effortPerSkill: [1, 5],
+    })
+  })
+})
+
+describe('feat-028 A2: invarianty generovaného backlogu', () => {
+  const setup = makeDefaultOrgSetup()
+  const backlog = generateOrgBacklog(mulberry32(42), DEFAULT_ORG_BACKLOG_SETTINGS, setup, 'flat')
+
+  it('má 100 featur s prioritami 1–100, každou právě jednou, ve stavu backlog', () => {
+    expect(backlog).toHaveLength(100)
+    expect([...backlog.map(f => f.priority)].sort((a, b) => a - b)).toEqual(Array.from({ length: 100 }, (_, i) => i + 1))
+    for (const f of backlog) {
+      expect(f.status).toBe('backlog')
+      expect(f.startedAt).toBeNull()
+      expect(f.finishedAt).toBeNull()
+    }
+  })
+
+  it('každá featura má 1–3 různé oblasti a v každé 1–3 různé skilly', () => {
+    const codes = setup.areas.map(a => a.code)
+    const skillKeys = Object.keys(setup.roleConfig)
+    for (const f of backlog) {
+      const fa = areasOf(f)
+      expect(fa.length).toBeGreaterThanOrEqual(1)
+      expect(fa.length).toBeLessThanOrEqual(3)
+      for (const a of fa) {
+        expect(codes).toContain(a)
+        const roles = rolesIn(f, a)
+        expect(roles.length).toBeGreaterThanOrEqual(1)
+        expect(roles.length).toBeLessThanOrEqual(3)
+        // V oblasti featury je každý skill nejvýš jednou (Konvence analýzy)
+        expect(new Set(roles).size).toBe(roles.length)
+        for (const r of roles) expect(skillKeys).toContain(r)
+      }
+    }
+  })
+
+  it('pracnost každého úkolu je celé číslo 1–5 a úkol je nezačatý', () => {
+    for (const t of backlog.flatMap(f => f.tasks)) {
+      expect(Number.isInteger(t.work)).toBe(true)
+      expect(t.work).toBeGreaterThanOrEqual(1)
+      expect(t.work).toBeLessThanOrEqual(5)
+      expect(t.status).toBe('todo')
+      expect(t.progress).toBe(0)
+      expect(t.assignee).toBeNull()
+      expect(t.segments).toEqual([])
+    }
+  })
+
+  it('výnos za týden klesá s prioritou (priorita 1 má nejvyšší) a profil je Flat', () => {
+    const byPriority = [...backlog].sort((a, b) => a.priority - b.priority)
+    for (let i = 1; i < byPriority.length; i++) {
+      expect(byPriority[i].revenuePerTick).toBeLessThanOrEqual(byPriority[i - 1].revenuePerTick)
+    }
+    expect(backlog.every(f => f.revenueProfile === 'flat')).toBe(true)
+  })
+
+  it('úkoly v oblasti jsou seřazené podle fáze (Product před Java a Frontend, QA poslední)', () => {
+    for (const f of backlog) {
+      for (const a of areasOf(f)) {
+        const levels = rolesIn(f, a).map(r => setup.roleConfig[r].level)
+        expect(levels).toEqual([...levels].sort((x, y) => x - y))
+      }
+    }
+  })
+
+  it('druhé generování se seedem 42 dá úplně stejný backlog', () => {
+    const again = generateOrgBacklog(mulberry32(42), DEFAULT_ORG_BACKLOG_SETTINGS, makeDefaultOrgSetup(), 'flat')
+    expect(again).toEqual(backlog)
+  })
+
+  it('zvolený profil výnosu dostanou všechny featury (feat-017)', () => {
+    const j = generateOrgBacklog(mulberry32(42), DEFAULT_ORG_BACKLOG_SETTINGS, makeDefaultOrgSetup(), 'j-curve')
+    expect(j.every(f => f.revenueProfile === 'j-curve')).toBe(true)
+  })
+})
+
+describe('feat-028 A3: Req. v generování', () => {
+  it('se zaškrtnutým Req. u QA má každá ze 100 featur aspoň jeden úkol QA', () => {
+    const setup = makeDefaultOrgSetup()
+    const qa = Object.keys(setup.roleConfig).find(k => setup.roleConfig[k].label === 'QA')!
+    setup.roleConfig[qa].required = true
+    const backlog = generateOrgBacklog(mulberry32(7), DEFAULT_ORG_BACKLOG_SETTINGS, setup, 'flat')
+    expect(backlog).toHaveLength(100)
+    for (const f of backlog) expect(f.tasks.some(t => t.role === qa)).toBe(true)
+  })
+})
+
+describe('feat-028 A4: výchozí backlog nezablokuje Run', () => {
+  it('ORG-DEF a výchozí backlog (seed 42) nemají žádné varování', () => {
+    const setup = makeDefaultOrgSetup()
+    const backlog = generateOrgBacklog(mulberry32(42), DEFAULT_ORG_BACKLOG_SETTINGS, setup, 'flat')
+    expect(validateOrgSetup(setup, backlog)).toEqual([])
+  })
+})
+
+describe('feat-028 A6: meze posuvníků podle počtu oblastí a skillů', () => {
+  it('hodnoty v mezích zůstanou beze změny', () => {
+    const s = settingsWith({ areasPerFeature: [1, 3], skillsPerArea: [1, 3] })
+    expect(clampOrgBacklogSettings(s, 4, 4)).toEqual(s)
+  })
+
+  it('po smazání oblastí se Areas per feature 2–4 stáhne na 2–2', () => {
+    const s = settingsWith({ areasPerFeature: [2, 4] })
+    expect(clampOrgBacklogSettings(s, 2, 4).areasPerFeature).toEqual([2, 2])
+  })
+
+  it('s jedinou oblastí je Areas per feature 1–1', () => {
+    const s = settingsWith({ areasPerFeature: [2, 3] })
+    expect(clampOrgBacklogSettings(s, 1, 4).areasPerFeature).toEqual([1, 1])
+  })
+
+  it('Skills per area se stahuje stejně podle počtu skillů; pracnost a velikost se nemění', () => {
+    const s = settingsWith({ skillsPerArea: [3, 4], effortPerSkill: [2, 20], size: 500 })
+    const c = clampOrgBacklogSettings(s, 3, 2)
+    expect(c.skillsPerArea).toEqual([2, 2])
+    expect(c.effortPerSkill).toEqual([2, 20])
+    expect(c.size).toBe(500)
+  })
+})
+
+describe('feat-028 A8: generování podle posuvníků', () => {
+  it('50 featur, právě 2 různé oblasti, v každé jeden úkol s pracností 5 → 10 dní práce na featuru', () => {
+    const setup = makeDefaultOrgSetup()
+    const s = settingsWith({ size: 50, areasPerFeature: [2, 2], skillsPerArea: [1, 1], effortPerSkill: [5, 5] })
+    const backlog = generateOrgBacklog(mulberry32(3), s, setup, 'flat')
+    expect(backlog).toHaveLength(50)
+    for (const f of backlog) {
+      expect(areasOf(f)).toHaveLength(2)
+      for (const a of areasOf(f)) expect(rolesIn(f, a)).toHaveLength(1)
+      expect(f.tasks.every(t => t.work === 5)).toBe(true)
+      expect(f.tasks.reduce((sum, t) => sum + t.work, 0)).toBe(10)
+    }
+  })
+})
+
+describe('feat-028 A9: všechny skilly v oblasti, každý jednou', () => {
+  it('Skills per area 4–4 dá jednu oblast s Product, Java, Frontend a QA; pracnosti jsou celá čísla 1–20', () => {
+    const setup = makeDefaultOrgSetup()
+    const s = settingsWith({ areasPerFeature: [1, 1], skillsPerArea: [4, 4], effortPerSkill: [1, 20] })
+    const backlog = generateOrgBacklog(mulberry32(5), s, setup, 'flat')
+    for (const f of backlog) {
+      expect(areasOf(f)).toHaveLength(1)
+      expect(labelsOf(setup, rolesIn(f, areasOf(f)[0]))).toEqual(['Product', 'Java', 'Frontend', 'QA'])
+      for (const t of f.tasks) {
+        expect(Number.isInteger(t.work)).toBe(true)
+        expect(t.work).toBeGreaterThanOrEqual(1)
+        expect(t.work).toBeLessThanOrEqual(20)
+      }
+    }
+    // Rozsah 1–20 se opravdu využije (ne jen dolní mez)
+    expect(Math.max(...backlog.flatMap(f => f.tasks.map(t => t.work)))).toBeGreaterThan(10)
+  })
+})
+
+describe('feat-028 A10: Req. má přednost před horní mezí', () => {
+  it('s Req. u Product a QA a Skills per area 1–1 má každá featura jednu oblast právě s Product a QA', () => {
+    const setup = makeDefaultOrgSetup()
+    for (const k of Object.keys(setup.roleConfig)) {
+      setup.roleConfig[k].required = ['Product', 'QA'].includes(setup.roleConfig[k].label)
+    }
+    const s = settingsWith({ areasPerFeature: [1, 1], skillsPerArea: [1, 1] })
+    const backlog = generateOrgBacklog(mulberry32(9), s, setup, 'flat')
+    for (const f of backlog) {
+      expect(areasOf(f)).toHaveLength(1)
+      expect(labelsOf(setup, rolesIn(f, areasOf(f)[0]))).toEqual(['Product', 'QA'])
+    }
+  })
+})
+
+describe('feat-028 B11: přesun člověka do jiného týmu', () => {
+  it('Eli s Frontend 2× je posledním členem Team Web, Team Mobile má 2 lidi; původní organizace se nemění', () => {
+    const setup = orgT()
+    person(setup, 'Eli').aiBySkill = { Frontend: 2 }
+    const moved = movePerson(setup, person(setup, 'Eli').id, team(setup, 'Team Web').id)
+    expect(team(moved, 'Team Web').people.map(p => p.name)).toEqual(['Gus', 'Hana', 'Ivo', 'Eli'])
+    expect(team(moved, 'Team Mobile').people.map(p => p.name)).toEqual(['Dani', 'Fae'])
+    const eli = person(moved, 'Eli')
+    expect(eli.skills).toEqual(['Frontend'])
+    expect(eli.aiBySkill?.Frontend).toBe(2)
+    // Čistá funkce: vstup zůstane beze změny
+    expect(team(setup, 'Team Mobile').people.map(p => p.name)).toEqual(['Dani', 'Eli', 'Fae'])
+  })
+})
+
+describe('feat-028 B16: smazání skillu', () => {
+  it('QA zmizí ze skillů a lidem (Chen, Fae, Ivo) i s jejich AI', () => {
+    const setup = orgDef()
+    person(setup, 'Chen').aiBySkill = { QA: 5 }
+    const next = deleteOrgSkill(setup, 'QA')
+    expect(Object.keys(next.roleConfig)).toEqual(['Product', 'Java', 'Frontend'])
+    for (const name of ['Chen', 'Fae', 'Ivo']) {
+      expect(person(next, name).skills).toEqual([])
+      expect(person(next, name).aiBySkill?.QA).toBeUndefined()
+    }
+    expect(person(next, 'Ada').skills).toEqual(['Product'])
+  })
+
+  it('z backlogu zmizí úkoly QA a featura, které nezbude žádný úkol', () => {
+    const setup = deleteOrgSkill(orgDef(), 'QA')
+    const backlog = pruneOrgBacklog([feat('F-1: BIL [QA 2]'), feat('F-2: BIL [Java 1 · QA 1]')], setup)
+    expect(backlog.map(f => f.id)).toEqual([2])
+    expect(backlog[0].tasks.map(t => [t.area, t.role, t.work])).toEqual([['BIL', 'Java', 1]])
+  })
+})
+
+describe('feat-028 B19 a J5: smazání oblasti', () => {
+  it('WEB zmizí z oblastí a Team Web nemá mandát', () => {
+    const next = deleteOrgArea(orgDef(), 'WEB')
+    expect(next.areas.map(a => a.code)).toEqual(['BIL', 'MOB'])
+    expect(team(next, 'Team Web').mandates).toEqual([])
+    expect(team(next, 'Team Billing').mandates).toEqual(['BIL'])
+  })
+
+  it('F-1 si nechá jen BIL [Java 2], F-2 jen s oblastí WEB z backlogu zmizí', () => {
+    const setup = deleteOrgArea(orgDef(), 'WEB')
+    const backlog = pruneOrgBacklog([feat('F-1: BIL [Java 2] | WEB [QA 1]'), feat('F-2: WEB [Frontend 3]')], setup)
+    expect(backlog.map(f => f.id)).toEqual([1])
+    expect(backlog[0].tasks.map(t => [t.area, t.role, t.work])).toEqual([['BIL', 'Java', 2]])
+  })
+})
+
+describe('feat-028 J6: smazání skillu odebere featuru', () => {
+  it('F-1 BIL [QA 2] zmizí, F-2 má jen BIL [Java 1]', () => {
+    const before = [feat('F-1: BIL [QA 2]'), feat('F-2: BIL [Java 1 · QA 1]')]
+    const after = pruneOrgBacklog(before, deleteOrgSkill(orgDef(), 'QA'))
+    expect(after.map(f => f.id)).toEqual([2])
+    expect(after[0].tasks.map(t => t.role)).toEqual(['Java'])
+    // Vstupní backlog zůstane beze změny
+    expect(before[1].tasks).toHaveLength(2)
+  })
+})
