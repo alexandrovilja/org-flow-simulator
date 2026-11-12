@@ -41,3 +41,27 @@
   color: var(--ink-3);
   white-space: nowrap;
 }
+
+/* Ovládací prvky vpravo vedle poznámky (filtr „1 waiting“ v In progress, feat-029). V úzkém sloupci se zkrátí
+   poznámka, ne nadpis ani ovládací prvek */
+.aside {
+  display: flex;
+  align-items: center;
+  gap: var(--space-8);
+  min-width: 0;
+}
+
+.aside > * {
+  flex-shrink: 0;
+}
+
+.aside > .hint {
+  flex-shrink: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.header:has(> .aside) .titleRow {
+  flex-shrink: 0;
+}

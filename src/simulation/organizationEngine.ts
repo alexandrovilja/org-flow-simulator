@@ -1,8 +1,8 @@
 import { FEATURE_HUES, FEATURE_NAMES } from '@/simulation/engine'
 import type { Role, RoleMeta, WipMode } from '@/types/simulation'
 import type {
-  OrgArea, OrgBacklogSettings, OrgFeature, OrgFeatureSpec, OrgMetrics, OrgPerson, OrgRunSnapshot,
-  OrgSetup, OrgSimState, OrgTask, OrgTeam,
+  OrgArea, OrgBacklogSettings, OrgFeature, OrgFeatureSpec, OrgFlowView, OrgIdleMember, OrgMetrics, OrgPerson,
+  OrgPersonStatus, OrgRunSnapshot, OrgSetup, OrgSimState, OrgTask, OrgTaskStatus, OrgTeam,
 } from '@/types/organization'
 
 // Engine módu Organization (feat-028, inkrement 1: mandáty a tok práce).
@@ -13,6 +13,9 @@ import type {
 //    a úkolů; vyšší priorita (nižší číslo) má přednost,
 //  - fáze platí v rámci oblasti: úkol fáze N čeká jen na nižší fáze v téže oblasti téže featury,
 //  - Reduce WIP: rozpracované featury mají přednost před backlogem.
+// feat-029 (Proč práce čeká) přidává:
+//  - Idle Time (R1): člověku bez úkolu roste idle čas, dokud kdekoli čeká nepřidělený úkol s jeho skillem,
+//  - waiting a žlutý idle (R2): co čeká kvůli mandátu, se počítá ze stavu běhu v okamžiku zobrazení, neukládá se.
 
 /** Výchozí nastavení backlogu (spec, Výchozí stav): 100 featur, 1–3 oblasti, 1–3 skilly v oblasti, 1–5 dní. */
 export const DEFAULT_ORG_BACKLOG_SETTINGS: OrgBacklogSettings = {
@@ -243,6 +246,7 @@ export function makeOrgState(setup: OrgSetup, backlog: OrgFeature[]): OrgSimStat
     done: [],
     simTime: 0,
     wipIntegral: 0,
+    idleByPerson: {},
     startedAt: null,
     finished: false,
   }
@@ -376,8 +380,12 @@ export function tickOrg(state: OrgSimState, dt: number, wipMode: WipMode): OrgSi
   assignWork(state)
   // WIP se počítá po přidělení: featura, která v tomto okamžiku začala, už je rozpracovaná
   state.wipIntegral += state.inProgress.length * dt
+  // Idle čas taky po přidělení: člověk, který právě dostal úkol, idle není (R1)
+  accrueIdle(state, dt)
 
   const end = state.simTime + dt
+  // Dokončil se v tomto kroku nějaký úkol? Jen pak se může změnit, kdo co smí vzít
+  let anyCompleted = false
   for (const f of state.inProgress) {
     for (const t of f.tasks) {
       if (t.status !== 'doing') continue
@@ -388,6 +396,7 @@ export function tickOrg(state: OrgSimState, dt: number, wipMode: WipMode): OrgSi
         t.assignee = null
         const open = t.segments[t.segments.length - 1]
         if (open) open.to = end
+        anyCompleted = true
       }
     }
   }
@@ -409,6 +418,11 @@ export function tickOrg(state: OrgSimState, dt: number, wipMode: WipMode): OrgSi
   // Nové pole Done jen při dokončení: memoizovaný seznam Done se pak nepřekresluje v každém snímku
   if (finishedNow.length > 0) state.done = [...state.done, ...finishedNow]
 
+  // Uvolnění lidé dostanou další práci hned na konci kroku (ve stejném čase, jako by ji dostali na začátku
+  // dalšího kroku, takže se čísla nemění). Zobrazený stav tak nikdy neukáže člověka uvolněného na hranici úkolu
+  // jako idle a jeho další úkol jako waiting — žlutá by jinak na jeden snímek problikla (feat-029)
+  if (anyCompleted) assignWork(state)
+
   if (state.backlog.length === 0 && state.inProgress.length === 0) state.finished = true
   return state
 }
@@ -426,6 +440,7 @@ export function resetOrgState(state: OrgSimState): OrgSimState {
   state.done = []
   state.simTime = 0
   state.wipIntegral = 0
+  state.idleByPerson = {}
   state.startedAt = null
   state.finished = false
   return state
@@ -443,6 +458,7 @@ export function orgMetrics(state: OrgSimState): OrgMetrics {
     totalTime: state.simTime,
     avgCycleTime: cycles.length > 0 ? cycles.reduce((sum, c) => sum + c, 0) / cycles.length : null,
     avgWip: state.simTime > 0 ? state.wipIntegral / state.simTime : null,
+    idleTime: Object.values(state.idleByPerson).reduce((sum, d) => sum + d, 0),
     doneCount: state.done.length,
   }
 }
@@ -451,9 +467,160 @@ export function orgMetrics(state: OrgSimState): OrgMetrics {
  * Uloží doběhnutý běh pro srovnání s dalším během (delty „vs prev run“ po Resetu).
  *
  * @param state - Doběhnutý stav běhu
- * @returns Celkový čas, průměrný cycle time a průměrný WIP
+ * @returns Celkový čas, průměrný cycle time, průměrný WIP a Idle Time
  */
 export function snapshotOrgRun(state: OrgSimState): OrgRunSnapshot {
-  const { totalTime, avgCycleTime, avgWip } = orgMetrics(state)
-  return { totalTime, avgCycleTime, avgWip }
+  const { totalTime, avgCycleTime, avgWip, idleTime } = orgMetrics(state)
+  return { totalTime, avgCycleTime, avgWip, idleTime }
+}
+
+// ── Idle a čekání (feat-029) ────────────────────────────────────────────────
+
+/**
+ * Kdo právě na čem pracuje.
+ *
+ * @param state - Stav běhu
+ * @returns Id člověka → featura a úkol, na kterém pracuje
+ */
+function workingPeople(state: OrgSimState): Map<number, { feature: OrgFeature; task: OrgTask }> {
+  const working = new Map<number, { feature: OrgFeature; task: OrgTask }>()
+  for (const feature of state.inProgress) {
+    for (const task of feature.tasks) {
+      if (task.status === 'doing' && task.assignee !== null) working.set(task.assignee, { feature, task })
+    }
+  }
+  return working
+}
+
+/**
+ * Idle lidé (bez úkolu) se svým týmem, v pořadí panelu organizace.
+ *
+ * @param state - Stav běhu
+ * @param working - Kdo právě pracuje (z `workingPeople`)
+ * @returns Idle lidé s týmy
+ */
+function idleMembers(state: OrgSimState, working: ReadonlyMap<number, unknown>): OrgIdleMember[] {
+  return state.setup.teams.flatMap(team =>
+    team.people.filter(person => !working.has(person.id)).map(person => ({ person, team })))
+}
+
+/**
+ * Idle lidé, kteří by úkol uměli (mají jeho skill), ale jejich tým nemá mandát na oblast úkolu.
+ *
+ * @param idle - Idle lidé s týmy
+ * @param task - Úkol
+ * @returns Lidé s týmy v pořadí panelu
+ */
+function idleOutsideMandate(idle: OrgIdleMember[], task: OrgTask): OrgIdleMember[] {
+  return idle.filter(({ person, team }) => person.skills.includes(task.role) && !team.mandates.includes(task.area))
+}
+
+/**
+ * Pravidlo R2 pro jeden úkol: na koho čeká. Úkol čeká (waiting), když je nepřidělený, jeho featura je rozpracovaná,
+ * jeho fáze v oblasti je odemčená a existuje idle člověk se skillem úkolu, jehož tým nemá mandát na oblast úkolu.
+ * Jediné místo s tímto pravidlem — používají ho `orgTaskStatus` i `orgFlowView`.
+ *
+ * @param feature - Featura úkolu
+ * @param task - Úkol
+ * @param idle - Idle lidé s týmy
+ * @param roleConfig - Skilly s fázemi
+ * @returns Idle lidé z týmů bez mandátu, kteří by úkol uměli (prázdné = úkol nečeká)
+ */
+function waitingFor(feature: OrgFeature, task: OrgTask, idle: OrgIdleMember[], roleConfig: Record<Role, RoleMeta>): OrgIdleMember[] {
+  if (task.status !== 'todo' || feature.status !== 'in-progress' || !phaseReady(feature, task, roleConfig)) return []
+  return idleOutsideMandate(idle, task)
+}
+
+/**
+ * Přičte idle čas za jeden krok (R1): každému člověku bez úkolu, který má aspoň jeden skill, pro který kdekoli
+ * v backlogu nebo v rozpracovaných featurách čeká nepřidělený úkol — bez ohledu na fázi a mandát. Stejné pravidlo
+ * jako počítání idle v ostatních módech (engine.ts).
+ *
+ * @param state - Stav běhu (mění se na místě)
+ * @param dt - Délka kroku v pracovních dnech
+ */
+function accrueIdle(state: OrgSimState, dt: number): void {
+  const busy = workingPeople(state)
+  // Skilly nepřidělených úkolů se spočítají až pro prvního idle člověka se skilly — ve většině kroků všichni pracují
+  let openRoles: Set<Role> | null = null
+  for (const team of state.setup.teams) {
+    for (const person of team.people) {
+      if (busy.has(person.id) || person.skills.length === 0) continue
+      if (openRoles === null) {
+        openRoles = new Set<Role>()
+        for (const f of state.inProgress) for (const t of f.tasks) if (t.status === 'todo') openRoles.add(t.role)
+        for (const f of state.backlog) for (const t of f.tasks) if (t.status === 'todo') openRoles.add(t.role)
+      }
+      const roles = openRoles
+      if (person.skills.some(k => roles.has(k))) {
+        state.idleByPerson[person.id] = (state.idleByPerson[person.id] ?? 0) + dt
+      }
+    }
+  }
+}
+
+/**
+ * Stav úkolu pro zobrazení (R2). Hotový a rozpracovaný úkol vrátí svůj stav. Nepřidělený úkol je „waiting“, když
+ * jeho featura je rozpracovaná, jeho fáze v oblasti je odemčená a existuje idle člověk se skillem úkolu, jehož tým
+ * nemá mandát na oblast úkolu. Jinak je „todo“ (čeká jen na nižší fázi, na kolegu z vlastního týmu, nebo je v backlogu).
+ *
+ * @param state - Stav běhu
+ * @param feature - Featura úkolu
+ * @param task - Úkol
+ * @returns Stav úkolu
+ */
+export function orgTaskStatus(state: OrgSimState, feature: OrgFeature, task: OrgTask): OrgTaskStatus {
+  if (task.status !== 'todo') return task.status
+  // Lehká cesta pro jeden úkol (bez průchodu celým backlogem jako orgFlowView); pravidlo je společné ve waitingFor
+  return waitingFor(feature, task, idleMembers(state, workingPeople(state)), state.setup.roleConfig).length > 0 ? 'waiting' : 'todo'
+}
+
+/**
+ * Stav člověka za běhu: pracuje (na které featuře a úkolu), obyčejný idle, nebo žlutý idle s oblastmi, kde jeho
+ * práce čeká mimo mandát jeho týmu (R2). Bere ho z `orgFlowView`, aby pravidlo žlutého idle bylo jen na jednom místě.
+ *
+ * @param state - Stav běhu
+ * @param personId - Id člověka
+ * @returns Stav člověka (neznámé id → obyčejný idle)
+ */
+export function orgPersonStatus(state: OrgSimState, personId: number): OrgPersonStatus {
+  return orgFlowView(state).people.get(personId) ?? { kind: 'idle' }
+}
+
+/**
+ * Stav toku práce pro vykreslení jednoho snímku: stav každého člověka a čekající úkoly s idle lidmi, kteří by je
+ * uměli, ale nesmí (R2). Jedním průchodem: čekání úkolu posoudí `waitingFor`, žlutý idle se hledá přes množinu
+ * dvojic (skill, oblast) nepřidělených úkolů s odemčenou fází, takže zůstává rychlý i pro velkou organizaci.
+ *
+ * @param state - Stav běhu
+ * @returns Stav lidí a čekajících úkolů
+ */
+export function orgFlowView(state: OrgSimState): OrgFlowView {
+  const { roleConfig } = state.setup
+  const working = workingPeople(state)
+  const idle = idleMembers(state, working)
+
+  const waiting = new Map<OrgTask, OrgIdleMember[]>()
+  // Oblasti s odemčenou nepřidělenou prací podle skillu (v backlogu i v rozpracovaných featurách)
+  const openAreas = new Map<Role, Set<string>>()
+  for (const feature of [...state.inProgress, ...state.backlog]) {
+    for (const task of feature.tasks) {
+      if (task.status !== 'todo' || !phaseReady(feature, task, roleConfig)) continue
+      let areas = openAreas.get(task.role)
+      if (!areas) openAreas.set(task.role, (areas = new Set()))
+      areas.add(task.area)
+      const blocked = waitingFor(feature, task, idle, roleConfig)
+      if (blocked.length > 0) waiting.set(task, blocked)
+    }
+  }
+
+  const people = new Map<number, OrgPersonStatus>()
+  for (const [personId, job] of working) people.set(personId, { kind: 'working', featureId: job.feature.id, taskId: job.task.id })
+  const areaOrder = state.setup.areas.map(a => a.code)
+  for (const { person, team } of idle) {
+    const found = new Set(person.skills.flatMap(k => [...(openAreas.get(k) ?? [])]).filter(a => !team.mandates.includes(a)))
+    const areas = areaOrder.filter(code => found.has(code))
+    people.set(person.id, areas.length > 0 ? { kind: 'blocked', areas } : { kind: 'idle' })
+  }
+  return { people, waiting }
 }
