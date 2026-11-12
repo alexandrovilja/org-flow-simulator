@@ -50,10 +50,11 @@ function expectSegmented(group: HTMLElement, pressed: string): void {
 }
 
 describe('feat-021 Příklad 4: záložky módů bez emoji', () => {
-  it('lišta má tři záložky s čistými texty a Compare je aktivní', () => {
+  // Od feat-028 má lišta čtvrtou záložku Organization za Cash Flow
+  it('lišta má čtyři záložky s čistými texty a Compare je aktivní', () => {
     render(<Simulator />)
     expect(screen.getByRole('tablist')).toBeInTheDocument()
-    expect(screen.getAllByRole('tab').map(t => t.textContent)).toEqual(['Compare', 'Advanced', 'Cash Flow'])
+    expect(screen.getAllByRole('tab').map(t => t.textContent)).toEqual(['Compare', 'Advanced', 'Cash Flow', 'Organization'])
     expect(tab('Compare')).toHaveAttribute('aria-selected', 'true')
     expect(tab('Advanced')).toHaveAttribute('aria-selected', 'false')
   })

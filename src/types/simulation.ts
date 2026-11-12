@@ -344,9 +344,10 @@ export interface UnitPreset {
 }
 
 /** Mód aplikace: Compare porovná dva týmy vedle sebe, Experiment (v UI „Advanced“) je plný
- *  sandbox, Cash Flow ukazuje finanční dopad cycle time a WIP. Sdílí ho Simulator a horní lišta
- *  (TopBar), která podle něj zvýrazní aktivní záložku. */
-export type AppMode = 'compare' | 'experiment' | 'cashflow'
+ *  sandbox, Cash Flow ukazuje finanční dopad cycle time a WIP, Organization (feat-028) simuluje
+ *  organizaci z týmů lidí s mandáty na oblasti. Sdílí ho Simulator a horní lišta (TopBar), která
+ *  podle něj zvýrazní aktivní záložku. */
+export type AppMode = 'compare' | 'experiment' | 'cashflow' | 'organization'
 
 /** Rychlost běhu simulace z přepínače v horní liště: násobek reálného času (0.5× = zpomaleně,
  *  10× = zrychleně). Sdílí ho `SpeedControl` (nabízí právě tyto hodnoty), hook `useSimSpeed`

@@ -4,8 +4,9 @@ import styles from './PanelHeader.module.css'
 interface PanelHeaderProps {
   /** Nadpis panelu (např. „Backlog“, „In Progress“, „Done“). */
   title: string
-  /** Počet položek vedle nadpisu; hlavička bez počtu (např. „Metrics“) ho vynechá. */
-  count?: number
+  /** Počet položek vedle nadpisu; hlavička bez počtu (např. „Metrics“) ho vynechá. Text místo čísla
+   *  dovolí souhrn o více počtech, např. „3 teams · 12 people“ v módu Organization (feat-028). */
+  count?: number | string
   /** Volitelná poznámka vpravo, např. „auto-scaled“. */
   hint?: string
 }
