@@ -1,9 +1,9 @@
 # Feature: Proč práce čeká (mód Organization, inkrement 2)
 
 ## Status
-ready
+done
 
-*Inkrement 2 z 9 módu Organization (Týmy složené z lidí). Vznikl rozdělením feat-028 podle INVEST a SPIDR 2026-11-12 a závisí jen na inkrementu 1 ([feat-028](feat-028-tymy-slozene-z-lidi.md), v main od PR #44). Spec je schválený 2026-11-12, včetně delty Idle Time až po doběhnutí (změna R12). UI kontrakt je mockup [`docs/feat-028-ui-mockup.html`](../docs/feat-028-ui-mockup.html) (verze 9), scénáře jsou v [`docs/feat-028-test-analysis.md`](../docs/feat-028-test-analysis.md) a koncept testů v [`docs/feat-028-test-drafts/`](../docs/feat-028-test-drafts/README.md).*
+*Inkrement 2 z 9 módu Organization (Týmy složené z lidí). Vznikl rozdělením feat-028 podle INVEST a SPIDR 2026-11-12 a závisí jen na inkrementu 1 ([feat-028](feat-028-tymy-slozene-z-lidi.md), v main od PR #44). Spec je schválený 2026-11-12, včetně delty Idle Time až po doběhnutí (změna R12). Inkrement je hotový: implementace je v main (PR #46) a smoke test produkce prošel. UI kontrakt je mockup [`docs/feat-028-ui-mockup.html`](../docs/feat-028-ui-mockup.html) (verze 9), scénáře jsou v [`docs/feat-028-test-analysis.md`](../docs/feat-028-test-analysis.md) a koncept testů v [`docs/feat-028-test-drafts/`](../docs/feat-028-test-drafts/README.md).*
 
 ## Problem
 Po inkrementu 1 kouč vidí, že se po změně mandátů změnil cycle time, ale nevidí proč. Neukáže úkol, který stojí, protože ho nikdo s mandátem nemůže vzít. Neukáže ani člověka, který nemá co dělat, přestože by práci uměl, protože leží v oblasti mimo mandát jeho týmu. Management tak vidí jen čísla, ne jejich příčinu.
