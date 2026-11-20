@@ -60,16 +60,23 @@ const tile = (name: string) => screen.getByTestId(`stat-tile-${name}`)
 /** Tlačítko běhu v liště podle konce názvu (glyf ▶ / ❙❙ / ✓ před ním). */
 const runButton = (name: 'Run' | 'Pause' | 'Done' = 'Run') => screen.getByRole('button', { name: new RegExp(`${name}$`) })
 
-/** Řádek týmu podle názvu. */
+/**
+ * Řádek týmu podle názvu. Od feat-030 je název před během pole „Team name“, proto se hledá nejdřív podle hodnoty
+ * pole a potom (za běhu) podle textu.
+ */
 function teamRow(name: string): HTMLElement {
-  const row = within(org()).getAllByTestId('org-team-row').find(r => within(r).queryByText(name))
+  const rows = within(org()).getAllByTestId('org-team-row')
+  const row = rows.find(r => within(r).queryAllByDisplayValue(name).length > 0) ?? rows.find(r => within(r).queryAllByText(name).length > 0)
   if (!row) throw new Error(`Řádek týmu ${name} není`)
   return row
 }
 
-/** Názvy týmů v pořadí panelu. */
-const teamNames = () => within(org()).getAllByTestId('org-team-row').map(r =>
-  ['Team Billing', 'Team Mobile', 'Team Web'].find(n => within(r).queryByText(n)) ?? '?')
+/** Názvy týmů v pořadí panelu: hodnota pole „Team name“ (před během), jinak text výchozího názvu. */
+const teamNames = () => within(org()).getAllByTestId('org-team-row').map(r => {
+  const input = within(r).queryByRole('textbox', { name: 'Team name' })
+  if (input instanceof HTMLInputElement) return input.value
+  return ['Team Billing', 'Team Mobile', 'Team Web'].find(n => within(r).queryAllByText(n).length > 0) ?? '?'
+})
 
 /** Názvy tlačítek odebrání mandátu v řádku týmu (pořadí štítků). */
 const mandateButtons = (teamName: string) =>

@@ -442,11 +442,12 @@
   color: var(--ink-2);
 }
 
-/* Řádky před během: Team | People | Mandate. Sloupec People má pevnou šířku, aby hlavička sloupců
-   (samostatná mřížka) lícovala s řádky týmů */
+/* Řádky před během: Team | People | Mandate | × (odebrání týmu, feat-030). Sloupce People a × mají pevnou šířku,
+   aby hlavička sloupců (samostatná mřížka) lícovala s řádky týmů. Sloupec Team je širší, aby se pole názvu
+   „Team Billing“ se šipkou a tečkami skillů na projektoru 1024 px nezkracovalo; tři mandáty se zalomí */
 .setupLine {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 64px minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1.4fr) 64px minmax(0, 1fr) 16px;
   column-gap: var(--space-8);
   align-items: center;
 }
@@ -521,7 +522,12 @@
 .mandateRemove:focus-visible,
 .addMandate:focus-visible,
 .pickerItem:focus-visible,
-.pickerClose:focus-visible {
+.pickerClose:focus-visible,
+.teamRemove:focus-visible,
+.expandAll:focus-visible,
+.dashed:focus-visible,
+.personActions:focus-visible,
+.confirmButton:focus-visible {
   outline: var(--border-active) solid var(--focus);
   outline-offset: 1px;
 }
@@ -731,6 +737,9 @@
   display: inline-flex;
   align-items: center;
   gap: var(--space-4);
+  /* Dlouhý název týmu nebo oblasti se v úzké nabídce zkrátí, položka nepřeteče (J4) */
+  max-width: 100%;
+  min-width: 0;
   height: 18px;
   padding: 0 var(--space-6);
   border: var(--border-hair) solid var(--line-control);
@@ -752,7 +761,35 @@
 }
 
 .pickerName {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
   color: var(--ink-2);
+}
+
+/* Skill v nabídce „Add skill“: plná barva skillu jako čip (feat-030) */
+.pickerSkill {
+  border-color: var(--role);
+  background: var(--role);
+  color: var(--ink-inverse);
+  font-weight: 600;
+}
+
+.pickerSkill:hover {
+  border-color: var(--ink);
+}
+
+/* „Remove person“ v nabídce akcí člověka: barva odebrání */
+.pickerDanger {
+  color: var(--rework);
+}
+
+/* Text místo položek, když nic nezbývá („Has every skill“) */
+.pickerNone {
+  flex: 1;
+  font-size: 10px;
+  line-height: 18px;
+  color: var(--ink-3);
 }
 
 .pickerClose {
@@ -765,7 +802,7 @@
   line-height: 18px;
 }
 
-/* Rozbalení lidé týmu: karty jen ke čtení se jménem a čipy skillů */
+/* Rozbalení lidé týmu: karty se jménem a čipy skillů (před během k úpravě, feat-030; za běhu se stavem) */
 .people {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
@@ -889,4 +926,192 @@
 
 .idleText[data-tone='blocked'] {
   color: var(--wait);
+}
+
+/* ── Úpravy týmů a lidí před během (feat-030) ─────────────────────────── */
+
+/* Název týmu jako pole: vypadá jako text, při najetí ukáže rámeček (mockup v9, .tname). Šířka = počet znaků
+   (--chars z komponenty) + vnitřní okraj 2 × 2px + rámeček 2 × 1px + 2px rezerva na zaokrouhlení; dlouhý název
+   se zkrátí na šířku buňky výpustkou (J4) */
+.teamNameInput {
+  box-sizing: border-box;
+  width: calc(var(--chars) * 1ch + 8px);
+  min-width: 0;
+  max-width: 100%;
+  padding: 0 var(--space-2);
+  border: var(--border-hair) solid transparent;
+  border-radius: var(--radius-xs);
+  background: transparent;
+  color: var(--ink);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 18px;
+  font-weight: 700;
+  text-overflow: ellipsis;
+}
+
+.teamNameInput:hover {
+  border-color: var(--line);
+}
+
+.teamNameInput:focus {
+  outline: var(--border-active) solid var(--focus);
+  outline-offset: 1px;
+  background: var(--surface-panel);
+}
+
+/* × na konci řádku týmu: odebere tým (s lidmi po potvrzení) */
+.teamRemove {
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--ink-3);
+  font-size: 11px;
+  line-height: 1;
+}
+
+.teamRemove:hover {
+  color: var(--rework);
+}
+
+/* Expand all / Collapse all v hlavičce panelu: podtržený odkaz (mockup v9, .lnk) */
+.expandAll {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--ink-2);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  line-height: 16px;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  white-space: nowrap;
+}
+
+.expandAll:hover {
+  color: var(--ink);
+}
+
+/* Čárkované tlačítko přidání (+ Add team, + Add person; mockup v9, .dashed) */
+.dashed {
+  min-height: 24px;
+  border: var(--border-hair) dashed var(--line-control);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--ink-3);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+}
+
+.dashed:hover {
+  border-style: solid;
+  color: var(--ink);
+}
+
+.addTeam {
+  flex-shrink: 0;
+  height: 26px;
+  margin: var(--space-8) var(--space-16) 0;
+}
+
+/* + Add person přes celou šířku mřížky karet, pod nimi */
+.addPerson {
+  grid-column: 1 / -1;
+}
+
+/* Karta člověka před během: jméno s ⋯ nahoře, čipy skillů pod ním, nabídky pod čipy */
+.personEdit {
+  flex-direction: column;
+  flex-wrap: nowrap;
+  align-items: stretch;
+}
+
+.personTop {
+  display: flex;
+  align-items: center;
+  gap: var(--space-6);
+  min-width: 0;
+}
+
+.personActions {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  margin-left: auto;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: var(--border-hair) solid var(--line-control);
+  border-radius: var(--radius-xs);
+  background: transparent;
+  color: var(--ink-3);
+  font-size: 11px;
+  line-height: 1;
+}
+
+.personActions:hover,
+.personActions[aria-expanded='true'] {
+  border-color: var(--ink);
+  color: var(--ink);
+}
+
+/* Nabídka uvnitř karty člověka nepotřebuje odsazení řádku týmu */
+.personEdit .picker {
+  margin: 0;
+}
+
+/* Potvrzení odebrání týmu pod řádkem: barvy odebrání jako potvrzení smazání skillu v Settings */
+.confirm {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-6);
+  margin: 0 0 var(--space-6) 22px;
+  padding: 5px var(--space-8);
+  border: var(--border-hair) solid var(--rework);
+  border-radius: var(--radius-sm);
+  background: var(--rework-soft);
+  font-size: 11px;
+  line-height: 16px;
+  color: var(--ink-2);
+}
+
+.confirmText {
+  flex: 1;
+  min-width: 0;
+}
+
+.confirmActions {
+  display: flex;
+  gap: var(--space-6);
+}
+
+.confirmButton {
+  padding: var(--space-2) var(--space-8);
+  border: var(--border-hair) solid transparent;
+  border-radius: var(--radius-none);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  line-height: 16px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+/* Odebrání zahodí lidi → barva odebrání; text v barvě panelu drží kontrast v obou tématech */
+.confirmDanger {
+  border-color: var(--rework);
+  background: var(--rework);
+  color: var(--surface-panel);
+}
+
+.confirmNeutral {
+  border-color: var(--line-control);
+  background: transparent;
+  color: var(--ink-2);
 }

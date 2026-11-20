@@ -31,6 +31,10 @@ interface RoleChipProps {
   label?: string
   removable?: boolean
   onRemove?: () => void
+  /** Přístupný název odebíracího ×, např. „Remove skill Java“ (mód Organization, feat-030). Bez něj má × jen title. */
+  removeLabel?: string
+  /** Tooltip odebíracího × (výchozí „Remove role“ jako v Advanced a Cash Flow). */
+  removeTitle?: string
   /** Tlačítko AI mezi názvem a křížkem (feat-019). Bez něj se chip nemění — používá to Compare. */
   ai?: RoleChipAi
 }
@@ -45,10 +49,10 @@ interface RoleChipProps {
  * Chip je řádek: název (zkrátí se výpustkou, když není místo) + volitelné tlačítko AI + volitelný křížek.
  * Tlačítko AI a křížek se nikdy nezkracují, takže jsou vidět i u dlouhého názvu v úzké kartě.
  *
- * @param props - Role, její barva, volitelný popisek, možnost odebrání a ovládání AI
+ * @param props - Role, její barva, volitelný popisek, možnost odebrání (s volitelným názvem a tooltipem ×) a ovládání AI
  * @returns Vykreslený čip
  */
-export function RoleChip({ role, color, label, removable, onRemove, ai }: RoleChipProps) {
+export function RoleChip({ role, color, label, removable, onRemove, removeLabel, removeTitle = 'Remove role', ai }: RoleChipProps) {
   const style: CssVariables = { '--role': color }
   const text = label ?? role
   // Plný název v title jen tehdy, když ho v úzké kartě zkrátí výpustka (feat-023); měří se prvek s názvem
@@ -71,7 +75,7 @@ export function RoleChip({ role, color, label, removable, onRemove, ai }: RoleCh
         </button>
       )}
       {removable && (
-        <button type="button" onClick={onRemove} className={styles.remove} title="Remove role">×</button>
+        <button type="button" onClick={onRemove} className={styles.remove} title={removeTitle} aria-label={removeLabel}>×</button>
       )}
     </span>
   )

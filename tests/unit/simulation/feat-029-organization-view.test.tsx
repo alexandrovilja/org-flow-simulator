@@ -61,9 +61,13 @@ const label = (id: number) => `F-${String(id).padStart(3, '0')}`
 /** Filtr čekajících featur v hlavičce In progress (nebo null). */
 const waitingFilter = () => within(region('In progress')).queryByRole('button', { name: /^\d+ waiting$/ })
 
-/** Řádek týmu v panelu organizace podle názvu. */
+/**
+ * Řádek týmu v panelu organizace podle názvu. Od feat-030 je název před během pole „Team name“, proto se hledá
+ * nejdřív podle hodnoty pole a potom (za běhu) podle textu.
+ */
 function teamRow(name: string): HTMLElement {
-  const row = within(region('Organization')).getAllByTestId('org-team-row').find(r => within(r).queryByText(name))
+  const rows = within(region('Organization')).getAllByTestId('org-team-row')
+  const row = rows.find(r => within(r).queryAllByDisplayValue(name).length > 0) ?? rows.find(r => within(r).queryAllByText(name).length > 0)
   if (!row) throw new Error(`Řádek týmu ${name} není`)
   return row
 }
