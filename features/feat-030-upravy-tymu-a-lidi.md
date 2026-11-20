@@ -1,9 +1,9 @@
 # Feature: Úpravy týmů a lidí (mód Organization, inkrement 3)
 
 ## Status
-ready
+done
 
-*Inkrement 3 z 9 módu Organization (Týmy složené z lidí). Vznikl rozdělením feat-028 podle INVEST a SPIDR 2026-11-12 a závisí jen na inkrementu 1 ([feat-028](feat-028-tymy-slozene-z-lidi.md), v main od PR #44). Inkrement 2 ([feat-029](feat-029-proc-prace-ceka.md)) je v main od PR #46; tento spec s jeho pohledem za běhu počítá. Spec je schválený 2026-11-13 včetně rozhodnutí o jménech `Person N` a `Team N`, odebrání týmu bez lidí bez potvrzení, Esc v názvu týmu, pořadí skillů a Expand all za běhu. UI kontrakt je mockup [`docs/feat-028-ui-mockup.html`](../docs/feat-028-ui-mockup.html) (verze 9), scénáře jsou v [`docs/feat-028-test-analysis.md`](../docs/feat-028-test-analysis.md) a koncept testů v [`docs/feat-028-test-drafts/`](../docs/feat-028-test-drafts/README.md).*
+*Inkrement 3 z 9 módu Organization (Týmy složené z lidí). Vznikl rozdělením feat-028 podle INVEST a SPIDR 2026-11-12 a závisí jen na inkrementu 1 ([feat-028](feat-028-tymy-slozene-z-lidi.md), v main od PR #44). Inkrement 2 ([feat-029](feat-029-proc-prace-ceka.md)) je v main od PR #46; tento spec s jeho pohledem za běhu počítá. Spec je schválený 2026-11-13 včetně rozhodnutí o jménech `Person N` a `Team N`, odebrání týmu bez lidí bez potvrzení, Esc v názvu týmu, pořadí skillů a Expand all za běhu. Inkrement je hotový: implementace je v main (PR #48) a smoke test produkce prošel. UI kontrakt je mockup [`docs/feat-028-ui-mockup.html`](../docs/feat-028-ui-mockup.html) (verze 9), scénáře jsou v [`docs/feat-028-test-analysis.md`](../docs/feat-028-test-analysis.md) a koncept testů v [`docs/feat-028-test-drafts/`](../docs/feat-028-test-drafts/README.md).*
 
 ## Problem
 V inkrementech 1 a 2 je organizace pevná: tři týmy po čtyřech lidech a kouč mění jen mandáty. Nemůže postavit organizaci podobnou té klientově (jiný počet týmů, jiní lidé, jiné skilly), přesunout člověka do jiného týmu ani ukázat, co se stane, když týmu s mandátem chybí skill. Engine už dnes počítá s libovolnými týmy a lidmi, chybí jen úpravy v panelu a kontrola, která pozná chybějící skill dřív, než se běh zasekne.
