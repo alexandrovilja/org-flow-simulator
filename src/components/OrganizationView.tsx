@@ -1,4 +1,5 @@
-import { memo, useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react'
+import { memo, useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent, type ReactNode } from 'react'
+import { useIsTruncated } from '@/hooks/useIsTruncated'
 import { useScrollIntoView } from '@/hooks/useScrollIntoView'
 import { PanelHeader } from '@/components/PanelHeader'
 import { EmptyNote } from '@/components/EmptyNote'
@@ -9,7 +10,10 @@ import { RoleChip } from '@/components/RoleChip'
 import { WorkTimeValue } from '@/components/WorkTimeValue'
 import { formatDaysValue } from '@/lib/formatTime'
 import { orgFeatureHue, orgFlowView, orgMetrics, validateOrgSetup } from '@/simulation/organizationEngine'
-import { addMandate, removeMandate } from '@/simulation/organizationSetup'
+import {
+  addMandate, addPerson, addPersonSkill, addTeam, movePerson, removeMandate, removePerson, removePersonSkill, removeTeam,
+  renameTeam,
+} from '@/simulation/organizationSetup'
 import type { CssVariables } from '@/types/css'
 import type { Role, RoleMeta } from '@/types/simulation'
 import type {
@@ -456,64 +460,449 @@ function FeatureRow({ feature, areaNames, roleConfig, flow, people, open, onTogg
   )
 }
 
+/**
+ * Otevřená nabídka nebo potvrzení v panelu organizace před během (feat-030). V celém panelu je otevřená nejvýš
+ * jedna, takže otevření další předchozí zavře:
+ *  - `mandate` — nabídka oblastí pro přidání mandátu týmu,
+ *  - `remove` — potvrzení odebrání týmu s lidmi,
+ *  - `skill` — nabídka skillů, které člověku chybí,
+ *  - `person` — nabídka akcí člověka (přesun do jiného týmu, odebrání).
+ */
+type PanelPopup =
+  | { kind: 'mandate'; teamId: number }
+  | { kind: 'remove'; teamId: number }
+  | { kind: 'skill'; personId: number }
+  | { kind: 'person'; personId: number }
+
+/** Úprava organizace: funkce, která z aktuální organizace udělá novou (vstup nemění). */
+type SetupChange = (setup: OrgSetup) => OrgSetup
+
+/**
+ * Žádost o fokus do pole názvu týmu (feat-030): `select` po „+ Add team“ (kouč rovnou přepíše „Team 4“),
+ * `focus` po odebrání sousedního týmu (klávesnice zůstane v panelu, ale název se omylem nepřepíše).
+ */
+type NameFocus = 'select' | 'focus'
+
+/** Props textu, který se v úzkém místě zkracuje výpustkou. */
+interface TruncatedTextProps {
+  text: string
+  /** Třída s šířkou a stylem textu; musí mít `overflow: hidden` a `text-overflow: ellipsis`. */
+  className?: string
+}
+
+/**
+ * Text zkrácený výpustkou: plný text dá do `title` jen tehdy, když je opravdu zkrácený (stejně jako feat-023).
+ * Používá ho název týmu za běhu, položky „Move to …“ a názvy oblastí v nabídce mandátů (J4).
+ *
+ * @param props - Text a třída
+ * @returns Vykreslený text
+ */
+function TruncatedText({ text, className }: TruncatedTextProps) {
+  const [ref, truncated] = useIsTruncated<HTMLSpanElement>(text)
+  return <span ref={ref} className={className} title={truncated ? text : undefined}>{text}</span>
+}
+
+/** Položka nabídky v panelu organizace. */
+interface OrgMenuItem {
+  /** Jedinečný klíč položky v nabídce. */
+  key: string
+  /** Obsah položky (text, případně s kódem oblasti nebo zkráceným názvem). */
+  content: ReactNode
+  /** Co se stane po výběru. */
+  onSelect: () => void
+  /** Doplňková třída vzhledu (barevný skill, odebrání). */
+  className?: string
+  /** Inline CSS proměnné, např. `--role` pro barvu skillu. */
+  style?: CssVariables
+}
+
+/** Props nabídky v panelu organizace. */
+interface OrgMenuProps {
+  /** Přístupný název nabídky, např. „Add mandate to Team Mobile“. */
+  label: string
+  /** Položky v pořadí, v jakém se ukážou. */
+  items: OrgMenuItem[]
+  /** Text místo položek, když žádná není (např. „Has every skill“). */
+  empty?: string
+  /** Zavře nabídku. */
+  onClose: () => void
+  /** Vrátí fokus na tlačítko, které nabídku otevřelo (po Esc). */
+  returnFocus: () => void
+}
+
+/**
+ * Nabídka v panelu organizace (mandáty, skilly, akce člověka) se stejným ovládáním jako nabídka mandátů
+ * z inkrementu 1: po otevření je fokus na první položce, šipky přesouvají fokus dokola, Esc nabídku zavře a vrátí
+ * fokus na tlačítko, které ji otevřelo. Bez položek ukáže jen text `empty` a fokus dostane tlačítko Close, aby Esc
+ * fungoval i tak. Nabídka je v toku stránky, aby ji neořízlo rolování panelu.
+ *
+ * @param props - Název, položky, text bez položek a callbacky zavření a vrácení fokusu
+ * @returns Vykreslená nabídka
+ */
+function OrgMenu({ label, items, empty, onClose, returnFocus }: OrgMenuProps) {
+  // Tlačítka položek v pořadí nabídky a tlačítko Close: fokus se přesouvá přes refy, ne hledáním v DOM
+  const itemRefs = useRef<Array<HTMLButtonElement | null>>([])
+  const closeRef = useRef<HTMLButtonElement>(null)
+
+  // Po otevření přejde fokus na první položku (bez položek na Close), aby šla nabídka ovládat klávesnicí
+  useEffect(() => {
+    const first = itemRefs.current.find(item => item !== null)
+    if (first) first.focus()
+    else closeRef.current?.focus()
+  }, [])
+
+  /**
+   * Klávesy v nabídce: šipky přesouvají fokus mezi položkami (dokola), Esc nabídku zavře a vrátí fokus.
+   *
+   * @param e - Stisk klávesy uvnitř nabídky
+   */
+  const handleKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
+    if (e.key === 'Escape') {
+      e.preventDefault()
+      onClose()
+      returnFocus()
+      return
+    }
+    const step = e.key === 'ArrowDown' || e.key === 'ArrowRight' ? 1 : e.key === 'ArrowUp' || e.key === 'ArrowLeft' ? -1 : 0
+    // Jen tolik refů, kolik je teď položek (pole může mít zbytky po delší nabídce)
+    const options = itemRefs.current.slice(0, items.length)
+    if (step === 0 || options.length === 0) return
+    e.preventDefault()
+    const current = options.findIndex(item => item === e.target)
+    options[(current + step + options.length) % options.length]?.focus()
+  }
+
+  return (
+    <div className={styles.picker} onKeyDown={handleKeyDown}>
+      {items.length > 0 ? (
+        <div role="menu" aria-label={label} className={styles.pickerItems}>
+          {items.map((item, i) => (
+            <button
+              key={item.key}
+              ref={el => { itemRefs.current[i] = el }}
+              type="button"
+              role="menuitem"
+              className={item.className ? `${styles.pickerItem} ${item.className}` : styles.pickerItem}
+              style={item.style}
+              onClick={item.onSelect}
+            >
+              {item.content}
+            </button>
+          ))}
+        </div>
+      ) : (
+        // Bez položek není co vybírat: text se jen oznámí (role status), nabídka se jako menu neohlašuje
+        <span role="status" className={styles.pickerNone}>{empty}</span>
+      )}
+      <button ref={closeRef} type="button" className={styles.pickerClose} aria-label="Close" onClick={onClose}>×</button>
+    </div>
+  )
+}
+
+/** Props pole názvu týmu. */
+interface TeamNameInputProps {
+  /** Uložený název týmu. */
+  name: string
+  /** Uloží nový název (už oříznutý a neprázdný). */
+  onRename: (name: string) => void
+  /** Dát do pole fokus (a u `select` označit text); `null` = rodič o fokus nežádá. */
+  focus: NameFocus | null
+  /** Fokus je v poli — rodič už nemusí o fokus žádat. */
+  onFocused: () => void
+}
+
+/**
+ * Pole názvu týmu před během (R6, feat-030): vypadá jako text, při najetí ukáže rámeček. Enter nebo opuštění pole
+ * název uloží, okolní mezery se ořežou, prázdný název se neuloží (pole ukáže zase uložený název) a Esc rozepsanou
+ * změnu zruší. Dlouhý název se zkrátí výpustkou a plný název je v `title` (J4).
+ *
+ * @param props - Uložený název, uložení, žádost o fokus a její potvrzení
+ * @returns Vykreslené pole
+ */
+function TeamNameInput({ name, onRename, focus, onFocused }: TeamNameInputProps) {
+  const [draft, setDraft] = useState(name)
+  // Když se uložený název změní (po uložení nebo Resetu), pole ho převezme. Úprava stavu při vykreslení místo efektu
+  const [savedName, setSavedName] = useState(name)
+  if (savedName !== name) {
+    setSavedName(name)
+    setDraft(name)
+  }
+  const [ref, truncated] = useIsTruncated<HTMLInputElement>(draft)
+  // Šířka pole podle počtu znaků (písmo je neproporcionální, takže 1ch = jeden znak): krátký název nezabere celou
+  // buňku, dlouhý se zkrátí na šířku buňky. Nejméně 6 znaků, aby šlo pole najít i po smazání textu
+  const widthStyle: CssVariables = { '--chars': Math.max(6, draft.length) }
+
+  useEffect(() => {
+    if (focus === null) return
+    ref.current?.focus()
+    if (focus === 'select') ref.current?.select()
+    onFocused()
+  }, [focus, onFocused, ref])
+
+  /**
+   * Uloží název z pole. Bere hodnotu přímo z pole (ne ze stavu), aby opuštění pole hned po Enteru nebo Esc pracovalo
+   * s tím, co pole opravdu ukazuje.
+   *
+   * @param value - Text v poli
+   */
+  const commit = (value: string) => {
+    const trimmed = value.trim()
+    if (trimmed === '') {
+      setDraft(name)
+      return
+    }
+    setDraft(trimmed)
+    if (trimmed !== name) onRename(trimmed)
+  }
+
+  /**
+   * Enter název uloží, Esc vrátí uložený název.
+   *
+   * @param e - Stisk klávesy v poli
+   */
+  const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.preventDefault()
+      commit(e.currentTarget.value)
+    } else if (e.key === 'Escape') {
+      e.preventDefault()
+      setDraft(name)
+    }
+  }
+
+  return (
+    <input
+      ref={ref}
+      type="text"
+      aria-label="Team name"
+      className={styles.teamNameInput}
+      value={draft}
+      style={widthStyle}
+      title={truncated ? draft : undefined}
+      onChange={e => setDraft(e.target.value)}
+      onKeyDown={handleKeyDown}
+      onBlur={e => commit(e.currentTarget.value)}
+    />
+  )
+}
+
+/** Props potvrzení odebrání týmu. */
+interface RemoveTeamConfirmProps {
+  team: OrgTeam
+  onCancel: () => void
+  onConfirm: () => void
+}
+
+/**
+ * Potvrzení odebrání týmu s lidmi pod řádkem týmu (feat-030), ve stejném stylu jako potvrzení smazání skillu
+ * v Settings. Fokus dostane Cancel (bezpečná volba u destruktivní akce) a Esc znamená Cancel.
+ *
+ * @param props - Tým a callbacky zrušení a potvrzení
+ * @returns Vykreslené potvrzení
+ */
+function RemoveTeamConfirm({ team, onCancel, onConfirm }: RemoveTeamConfirmProps) {
+  const cancelRef = useRef<HTMLButtonElement>(null)
+  useEffect(() => { cancelRef.current?.focus() }, [])
+  const text = `Remove ${team.name}? ${counted(team.people.length, 'person', 'people')} will be removed.`
+  return (
+    <div
+      className={styles.confirm}
+      onKeyDown={e => {
+        if (e.key !== 'Escape') return
+        e.preventDefault()
+        onCancel()
+      }}
+    >
+      <span className={styles.confirmText}>{text}</span>
+      <span className={styles.confirmActions}>
+        <button ref={cancelRef} type="button" className={`${styles.confirmButton} ${styles.confirmNeutral}`} onClick={onCancel}>Cancel</button>
+        <button type="button" className={`${styles.confirmButton} ${styles.confirmDanger}`} onClick={onConfirm}>Remove</button>
+      </span>
+    </div>
+  )
+}
+
+/** Props karty člověka před během. */
+interface SetupPersonCardProps {
+  person: OrgPerson
+  /** Tým člověka. */
+  team: OrgTeam
+  /** Všechny týmy v pořadí panelu — nabídka přesunu z nich vynechá vlastní tým. */
+  teams: OrgTeam[]
+  roleConfig: Record<Role, RoleMeta>
+  /** Otevřená nabídka nebo potvrzení v panelu. */
+  popup: PanelPopup | null
+  onPopup: (popup: PanelPopup | null) => void
+  /** Úprava organizace. */
+  onEdit: (change: SetupChange) => void
+  /** Člověk z týmu odešel (přesun, odebrání): rodič přesune fokus, protože karta s tlačítkem zmizí. */
+  onLeft: () => void
+}
+
+/**
+ * Karta člověka před během (feat-030): jméno, nabídka akcí `⋯` (přesun do jiného týmu, odebrání), čipy skillů
+ * s × a tlačítko + s nabídkou skillů, které člověku chybí (v pořadí editoru, nebo „Has every skill“).
+ *
+ * @param props - Člověk, jeho tým, všechny týmy, skilly, otevřená nabídka, úprava organizace a odchod z týmu
+ * @returns Vykreslená karta
+ */
+function SetupPersonCard({ person, team, teams, roleConfig, popup, onPopup, onEdit, onLeft }: SetupPersonCardProps) {
+  const skillButtonRef = useRef<HTMLButtonElement>(null)
+  const actionsButtonRef = useRef<HTMLButtonElement>(null)
+  const skillOpen = popup?.kind === 'skill' && popup.personId === person.id
+  const actionsOpen = popup?.kind === 'person' && popup.personId === person.id
+  // Skilly, které člověk nemá, v pořadí editoru skillů
+  const missing = Object.keys(roleConfig).filter(k => !person.skills.includes(k))
+  const otherTeams = teams.filter(t => t.id !== team.id)
+
+  /**
+   * Úprava, po které se nabídka zavře.
+   *
+   * @param change - Úprava organizace
+   */
+  const select = (change: SetupChange) => {
+    onPopup(null)
+    onEdit(change)
+  }
+
+  /**
+   * Úprava, po které člověk z týmu odejde: nabídka se zavře a fokus převezme rodič.
+   *
+   * @param change - Přesun nebo odebrání člověka
+   */
+  const leave = (change: SetupChange) => {
+    select(change)
+    onLeft()
+  }
+
+  const moveItems: OrgMenuItem[] = otherTeams.map(t => ({
+    key: `move-${t.id}`,
+    content: <>Move to <TruncatedText text={t.name} className={styles.pickerName} /></>,
+    onSelect: () => leave(s => movePerson(s, person.id, t.id)),
+  }))
+
+  return (
+    <div data-testid="org-person" className={`${styles.person} ${styles.personEdit}`}>
+      <div className={styles.personTop}>
+        <span className={styles.personName}>{person.name}</span>
+        <button
+          ref={actionsButtonRef}
+          type="button"
+          className={styles.personActions}
+          aria-label="Person actions"
+          title="Move to another team or remove"
+          aria-haspopup="menu"
+          aria-expanded={actionsOpen}
+          onClick={() => onPopup(actionsOpen ? null : { kind: 'person', personId: person.id })}
+        >
+          ⋯
+        </button>
+      </div>
+      <div className={styles.personSkills}>
+        {person.skills.map(k => {
+          const label = roleConfig[k]?.label ?? k
+          return (
+            <RoleChip
+              key={k}
+              role={k}
+              color={roleConfig[k]?.color ?? 'var(--ink-4)'}
+              label={label}
+              removable
+              onRemove={() => onEdit(s => removePersonSkill(s, person.id, k))}
+              removeLabel={`Remove skill ${label}`}
+              removeTitle="Remove skill"
+            />
+          )
+        })}
+        <button
+          ref={skillButtonRef}
+          type="button"
+          className={styles.addMandate}
+          aria-label="Add skill"
+          title="Add skill"
+          // Menu ohlásí jen tehdy, když nějaký skill chybí; jinak se ukáže jen text „Has every skill“
+          aria-haspopup={missing.length > 0 ? 'menu' : undefined}
+          aria-expanded={missing.length > 0 ? skillOpen : undefined}
+          onClick={() => onPopup(skillOpen ? null : { kind: 'skill', personId: person.id })}
+        >
+          +
+        </button>
+      </div>
+      {skillOpen && (
+        <OrgMenu
+          label={`Add skill to ${person.name}`}
+          items={missing.map(k => ({
+            key: k,
+            content: roleConfig[k].label,
+            className: styles.pickerSkill,
+            style: { '--role': roleConfig[k].color },
+            onSelect: () => select(s => addPersonSkill(s, person.id, k)),
+          }))}
+          empty="Has every skill"
+          onClose={() => onPopup(null)}
+          returnFocus={() => skillButtonRef.current?.focus()}
+        />
+      )}
+      {actionsOpen && (
+        <OrgMenu
+          label={`Actions for ${person.name}`}
+          items={[
+            ...moveItems,
+            { key: 'remove', content: 'Remove person', className: styles.pickerDanger, onSelect: () => leave(s => removePerson(s, person.id)) },
+          ]}
+          onClose={() => onPopup(null)}
+          returnFocus={() => actionsButtonRef.current?.focus()}
+        />
+      )}
+    </div>
+  )
+}
+
 /** Props řádku týmu před během. */
 interface SetupTeamRowProps {
   team: OrgTeam
+  /** Všechny týmy v pořadí panelu (pro nabídku přesunu člověka). */
+  teams: OrgTeam[]
   areas: OrgArea[]
   roleConfig: Record<Role, RoleMeta>
   /** Lidé týmu jsou rozbalení. */
   open: boolean
   onToggle: () => void
-  /** Nabídka přidání mandátu je otevřená. */
-  menuOpen: boolean
-  onToggleMenu: () => void
-  onCloseMenu: () => void
-  onAddMandate: (code: string) => void
-  onRemoveMandate: (code: string) => void
+  /** Otevřená nabídka nebo potvrzení v panelu. */
+  popup: PanelPopup | null
+  onPopup: (popup: PanelPopup | null) => void
+  /** Úprava organizace. */
+  onEdit: (change: SetupChange) => void
+  /** Klik na × u týmu (tým bez lidí se odebere hned, s lidmi se zeptá). */
+  onRemoveClick: () => void
+  /** Potvrzení odebrání týmu s lidmi. */
+  onConfirmRemove: () => void
+  /** Žádost o fokus do pole názvu (nový tým, odebraný sousední tým); `null` = žádná. */
+  focusName: NameFocus | null
+  onNameFocused: () => void
 }
 
 /**
- * Řádek týmu před během (sloupce Team | People | Mandate): šipka pro rozbalení lidí, název, tečky skillů,
- * počet lidí a štítky mandátů s × a tlačítkem + pro přidání. Rozbalený tým ukáže lidi jen ke čtení.
+ * Řádek týmu před během (sloupce Team | People | Mandate a ×): šipka pro rozbalení lidí, pole názvu, tečky skillů,
+ * počet lidí, štítky mandátů s × a tlačítkem + a × pro odebrání týmu. Rozbalený tým ukáže karty lidí k úpravě
+ * a tlačítko „+ Add person“ (feat-030).
  *
- * @param props - Tým, oblasti, skilly, stav rozbalení a nabídky a callbacky úprav mandátů
- * @returns Vykreslený řádek (včetně nabídky a lidí)
+ * @param props - Tým, všechny týmy, oblasti, skilly, rozbalení, otevřená nabídka, úpravy a fokus názvu
+ * @returns Vykreslený řádek (včetně nabídek, potvrzení a lidí)
  */
 function SetupTeamRow({
-  team, areas, roleConfig, open, onToggle, menuOpen, onToggleMenu, onCloseMenu, onAddMandate, onRemoveMandate,
+  team, teams, areas, roleConfig, open, onToggle, popup, onPopup, onEdit, onRemoveClick, onConfirmRemove, focusName, onNameFocused,
 }: SetupTeamRowProps) {
-  const areaNames = Object.fromEntries(areas.map(a => [a.code, a.name]))
   // Oblasti, na které tým mandát ještě nemá, v pořadí oblastí
   const free = areas.filter(a => !team.mandates.includes(a.code))
+  const areaNames = Object.fromEntries(areas.map(a => [a.code, a.name]))
   // Tečky skillů: každý skill, který v týmu někdo umí, jednou a v pořadí konfigurace
   const teamSkills = Object.keys(roleConfig).filter(k => team.people.some(p => p.skills.includes(k)))
   const addButtonRef = useRef<HTMLButtonElement>(null)
-  const menuRef = useRef<HTMLDivElement>(null)
-
-  // Po otevření nabídky přejde fokus na první oblast, aby šla nabídka ovládat klávesnicí
-  useEffect(() => {
-    if (menuOpen) menuRef.current?.querySelector<HTMLButtonElement>('[role="menuitem"]')?.focus()
-  }, [menuOpen])
-
-  /**
-   * Klávesy v nabídce: šipky přesouvají fokus mezi oblastmi (dokola), Esc nabídku zavře a vrátí fokus na +.
-   *
-   * @param e - Stisk klávesy uvnitř nabídky
-   */
-  const handleMenuKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
-    if (e.key === 'Escape') {
-      e.preventDefault()
-      onCloseMenu()
-      addButtonRef.current?.focus()
-      return
-    }
-    const step = e.key === 'ArrowDown' || e.key === 'ArrowRight' ? 1 : e.key === 'ArrowUp' || e.key === 'ArrowLeft' ? -1 : 0
-    if (step === 0 || !menuRef.current) return
-    e.preventDefault()
-    const items = Array.from(menuRef.current.querySelectorAll<HTMLButtonElement>('[role="menuitem"]'))
-    const current = items.findIndex(item => item === document.activeElement)
-    items[(current + step + items.length) % items.length]?.focus()
-  }
+  const removeButtonRef = useRef<HTMLButtonElement>(null)
+  const addPersonRef = useRef<HTMLButtonElement>(null)
+  const mandateOpen = popup?.kind === 'mandate' && popup.teamId === team.id
+  const removeOpen = popup?.kind === 'remove' && popup.teamId === team.id
 
   return (
     <div data-testid="org-team-row" className={styles.teamRow}>
@@ -522,7 +911,12 @@ function SetupTeamRow({
           <button type="button" className={styles.chevron} aria-expanded={open} aria-label="Show or hide people" onClick={onToggle}>
             {open ? '▾' : '▸'}
           </button>
-          <span className={styles.teamName}>{team.name}</span>
+          <TeamNameInput
+            name={team.name}
+            onRename={name => onEdit(s => renameTeam(s, team.id, name))}
+            focus={focusName}
+            onFocused={onNameFocused}
+          />
           <span className={styles.skillDots}>
             {teamSkills.map(k => {
               const dotStyle: CssVariables = { '--role': roleConfig[k].color }
@@ -530,45 +924,79 @@ function SetupTeamRow({
             })}
           </span>
         </span>
-        <span className={styles.peopleCount}>{team.people.length} people</span>
+        <span className={styles.peopleCount}>{counted(team.people.length, 'person', 'people')}</span>
         <span className={styles.mandates}>
           {team.mandates.map(code => (
             <span key={code} className={styles.mandateTag} title={areaNames[code]}>
               {code}
-              <button type="button" className={styles.mandateRemove} aria-label={`Remove mandate ${code}`} onClick={() => onRemoveMandate(code)}>×</button>
+              <button type="button" className={styles.mandateRemove} aria-label={`Remove mandate ${code}`} onClick={() => onEdit(s => removeMandate(s, team.id, code))}>×</button>
             </span>
           ))}
           {team.mandates.length === 0 && <span className={styles.noMandate}>No mandate</span>}
           {free.length > 0 && (
-            <button ref={addButtonRef} type="button" className={styles.addMandate} aria-label="Add mandate" title="Add mandate" aria-haspopup="menu" aria-expanded={menuOpen} onClick={onToggleMenu}>+</button>
+            <button
+              ref={addButtonRef}
+              type="button"
+              className={styles.addMandate}
+              aria-label="Add mandate"
+              title="Add mandate"
+              aria-haspopup="menu"
+              aria-expanded={mandateOpen}
+              onClick={() => onPopup(mandateOpen ? null : { kind: 'mandate', teamId: team.id })}
+            >
+              +
+            </button>
           )}
         </span>
+        <button ref={removeButtonRef} type="button" className={styles.teamRemove} aria-label={`Remove ${team.name}`} title="Remove team" onClick={onRemoveClick}>×</button>
       </div>
 
-      {menuOpen && free.length > 0 && (
-        // Esc a šipky obsluhuje handleMenuKeyDown; výběr oblasti nabídku zavře (řeší rodič)
-        <div className={styles.picker} onKeyDown={handleMenuKeyDown}>
-          <div ref={menuRef} role="menu" aria-label={`Add mandate to ${team.name}`} className={styles.pickerItems}>
-            {free.map(a => (
-              <button key={a.code} type="button" role="menuitem" className={styles.pickerItem} onClick={() => onAddMandate(a.code)}>
-                <span className={styles.pickerCode}>{a.code}</span>{' '}<span className={styles.pickerName}>{a.name}</span>
-              </button>
-            ))}
-          </div>
-          <button type="button" className={styles.pickerClose} aria-label="Close" onClick={onCloseMenu}>×</button>
-        </div>
+      {mandateOpen && free.length > 0 && (
+        <OrgMenu
+          label={`Add mandate to ${team.name}`}
+          items={free.map(a => ({
+            key: a.code,
+            content: <><span className={styles.pickerCode}>{a.code}</span>{' '}<TruncatedText text={a.name} className={styles.pickerName} /></>,
+            onSelect: () => {
+              onPopup(null)
+              onEdit(s => addMandate(s, team.id, a.code))
+            },
+          }))}
+          onClose={() => onPopup(null)}
+          returnFocus={() => addButtonRef.current?.focus()}
+        />
+      )}
+
+      {removeOpen && (
+        <RemoveTeamConfirm
+          team={team}
+          onCancel={() => {
+            onPopup(null)
+            removeButtonRef.current?.focus()
+          }}
+          onConfirm={onConfirmRemove}
+        />
       )}
 
       {open && (
         <div className={styles.people}>
           {team.people.map(p => (
-            <div key={p.id} data-testid="org-person" className={styles.person}>
-              <span className={styles.personName}>{p.name}</span>
-              <span className={styles.personSkills}>
-                {p.skills.map(k => <RoleChip key={k} role={k} color={roleConfig[k]?.color ?? 'var(--ink-4)'} label={roleConfig[k]?.label} />)}
-              </span>
-            </div>
+            <SetupPersonCard
+              key={p.id}
+              person={p}
+              team={team}
+              teams={teams}
+              roleConfig={roleConfig}
+              popup={popup}
+              onPopup={onPopup}
+              onEdit={onEdit}
+              // Karta zmizí i s fokusem; „+ Add person“ zůstává v týmu, takže klávesnice zůstane na místě
+              onLeft={() => addPersonRef.current?.focus()}
+            />
           ))}
+          <button ref={addPersonRef} type="button" className={`${styles.dashed} ${styles.addPerson}`} onClick={() => onEdit(s => addPerson(s, team.id))}>
+            + Add person
+          </button>
         </div>
       )}
     </div>
@@ -654,7 +1082,7 @@ interface RunTeamRowProps {
 /**
  * Řádek týmu za běhu (sloupce Team | Mandate | People | Working on), jen ke čtení: šipka pro rozbalení lidí,
  * název, štítky mandátů, pruh lidí (pracuje / žlutý idle / idle) s „pracuje / celkem“ a štítky featur, na kterých
- * lidé týmu pracují, s počtem idle lidí (feat-029).
+ * lidé týmu pracují, s počtem idle lidí (feat-029). Tým bez lidí ukazuje „0/0“ a ve Working on „—“ (feat-030).
  *
  * @param props - Tým, oblasti, skilly, stav toku práce, rozpracované featury, doběhnutí, počítání idle, rozbalení a skok
  * @returns Vykreslený řádek
@@ -678,7 +1106,7 @@ function RunTeamRow({ team, areaNames, roleConfig, flow, features, finished, cou
           <button type="button" className={styles.chevron} aria-expanded={open} aria-label="Show or hide people" onClick={onToggle}>
             {open ? '▾' : '▸'}
           </button>
-          <span className={styles.teamName}>{team.name}</span>
+          <TruncatedText text={team.name} className={styles.teamName} />
         </span>
         <span className={styles.mandates}>
           {team.mandates.map(code => <span key={code} className={styles.mandateTag} title={areaNames[code]}>{code}</span>)}
@@ -693,7 +1121,8 @@ function RunTeamRow({ team, areaNames, roleConfig, flow, features, finished, cou
           <span className={styles.peopleCount}>{working}/{team.people.length}</span>
         </span>
         <span className={styles.workingOn}>
-          {finished ? <span className={styles.none}>—</span> : (
+          {/* Po doběhnutí a u týmu bez lidí (feat-030, E6) není co ukázat */}
+          {finished || team.people.length === 0 ? <span className={styles.none}>—</span> : (
             <>
               {chips.map(([featureId, count]) => {
                 const feature = features.get(featureId)
@@ -768,25 +1197,29 @@ interface OrganizationPanelProps {
 }
 
 /**
- * Panel organizace: hlavička se souhrnem, varování kontroly před během a řádky týmů. Před během jde měnit
- * mandáty, za běhu je panel jen ke čtení a ukazuje, kdo na čem pracuje a kdo je idle (feat-029).
+ * Panel organizace: hlavička se souhrnem a tlačítkem Expand all / Collapse all, varování kontroly před během
+ * a řádky týmů. Před během jde měnit týmy, lidi, skilly a mandáty (feat-028, feat-030); za běhu je panel jen
+ * ke čtení a ukazuje, kdo na čem pracuje a kdo je idle (feat-029).
  *
  * @param props - Organizace, callback úprav, stav běhu, zamčení, varování, stav toku práce, skok na featuru a běh
  * @returns Vykreslený panel
  */
 function OrganizationPanel({ setup, onSetupChange, state, locked, warnings, flow, features, onJump, running }: OrganizationPanelProps) {
-  // Rozbalené týmy a otevřená nabídka mandátů jsou jen stav zobrazení, do organizace nepatří.
-  // Rozbalení platí před během i za běhu
+  // Rozbalené týmy, otevřená nabídka nebo potvrzení a fokus názvu nového týmu jsou jen stav zobrazení, do organizace
+  // nepatří. Rozbalení platí před během i za běhu
   const [openTeams, setOpenTeams] = useState<ReadonlySet<number>>(() => new Set())
-  const [menuTeamId, setMenuTeamId] = useState<number | null>(null)
-  // Otevřená nabídka mandátů se zamčením zavře, jinak by se po Resetu znovu sama ukázala. Úprava stavu
-  // přímo při vykreslení (místo efektu) ji zavře hned v tomtéž překreslení
-  if (locked && menuTeamId !== null) setMenuTeamId(null)
+  const [popup, setPopup] = useState<PanelPopup | null>(null)
+  const [nameFocus, setNameFocus] = useState<{ teamId: number; mode: NameFocus } | null>(null)
+  const addTeamRef = useRef<HTMLButtonElement>(null)
+  // Otevřená nabídka nebo potvrzení se zamčením zavře, jinak by se po Resetu znovu samo ukázalo. Úprava stavu
+  // přímo při vykreslení (místo efektu) je zavře hned v tomtéž překreslení
+  if (locked && popup !== null) setPopup(null)
+  const handleNameFocused = useCallback(() => setNameFocus(null), [])
 
   const people = setup.teams.reduce((n, t) => n + t.people.length, 0)
   const summary = `${counted(setup.teams.length, 'team', 'teams')} · ${counted(people, 'person', 'people')}`
   const note = !locked
-    ? 'Click + to add a mandate'
+    ? 'Click + to add a mandate or a skill'
     : state.finished ? 'Reset to change the organization' : 'Skills, AI and mandates are locked during the run'
   const areaNames: AreaNames = Object.fromEntries(setup.areas.map(a => [a.code, a.name]))
 
@@ -798,16 +1231,84 @@ function OrganizationPanel({ setup, onSetupChange, state, locked, warnings, flow
     : []
   const anyBlocked = idleStatuses.some(s => s.kind === 'blocked')
 
-  const toggleTeam = (id: number) => setOpenTeams(prev => {
-    const next = new Set(prev)
-    if (next.has(id)) next.delete(id)
-    else next.add(id)
-    return next
-  })
+  /**
+   * Zavře nabídku skillu nebo akcí člověka, který je v jednom ze sbalovaných týmů. Nabídka by jinak zůstala otevřená
+   * neviditelně a po rozbalení týmu by se sama ukázala a vzala fokus. Nabídka mandátů a potvrzení odebrání jsou
+   * v řádku týmu, sbalení je neskryje.
+   *
+   * @param teamIds - Týmy, které se sbalují
+   */
+  const closePopupIn = (teamIds: ReadonlySet<number>) => {
+    if (popup?.kind !== 'skill' && popup?.kind !== 'person') return
+    const owner = setup.teams.find(t => t.people.some(p => p.id === popup.personId))
+    if (owner && teamIds.has(owner.id)) setPopup(null)
+  }
+
+  const toggleTeam = (id: number) => {
+    if (openTeams.has(id)) closePopupIn(new Set([id]))
+    setOpenTeams(prev => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  /**
+   * Úprava organizace před během: z aktuální organizace udělá novou a pošle ji rodiči.
+   *
+   * @param change - Úprava organizace
+   */
+  const edit = (change: SetupChange) => onSetupChange(change(setup))
+
+  /** „+ Add team“: nový tým na konci, rozbalený, s fokusem v poli názvu. */
+  const handleAddTeam = () => {
+    const { setup: next, teamId } = addTeam(setup)
+    setPopup(null)
+    setOpenTeams(prev => new Set(prev).add(teamId))
+    setNameFocus({ teamId, mode: 'select' })
+    onSetupChange(next)
+  }
+
+  /**
+   * Odebere tým i s lidmi a zapomene jeho rozbalení (nový tým může dostat stejné id).
+   *
+   * @param teamId - Id týmu
+   */
+  const handleRemoveTeam = (teamId: number) => {
+    // Fokus přejde na název dalšího týmu (u posledního na předchozí), bez týmů na „+ Add team“: tlačítko × zmizí
+    // i s řádkem a klávesnice by jinak spadla na začátek stránky
+    const index = setup.teams.findIndex(t => t.id === teamId)
+    const neighbour = setup.teams[index + 1] ?? setup.teams[index - 1]
+    if (neighbour) setNameFocus({ teamId: neighbour.id, mode: 'focus' })
+    else addTeamRef.current?.focus()
+    setPopup(null)
+    setOpenTeams(prev => {
+      const next = new Set(prev)
+      next.delete(teamId)
+      return next
+    })
+    onSetupChange(removeTeam(setup, teamId))
+  }
+
+  // Expand all / Collapse all: jen pohled, takže funguje i za běhu; bez týmů není co rozbalit
+  const allOpen = setup.teams.length > 0 && setup.teams.every(t => openTeams.has(t.id))
+  const expandToggle = setup.teams.length > 0 ? (
+    <button
+      type="button"
+      className={styles.expandAll}
+      onClick={() => {
+        if (allOpen) closePopupIn(openTeams)
+        setOpenTeams(allOpen ? new Set() : new Set(setup.teams.map(t => t.id)))
+      }}
+    >
+      {allOpen ? 'Collapse all' : 'Expand all'}
+    </button>
+  ) : null
 
   return (
     <section aria-label="Organization" className={styles.org}>
-      <PanelHeader title="Organization" count={summary}>
+      <PanelHeader title="Organization" count={summary} actions={expandToggle}>
         {idleStatuses.length > 0 && (
           <span data-tone={anyBlocked ? 'blocked' : 'idle'} className={styles.headIdle}>{`${idleStatuses.length} idle`}</span>
         )}
@@ -826,7 +1327,7 @@ function OrganizationPanel({ setup, onSetupChange, state, locked, warnings, flow
       <div className={locked ? `${styles.columns} ${styles.runLine}` : `${styles.columns} ${styles.setupLine}`} aria-hidden="true">
         {locked
           ? <><span>Team</span><span>Mandate</span><span>People</span><span>Working on</span></>
-          : <><span>Team</span><span>People</span><span>Mandate</span></>}
+          : <><span>Team</span><span>People</span><span>Mandate</span><span /></>}
       </div>
 
       <div className={styles.teams}>
@@ -850,18 +1351,26 @@ function OrganizationPanel({ setup, onSetupChange, state, locked, warnings, flow
             <SetupTeamRow
               key={team.id}
               team={team}
+              teams={setup.teams}
               areas={setup.areas}
               roleConfig={setup.roleConfig}
               open={openTeams.has(team.id)}
               onToggle={() => toggleTeam(team.id)}
-              menuOpen={menuTeamId === team.id}
-              onToggleMenu={() => setMenuTeamId(id => (id === team.id ? null : team.id))}
-              onCloseMenu={() => setMenuTeamId(null)}
-              onAddMandate={code => { setMenuTeamId(null); onSetupChange(addMandate(setup, team.id, code)) }}
-              onRemoveMandate={code => onSetupChange(removeMandate(setup, team.id, code))}
+              popup={popup}
+              onPopup={setPopup}
+              onEdit={edit}
+              // Tým bez lidí se odebere hned; s lidmi se nejdřív zeptá
+              onRemoveClick={() => (team.people.length === 0 ? handleRemoveTeam(team.id) : setPopup({ kind: 'remove', teamId: team.id }))}
+              onConfirmRemove={() => handleRemoveTeam(team.id)}
+              focusName={nameFocus?.teamId === team.id ? nameFocus.mode : null}
+              onNameFocused={handleNameFocused}
             />
           )))}
       </div>
+
+      {!locked && (
+        <button ref={addTeamRef} type="button" className={`${styles.dashed} ${styles.addTeam}`} onClick={handleAddTeam}>+ Add team</button>
+      )}
     </section>
   )
 }

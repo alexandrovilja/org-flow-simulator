@@ -205,19 +205,60 @@ export function generateOrgBacklog(rng: () => number, settings: OrgBacklogSettin
 }
 
 /**
- * Kontrola před během: najde problémy, kvůli kterým by se práce nemohla dokončit. V inkrementu 1 jen
- * oblasti použité v backlogu, na které žádný tým nemá mandát. Prázdný výsledek znamená, že Run je povolený.
+ * Spojí názvy skillů do věty: „QA“, „Frontend or QA“, „Java, Frontend or QA“.
+ *
+ * @param labels - Názvy skillů v pořadí, v jakém se mají vypsat (aspoň jeden)
+ * @returns Názvy spojené čárkami a posledním „or“
+ */
+function joinWithOr(labels: string[]): string {
+  if (labels.length < 2) return labels[0] ?? ''
+  return `${labels.slice(0, -1).join(', ')} or ${labels[labels.length - 1]}`
+}
+
+/**
+ * Kontrola před během (pravidlo R7, feat-028 a feat-030): najde problémy, kvůli kterým by některý úkol backlogu
+ * nemohl nikdo vzít. Pro každou oblast použitou v backlogu (v pořadí oblastí) je nejvýš jedno varování:
+ *  - žádný tým nemá mandát na oblast: „No team has a mandate for WEB“,
+ *  - jinak skilly, které úkoly v oblasti potřebují a v týmech s mandátem je nikdo nemá, v jednom řádku a v pořadí
+ *    editoru skillů: „No one with Frontend or QA can work in BIL“.
+ * Kontrola pokryje každou dvojici oblast + skill z backlogu. Když projde, má každý úkol aspoň jednoho člověka,
+ * který ho smí vzít, a běh vždy doběhne — engine proto nepotřebuje detekci zaseknutí. Prázdný výsledek znamená,
+ * že Run je povolený.
  *
  * @param setup - Organizace
  * @param backlog - Featury, které se mají zpracovat
- * @returns Texty varování v pořadí oblastí, např. „No team has a mandate for WEB“
+ * @returns Texty varování v pořadí oblastí
  */
 export function validateOrgSetup(setup: OrgSetup, backlog: OrgFeature[]): string[] {
-  const used = new Set(backlog.flatMap(f => f.tasks.map(t => t.area)))
-  const covered = new Set(setup.teams.flatMap(t => t.mandates))
-  return setup.areas
-    .filter(a => used.has(a.code) && !covered.has(a.code))
-    .map(a => `No team has a mandate for ${a.code}`)
+  // Skilly, které úkoly backlogu potřebují, po oblastech (v pořadí, jak se oblasti v backlogu objeví)
+  const needed = new Map<string, Set<Role>>()
+  for (const f of backlog) {
+    for (const t of f.tasks) {
+      let roles = needed.get(t.area)
+      if (!roles) needed.set(t.area, (roles = new Set()))
+      roles.add(t.role)
+    }
+  }
+  // Oblasti v pořadí organizace; oblast, kterou organizace nezná, až za nimi, aby se ani její úkol nezasekl
+  const areaOrder = [...setup.areas.map(a => a.code), ...[...needed.keys()].filter(c => !setup.areas.some(a => a.code === c))]
+  const skillOrder = Object.keys(setup.roleConfig)
+
+  const warnings: string[] = []
+  for (const code of areaOrder) {
+    const roles = needed.get(code)
+    if (!roles) continue
+    const teams = setup.teams.filter(t => t.mandates.includes(code))
+    if (teams.length === 0) {
+      warnings.push(`No team has a mandate for ${code}`)
+      continue
+    }
+    const available = new Set(teams.flatMap(t => t.people.flatMap(p => p.skills)))
+    // Pořadí editoru skillů; skill, který editor nezná, až za nimi pod svým klíčem
+    const order = [...skillOrder, ...[...roles].filter(r => !(r in setup.roleConfig))]
+    const missing = order.filter(r => roles.has(r) && !available.has(r)).map(r => setup.roleConfig[r]?.label ?? r)
+    if (missing.length > 0) warnings.push(`No one with ${joinWithOr(missing)} can work in ${code}`)
+  }
+  return warnings
 }
 
 /**
