@@ -19,8 +19,8 @@ import { feat, orgB, orgDef, orgT, runToEnd, runUntil, stateOf, team } from './f
 //  - Organization: hlavička „3 teams · 12 people“; řádek týmu `data-testid="org-team-row"`.
 //    • Před během: počet „4 people“, štítky mandátů s tlačítkem „Remove mandate BIL“ (title štítku = název oblasti),
 //      tlačítko „Add mandate“ s nabídkou (role menu, položky „BIL Billing“) zbývajících oblastí v pořadí oblastí,
-//      červené „No mandate“; „Show or hide people“ ukáže karty lidí `data-testid="org-person"` jen ke čtení
-//      (jméno a skilly, žádná tlačítka). Varování `role="alert"` s „Run is disabled“ a položkami seznamu.
+//      červené „No mandate“; „Show or hide people“ ukáže karty lidí `data-testid="org-person"` (jméno a skilly;
+//      úpravy lidí a skillů a pole „Team name“ přidal feat-030). Varování `role="alert"` s „Run is disabled“.
 //    • Za běhu: štítky mandátů bez tlačítek a pruh lidí `data-testid="org-people-bar"` s textem „2/3“ (pracuje / celkem);
 //      hlavička „Skills, AI and mandates are locked during the run“, po doběhnutí „Reset to change the organization“.
 //  - In progress: řádek `data-testid="org-feature-row"` (data-feature-id), štítky oblastí `data-testid="org-area-tag"`
@@ -49,9 +49,13 @@ const tile = (name: string) => screen.getByTestId(`stat-tile-${name}`)
 /** Označení featury v UI jako v ostatních módech: F-001. */
 const label = (id: number) => `F-${String(id).padStart(3, '0')}`
 
-/** Řádek týmu v panelu organizace podle názvu. */
+/**
+ * Řádek týmu v panelu organizace podle názvu. Od feat-030 je název před během pole „Team name“, proto se hledá
+ * nejdřív podle hodnoty pole a potom (za běhu) podle textu.
+ */
 function teamRow(name: string): HTMLElement {
-  const row = within(region('Organization')).getAllByTestId('org-team-row').find(r => within(r).queryByText(name))
+  const rows = within(region('Organization')).getAllByTestId('org-team-row')
+  const row = rows.find(r => within(r).queryAllByDisplayValue(name).length > 0) ?? rows.find(r => within(r).queryAllByText(name).length > 0)
   if (!row) throw new Error(`Řádek týmu ${name} není`)
   return row
 }
@@ -122,13 +126,12 @@ describe('feat-028 A1 a B1–B4: panel organizace před během', () => {
     expect(team(lastSetup(props), 'Team Web').mandates).toEqual([])
   })
 
-  it('rozbalený tým ukáže lidi jen ke čtení: jména a skilly bez tlačítek', () => {
+  it('rozbalený tým ukáže lidi: jména a skilly (úpravy lidí a skillů přidal feat-030)', () => {
     renderView(setupState())
     fireEvent.click(within(teamRow('Team Web')).getByRole('button', { name: 'Show or hide people' }))
     const cards = within(teamRow('Team Web')).getAllByTestId('org-person')
     expect(cards.map(c => within(c).getByText(/^(Gus|Hugo|Hana|Ivo)$/).textContent)).toEqual(['Gus', 'Hugo', 'Hana', 'Ivo'])
     expect(within(cards[2]).getByText('Frontend')).toBeInTheDocument()
-    for (const c of cards) expect(within(c).queryAllByRole('button')).toHaveLength(0)
   })
 })
 
