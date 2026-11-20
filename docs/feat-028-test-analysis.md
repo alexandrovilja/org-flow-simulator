@@ -207,18 +207,23 @@ Scénáře počítají s těmito pravidly. Body R1–R6 vyplynuly při sestavov�
 - **Then:** název zůstane „Team Web“
 - **When:** kouč přejmenuje Team Web na „Team Mobile“
 - **Then:** název se uloží; oba týmy se jmenují „Team Mobile“ (R6)
+- **When:** kouč v poli rozepíše „Portal“ a stiskne Esc
+- **Then:** pole ukazuje zase uložený název (feat-030)
 
 #### B8 · Přidání a odebrání týmu — H · U
 - **Given:** ORG-DEF
 - **When:** kouč klikne na „+ Add team“
-- **Then:** přibude rozbalený řádek „Team 4“ s 0 lidmi a „No mandate“; Run zůstane aktivní (backlog je pokrytý)
+- **Then:** přibude rozbalený řádek „Team 4“ s 0 lidmi a „No mandate“; fokus je v poli jeho názvu s označeným textem; Run zůstane aktivní (backlog je pokrytý)
+- **When:** kouč klikne na × u Team 4 (tým bez lidí)
+- **Then:** Team 4 zmizí hned, bez potvrzení (feat-030)
 - **When:** kouč klikne na × u Team Web a potvrdí „Remove Team Web? 4 people will be removed.“
 - **Then:** Team Web zmizí i s lidmi; objeví se varování „No team has a mandate for WEB“ a Run je neaktivní
+- Nový tým se jmenuje „Team N“, kde N je počet týmů po přidání; když už tým s tímto názvem existuje, N se zvyšuje (feat-030).
 
 #### B9 · Přidání a odebrání člověka — H · U
 - **Given:** ORG-DEF, Team Web rozbalený
 - **When:** kouč klikne na „+ Add person“
-- **Then:** přibude člověk bez skillů (karta má jen tlačítko +); počet je „5 people“
+- **Then:** přibude „Person 13“ bez skillů (karta má jen tlačítko +); počet je „5 people“. Jméno je „Person N“, kde N je počet lidí v organizaci po přidání; při shodě se N zvyšuje (feat-030)
 - **When:** kouč u nového člověka zvolí v nabídce ⋯ „Remove person“
 - **Then:** člověk zmizí, Team Web má „4 people“
 
@@ -882,6 +887,7 @@ Feature se 2026-11-12 rozdělila na 9 inkrementů (INVEST, SPIDR). Analýza zůs
 - **D15** ve F3 → feat-032,
 - **Settings → Skills a Areas** v A1 a editory v I1 → feat-036,
 - **název týmu, + Add team, + Add person a × u skillů** v I1 → feat-030, **tlačítko AI** v I1 → feat-035,
+- **AI na čipech** v B10 a B11 (feat-030) → feat-035, **timeline** („done by Mobile Apple“) v B6 (feat-030) → feat-034,
 - **pohled za běhu:** inkrement 1 ukazuje v řádku týmu jen mandáty a pruh lidí (část H1); celý H1 se štítky featur a „1 idle“ je ve feat-029.
 
 ## Pokrytí příkladů ze specu feat-028 (inkrement 1)
@@ -923,4 +929,5 @@ Podle úrovně: unit testy enginu pokrývají hlavně skupiny A, C, D, E, F a G;
 ## Testy (fáze TDD)
 - **Inkrement 1 (feat-028):** 72 testů v `tests/`: unit `feat-028-org-backlog`, `-org-validation`, `-org-engine`, `-organization-view`, `-simulator-integration`, `-tokens` a data `feat028Fixtures.ts`; E2E `feat-028-organizace.spec.ts` a rozšířený `feat-021-design-system.spec.ts` (lišta se čtyřmi záložkami).
 - **Inkrement 2 (feat-029):** 54 testů v `tests/`: unit `feat-029-org-idle` (engine, 21) a `feat-029-organization-view` (komponenta, 33); E2E `feat-029-proc-prace-ceka.spec.ts` (H3, J9 za běhu) a rozšířený test I4 v `feat-028-organizace.spec.ts` (Idle Time). V `feat-028-organization-view` dostal snapshot předchozího běhu pole `idleTime`.
-- **Inkrementy 3–9:** koncept testů pro celou feature (185 testů z 2026-11-11) je v [`docs/feat-028-test-drafts/`](feat-028-test-drafts/README.md) a vezme se do `tests/` v TDD fázi příslušného inkrementu.
+- **Inkrement 3 (feat-030):** 74 unit testů v `tests/unit/simulation/`: `feat-030-org-setup` (čisté úpravy organizace, 21), `feat-030-org-engine` (kontrola chybějících skillů, D13, J3, J8, 18), `feat-030-organization-view` (komponenta, 30) a `feat-030-simulator-integration` (5); E2E `feat-030-upravy-tymu-a-lidi.spec.ts` (postavení organizace a běh při 1024 × 768, obnovení stránky). Ve `feat-028-organization-view`, `feat-028-simulator-integration` a `feat-029-organization-view` hledá pomocná funkce `teamRow` řádek týmu i podle pole „Team name“ a test karet lidí před během už nevyžaduje, aby byly bez tlačítek.
+- **Inkrementy 4–9:** koncept testů pro celou feature (185 testů z 2026-11-11) je v [`docs/feat-028-test-drafts/`](feat-028-test-drafts/README.md) a vezme se do `tests/` v TDD fázi příslušného inkrementu.
